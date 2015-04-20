@@ -1,0 +1,26 @@
+{
+    "name": "edefimov/async-sockets",
+    "description": "Library for asynchronous work with sockets based on php streams",
+    "keywords": [ "async", "stream", "socket" ],
+    "minimum-stability": "stable",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Efimov Evgenij",
+            "email": "edefimov.it@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "AsyncSockets\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=5.4"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.1-dev"
+        }
+    }
+}
