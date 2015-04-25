@@ -10,6 +10,7 @@
 
 namespace AsyncSockets\Socket;
 
+use AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -55,7 +56,11 @@ class AsyncSocketFactory
      */
     public function createRequestExecutor()
     {
-        return new RequestExecutor();
+        if (interface_exists('Symfony\Component\EventDispatcher\EventDispatcherInterface', true)) {
+            return new EventDispatcherAwareRequestExecutor();
+        } else {
+            return new RequestExecutor();
+        }
     }
 
     /**

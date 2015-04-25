@@ -65,7 +65,7 @@ interface RequestExecutorInterface
      * Address to connect for socket. Has meaning only while execute process hasn't started. If this key is
      * specified, you can omit processing of EventType::OPEN event
      *
-     * @see EventType::OPEN
+     * @see EventType::INITIALIZE
      */
     const META_ADDRESS = 'address';
 
@@ -154,20 +154,36 @@ interface RequestExecutorInterface
     /**
      * Subscribe on socket processing event
      *
-     * @param array $events Events to subscribe. Key is one of EventType::* consts, value is the list of callable.
-     *                      Callable will receive any subclass of Event as the only argument
+     * @param array           $events Events to handle. Key is one of EventType::* consts, value
+     *          is the list of callable. Callable will receive any subclass of Event as the only argument
      * @param SocketInterface $socket Socket for subscribing. If not provided, than subscriber will be called for
-     *                                each socket in this executor, which doesn't have own subscriber. Socket
-     *                                must be added to this executor or \OutOfBoundsException will be thrown
+     *          each socket in this executor, which doesn't have own subscriber. Socket
+     *          must be added to this executor or \OutOfBoundsException will be thrown
      *
      * @return void
+     *
      * @throws \OutOfBoundsException If given socket is not added to this executor
      * @see AsyncSockets\Event\EventType
      * @see AsyncSockets\Event\Event
      *
      * @api
      */
-    public function subscribe(array $events, SocketInterface $socket = null);
+    public function addHandler(array $events, SocketInterface $socket = null);
+
+    /**
+     * Remove previously registered handlers
+     *
+     * @param array           $events Events to unsubscribe. Key is one of EventType::* consts, value
+     *          is the list of callable
+     * @param SocketInterface $socket Socket to unsubscribe. If not provided, than subscriber will be removed
+     *          from the list of all socket subscribers.
+     *
+     * @return void
+     * @see AsyncSockets\Event\EventType
+     *
+     * @api
+     */
+    public function removeHandler(array $events, SocketInterface $socket = null);
 
     /**
      * Execute this request

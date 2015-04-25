@@ -9,6 +9,7 @@ Async sockets is the library for asynchronous work with sockets based on php str
 - separate timeout values for each socket
 - custom sockets setup by php stream contexts
 - error handling is based on exceptions
+- sends notification about socket events to the system 
 
 ## Installation
 

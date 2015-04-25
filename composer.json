@@ -1,5 +1,6 @@
 {
     "name": "edefimov/async-sockets",
+    "homepage": "https://github.com/edefimov/async-sockets",
     "description": "Library for asynchronous work with sockets based on php streams",
     "keywords": [ "async", "stream", "socket" ],
     "minimum-stability": "stable",
@@ -18,9 +19,15 @@
     "require": {
         "php": ">=5.4"
     },
+    "require-dev": {
+        "symfony/event-dispatcher": "*"
+    },
+    "suggest": {
+        "symfony/event-dispatcher": "Allows to notify system about socket events"
+    },
     "extra": {
         "branch-alias": {
-            "dev-master": "0.1-dev"
+            "dev-master": "0.1.x-dev"
         }
     }
 }

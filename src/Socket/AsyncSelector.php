@@ -43,16 +43,15 @@ class AsyncSelector
             throw new \InvalidArgumentException('Can not perform select on empty data');
         }
 
-        $read   = $this->getSocketsForOperation(RequestExecutorInterface::OPERATION_READ);
-        $write  = $this->getSocketsForOperation(RequestExecutorInterface::OPERATION_WRITE);
-        $except = null;
+        $read  = $this->getSocketsForOperation(RequestExecutorInterface::OPERATION_READ);
+        $write = $this->getSocketsForOperation(RequestExecutorInterface::OPERATION_WRITE);
 
-        $result = stream_select($read, $write, $except, $seconds, $usec);
+        $result = $this->doStreamSelect($seconds, $usec, $read, $write);
         if ($result === false) {
             throw new RawSocketException('Failed to select sockets');
         }
 
-        if (count($read) + count($write) === 0) {
+        if ($result === 0) {
             throw new TimeoutException('Select operation was interrupted during timeout');
         }
 
@@ -128,7 +127,7 @@ class AsyncSelector
      * @param SocketInterface $socket Socket object
      * @param string          $operation One of RequestExecutorInterface::OPERATION_* consts
      *
-     * @return void!$meta[self::META_REQUEST_COMPLETE]
+     * @return void
      */
     public function changeSocketOperation(SocketInterface $socket, $operation)
     {
@@ -200,5 +199,25 @@ class AsyncSelector
         foreach ($opList as $op) {
             $this->removeSocketOperation($socket, $op);
         }
+    }
+
+    /**
+     * Make stream_select call
+     *
+     * @param int $seconds Amount of seconds to wait
+     * @param int $usec Amount of microseconds to add to $seconds
+     * @param resource[] $read List of sockets to check for read. After function return it will be filled with
+     *      sockets, which are ready to read
+     * @param resource[] $write List of sockets to check for write. After function return it will be filled with
+     *      sockets, which are ready to write
+     *
+     * @return bool|int False in case of system error, int - amount of sockets ready for I/O
+     */
+    private function doStreamSelect($seconds, $usec = null, array &$read = null, array &$write = null)
+    {
+        $except = null;
+        $result = stream_select($read, $write, $except, $seconds, $usec);
+
+        return $result === false ? $result : count($read) + count($write);
     }
 }

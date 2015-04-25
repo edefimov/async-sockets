@@ -18,7 +18,7 @@ use AsyncSockets\Socket\SocketInterface;
  *
  * @api
  */
-class Event
+class Event extends AbstractEvent
 {
     /**
      * Socket linked to this event

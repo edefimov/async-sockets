@@ -44,6 +44,21 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private $isExecuting = false;
 
+    /**
+     * Default socket timeout, seconds
+     *
+     * @var int
+     */
+    private $defaultSocketTimeout;
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->defaultSocketTimeout = (int) ini_get('default_socket_timeout');
+    }
+
 
     /** {@inheritdoc} */
     public function addSocket(SocketInterface $socket, $operation, array $metadata = null)
@@ -58,8 +73,8 @@ class RequestExecutor implements RequestExecutorInterface
                 self::META_ADDRESS               => null,
                 self::META_USER_CONTEXT          => null,
                 self::META_SOCKET_STREAM_CONTEXT => null,
-                self::META_CONNECTION_TIMEOUT    => (int) ini_get('default_socket_timeout'),
-                self::META_IO_TIMEOUT            => (double) ini_get('default_socket_timeout'),
+                self::META_CONNECTION_TIMEOUT    => (int) $this->defaultSocketTimeout,
+                self::META_IO_TIMEOUT            => (double) $this->defaultSocketTimeout,
             ],
             $metadata ?: [],
             [
@@ -128,7 +143,7 @@ class RequestExecutor implements RequestExecutorInterface
     }
 
     /** {@inheritdoc} */
-    public function subscribe(array $events, SocketInterface $socket = null)
+    public function addHandler(array $events, SocketInterface $socket = null)
     {
         if ($socket) {
             $hash = $this->requireAddedSocketKey($socket);
@@ -149,6 +164,33 @@ class RequestExecutor implements RequestExecutorInterface
         }
     }
 
+    /** {@inheritdoc} */
+    public function removeHandler(array $events, SocketInterface $socket = null)
+    {
+        if ($socket) {
+            $hash = $this->getSocketStorageKey($socket);
+            if (!isset($this->sockets[$hash]) || !$this->sockets[$hash]['subscribers']) {
+                return;
+            }
+
+            $eventStorage = & $this->sockets[$hash]['subscribers'];
+        } else {
+            $eventStorage = & $this->subscribers;
+        }
+
+        foreach ($events as $eventName => $subscribers) {
+            if (!isset($eventStorage[$eventName])) {
+                continue;
+            }
+
+            foreach ($subscribers as $subscriber) {
+                $key = array_search($subscriber, $eventStorage[$eventName], true);
+                if ($key !== false) {
+                    unset($eventStorage[$eventName][$key]);
+                }
+            }
+        }
+    }
 
     /** {@inheritdoc} */
     public function isExecuting()
@@ -202,7 +244,7 @@ class RequestExecutor implements RequestExecutorInterface
             }
 
             $socket = $item['socket'];
-            $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::OPEN);
+            $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::INITIALIZE);
 
             try {
                 $this->setSocketOperationTime($this->sockets[$hash]['meta'], self::META_CONNECTION_START_TIME);
@@ -318,6 +360,11 @@ class RequestExecutor implements RequestExecutorInterface
             $this->callExceptionSubscribers($socket, $event, $e);
         }
 
+        $this->callSocketSubscribers(
+            $socket,
+            new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::FINALIZE)
+        );
+
         if ($selector) {
             $selector->removeAllSocketOperations($socket);
         }
@@ -342,6 +389,19 @@ class RequestExecutor implements RequestExecutorInterface
     }
 
     /**
+     * Handle socket event in subclasses
+     *
+     * @param SocketInterface $socket
+     * @param Event           $event
+     *
+     * @return void
+     */
+    protected function handleSocketEvent(SocketInterface $socket, Event $event)
+    {
+        // empty body
+    }
+
+    /**
      * Notify subscribers about given event
      *
      * @param SocketInterface $socket Socket object
@@ -355,6 +415,7 @@ class RequestExecutor implements RequestExecutorInterface
         foreach ($subscribers as $subscriber) {
             call_user_func_array($subscriber, [$event]);
         }
+        $this->handleSocketEvent($socket, $event);
     }
 
     /**
@@ -504,13 +565,23 @@ class RequestExecutor implements RequestExecutorInterface
             return [ 'sec' => 0, 'microsec' => 0 ];
         }
 
-        $timeList = [];
+        $timeList  = [];
+        $microtime = microtime(true);
         foreach ($activeKeys as $key) {
             $meta = $this->sockets[$key]['meta'];
             if ($meta[self::META_CONNECTION_FINISH_TIME] === null) {
-                $timeList[] = (double) $meta[self::META_CONNECTION_TIMEOUT];
+                $timeout = $meta[self::META_CONNECTION_START_TIME] === null ?
+                    $meta[self::META_CONNECTION_TIMEOUT] :
+                    $meta[self::META_CONNECTION_TIMEOUT] - ($microtime - $meta[self::META_CONNECTION_START_TIME]);
             } else {
-                $timeList[] = (double) $meta[self::META_IO_TIMEOUT];
+                $timeout = $meta[self::META_LAST_IO_START_TIME] === null ?
+                    $meta[self::META_IO_TIMEOUT] :
+                    $meta[self::META_IO_TIMEOUT] - ($microtime - $meta[self::META_LAST_IO_START_TIME])
+                ;
+            }
+
+            if ($timeout > 0) {
+                $timeList[] = $timeout;
             }
         }
 

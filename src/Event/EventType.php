@@ -18,17 +18,20 @@ namespace AsyncSockets\Event;
 final class EventType
 {
     /**
-     * Socket is about to open. Event object will be given in argument.
-     * You should call setSocketMetaData method and fill RequestExecutorInterface::META_ADDRESS with value
-     * You can omit handling of this event, if you set RequestExecutorInterface::META_ADDRESS in socket metadata.
+     * It is the first event, which you receive for socket. Event object will be given in argument.
+     * This is useful for making some initialization work. You should call setSocketMetaData method and fill
+     * RequestExecutorInterface::META_ADDRESS with value. You can omit handling of this event, if you
+     * set RequestExecutorInterface::META_ADDRESS in socket metadata.
      * You can also call open method manually on the socket
      *
      * @see Event
      * @see RequestExecutorInterface::META_ADDRESS
      * @see RequestExecutorInterface::setSocketMetaData
      * @see SocketInterface::open
+     *
+     * @see Event
      */
-    const OPEN = 'socket.event.open';
+    const INITIALIZE = 'socket.event.initialize';
 
     /**
      * Socket has connected to server. Event object will be given in argument.
@@ -58,6 +61,14 @@ final class EventType
      * @see Event
      */
     const DISCONNECTED = 'socket.event.disconnected';
+
+    /**
+     * It is the last event, which you receive for socket. This event is useful for cleaning stuff after initialization.
+     * You will receive this event even in case of errors in socket processing. Event object will be given in argument.
+     *
+     * @see Event
+     */
+    const FINALIZE = 'socket.event.finalize';
 
     /**
      * Connect / read / write operation timeout for socket. Event object will be given in argument.

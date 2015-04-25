@@ -26,7 +26,7 @@ You should specify demo name after -- string
 Example:
    php {$name} -- SimpleClient
 HELP;
-    exit(-1);
+    return -1;
 }
 
 $demoClass = $_SERVER['argv'][$index];
@@ -35,11 +35,11 @@ $classFile = __DIR__ . DIRECTORY_SEPARATOR . 'Demo' . DIRECTORY_SEPARATOR . $dem
 
 if (!file_exists($classFile)) {
     echo "Demo {$demoClass} does not exist\n";
-    exit(-1);
+    return -1;
 }
 
 require_once $classFile;
 
 $class = new $className;
 $code = call_user_func_array([$class, 'main'], []) ?: 0;
-exit($code);
+return $code;
