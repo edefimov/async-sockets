@@ -9,11 +9,11 @@
  */
 
 namespace AsyncSockets\Exception;
- 
+
 /**
- * Class TimeoutException
+ * Class SocketException
  */
-class TimeoutException extends SocketException
+class SocketException extends \RuntimeException
 {
 
 }

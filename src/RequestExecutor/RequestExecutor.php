@@ -250,17 +250,8 @@ class RequestExecutor implements RequestExecutorInterface
                 $this->setSocketOperationTime($this->sockets[$hash]['meta'], self::META_CONNECTION_START_TIME);
                 $this->callSocketSubscribers($socket, $event);
                 if (!$socket->getStreamResource()) {
-                    $meta = $this->sockets[$hash]['meta'];
-                    $streamContext     = null;
-                    $metaStreamContext = $meta[ self::META_SOCKET_STREAM_CONTEXT ];
-                    if (is_resource($metaStreamContext)) {
-                        $streamContext = $metaStreamContext;
-                    } elseif (is_array($metaStreamContext)) {
-                        $streamContext = stream_context_create(
-                            isset($metaStreamContext['options']) ? $metaStreamContext['options'] : [],
-                            isset($metaStreamContext['params']) ? $metaStreamContext['params'] : []
-                        );
-                    }
+                    $meta          = $this->sockets[ $hash ][ 'meta' ];
+                    $streamContext = $this->getStreamContextFromMetaData($meta);
 
                     $socket->open($meta[self::META_ADDRESS], $streamContext);
                 }
@@ -395,6 +386,8 @@ class RequestExecutor implements RequestExecutorInterface
      * @param Event           $event
      *
      * @return void
+     *
+     * @SuppressWarnings("unused")
      */
     protected function handleSocketEvent(SocketInterface $socket, Event $event)
     {
@@ -585,10 +578,10 @@ class RequestExecutor implements RequestExecutorInterface
             }
         }
 
-        $tm = min($timeList);
+        $timeout = min($timeList);
         return [
-            'sec'      => (int) floor($tm),
-            'microsec' => round((double) $tm - floor($tm), 6) * 1000000
+            'sec'      => (int) floor($timeout),
+            'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000
         ];
     }
 
@@ -602,5 +595,27 @@ class RequestExecutor implements RequestExecutorInterface
     private function getSocketStorageKey(SocketInterface $socket)
     {
         return spl_object_hash($socket);
+    }
+
+    /**
+     * Return stream context from meta data
+     *
+     * @param array $meta Socket metadata
+     *
+     * @return resource|null
+     */
+    private function getStreamContextFromMetaData($meta)
+    {
+        $metaStreamContext = $meta[ self::META_SOCKET_STREAM_CONTEXT ];
+        if (is_resource($metaStreamContext)) {
+            return $metaStreamContext;
+        } elseif (is_array($metaStreamContext)) {
+            return stream_context_create(
+                isset($metaStreamContext[ 'options' ]) ? $metaStreamContext[ 'options' ] : [ ],
+                isset($metaStreamContext[ 'params' ]) ? $metaStreamContext[ 'params' ] : [ ]
+            );
+        }
+
+        return null;
     }
 }

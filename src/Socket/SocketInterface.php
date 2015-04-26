@@ -22,8 +22,8 @@ interface SocketInterface extends StreamResourceInterface
     /**
      * Tries to connect to server
      *
-     * @param string   $address Network address to open in form transport://path:port
-     * @param resource $context Valid stream context created by function stream_context_create or null
+     * @param string        $address Network address to open in form transport://path:port
+     * @param resource|null $context Valid stream context created by function stream_context_create or null
      *
      * @return bool
      * @throws NetworkSocketException

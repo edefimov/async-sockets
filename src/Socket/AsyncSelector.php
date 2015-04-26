@@ -10,7 +10,7 @@
 
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Exception\RawSocketException;
+use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -34,7 +34,7 @@ class AsyncSelector
      *
      * @return SelectContext
      * @throws TimeoutException If operation was interrupted during timeout
-     * @throws RawSocketException If network operation failed
+     * @throws SocketException If network operation failed
      * @throws \InvalidArgumentException If there is no socket in the list
      */
     public function select($seconds, $usec = null)
@@ -48,7 +48,7 @@ class AsyncSelector
 
         $result = $this->doStreamSelect($seconds, $usec, $read, $write);
         if ($result === false) {
-            throw new RawSocketException('Failed to select sockets');
+            throw new SocketException('Failed to select sockets');
         }
 
         if ($result === 0) {

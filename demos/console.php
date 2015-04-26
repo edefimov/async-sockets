@@ -9,7 +9,7 @@
  * with this source code in the file LICENSE.
  */
 
-require_once 'autoload.php';
+require_once __DIR__ . '/autoload.php';
 
 $index = null;
 foreach ($_SERVER['argv'] as $key => $argValue) {

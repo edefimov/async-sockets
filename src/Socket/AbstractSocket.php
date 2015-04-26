@@ -60,8 +60,7 @@ abstract class AbstractSocket implements SocketInterface
         $this->close();
 
         $this->effectiveAddress = $address;
-        $this->resource         = $this->createSocketResource($address, is_resource($context) ? $context :
-            stream_context_get_default());
+        $this->resource         = $this->createSocketResource($address, $context ?: stream_context_get_default());
 
         return is_resource($this->resource);
     }
@@ -83,7 +82,7 @@ abstract class AbstractSocket implements SocketInterface
         do {
             $data = fread($this->resource, self::SOCKET_READ_BUFFER_SIZE);
             if ($data === false) {
-                $this->throwNetworkSocketException($this, 'Failed to read data');
+                $this->throwNetworkSocketException('Failed to read data');
             }
 
             $result .= $data;
@@ -116,7 +115,6 @@ abstract class AbstractSocket implements SocketInterface
         $result = stream_set_blocking($this->resource, $isBlocking ? 1 : 0);
         if ($result === false) {
             $this->throwNetworkSocketException(
-                $this,
                 'Failed to switch ' . ($isBlocking ? '': 'non-') . 'blocking mode'
             );
         }

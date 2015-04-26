@@ -10,7 +10,7 @@
 
 namespace Demo;
 
-use AsyncSockets\Exception\RawSocketException;
+use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
@@ -69,7 +69,7 @@ final class SimpleAsyncClient
                     try {
                         $socket->write($data[spl_object_hash($socket)]['data']);
                         $selector->changeSocketOperation($socket, RequestExecutorInterface::OPERATION_READ);
-                    } catch (RawSocketException $e) {
+                    } catch (SocketException $e) {
                         $selector->removeAllSocketOperations($socket);
                         $aliveClients -= 1;
                     }
@@ -83,7 +83,7 @@ final class SimpleAsyncClient
                 }
             } while ($numReadClient < $aliveClients);
 
-        } catch (RawSocketException $e) {
+        } catch (SocketException $e) {
             echo $e->getMessage() . "\n";
         }
     }

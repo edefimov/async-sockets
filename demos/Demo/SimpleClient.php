@@ -10,7 +10,7 @@
 
 namespace Demo;
 
-use AsyncSockets\Exception\RawSocketException;
+use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Socket\AsyncSocketFactory;
 
 /**
@@ -36,7 +36,7 @@ final class SimpleClient
             $client->close();
 
             echo $response;
-        } catch (RawSocketException $e) {
+        } catch (SocketException $e) {
             echo $e->getMessage() . "\n";
         }
     }

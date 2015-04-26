@@ -24,7 +24,7 @@ class ClientSocket extends AbstractSocket
             $address,
             $errno,
             $errstr,
-            1,
+            null,
             STREAM_CLIENT_ASYNC_CONNECT,
             $context
         );

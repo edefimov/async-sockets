@@ -8,12 +8,6 @@
  * with this source code in the file LICENSE.
  */
 
-namespace AsyncSockets\Exception;
+$classLoader = require_once __DIR__ . '/../vendor/autoload.php';
 
-/**
- * Class RawSocketException
- */
-class RawSocketException extends \RuntimeException
-{
-
-}
+Tests\AsyncSockets\Mock\PhpFunctionMocker::bootstrap($classLoader);

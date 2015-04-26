@@ -16,7 +16,7 @@ use AsyncSockets\Socket\SocketInterface;
  * Class NetworkSocketException.
  * This exception can be thrown during network operations.
  */
-class NetworkSocketException extends RawSocketException
+class NetworkSocketException extends SocketException
 {
     /**
      * Socket with this exception
