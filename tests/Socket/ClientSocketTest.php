@@ -38,7 +38,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
      */
     public function testExceptionWillBeThrowsOnCreateFail()
     {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client', $this->socket);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client');
         $mocker->setCallable(function ($remoteSocket, &$errno, &$errstr) {
             self::assertEquals('php://temp', $remoteSocket, 'Incorrect address passed to stream_socket_client');
             $errno  = 500;
@@ -57,7 +57,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
      */
     public function testExceptionWillBeThrowsOnSetBlockingFail()
     {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking', $this->socket);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking');
         $mocker->setCallable(function ($resource, $isBlocking) {
             self::assertEquals(false, $isBlocking, 'Unexpected value passed');
             return false;
@@ -77,7 +77,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
         $testString = "HTTP 200 OK\nServer: test-reader\n\n";
         $counter    = 0;
 
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fread', $this->socket);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fread');
         $mocker->setCallable(function () use ($testString, &$counter) {
             return $counter < strlen($testString) ? $testString[$counter++] : '';
         });
@@ -98,7 +98,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
         $counter    = 0;
         $retString  = '';
 
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fwrite', $this->socket);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fwrite');
         $mocker->setCallable(function ($handle, $data) use ($testString, &$counter, &$retString) {
             if ($counter < strlen($testString) && $data) {
                 ++$counter;
@@ -122,7 +122,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
      */
     public function testExceptionWillBeThrownOnReadError()
     {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fread', $this->socket);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fread');
         $mocker->setCallable(function () {
             return false;
         });
@@ -139,7 +139,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
      */
     public function testExceptionWillBeThrownOnWriteError()
     {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fwrite', $this->socket);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fwrite');
         $mocker->setCallable(function () {
             return false;
         });
@@ -171,7 +171,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
         $this->socket = new ClientSocket();
 
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client', $this->socket);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client');
         $mocker->setCallable(function () {
             return fopen('php://temp', 'rw');
         });
@@ -180,9 +180,9 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
     /** {@inheritdoc} */
     protected function tearDown()
     {
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client', $this->socket)->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking', $this->socket)->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('fread', $this->socket)->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('fwrite', $this->socket)->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('fwrite')->restoreNativeHandler();
     }
 }

@@ -21,7 +21,7 @@ class PhpFunctionMocker
     /**
      * Array of mocked functions
      *
-     * @var array
+     * @var PhpFunctionMocker[]
      */
     private static $mocks = [];
 
@@ -29,26 +29,18 @@ class PhpFunctionMocker
      * Return mock function for php given one
      *
      * @param string $funcName Php function name to mock
-     * @param object $classObject Object to mock function for
      *
      * @return PhpFunctionMocker
      */
-    public static function getPhpFunctionMocker($funcName, $classObject)
+    public static function getPhpFunctionMocker($funcName)
     {
         if (!isset(self::$mocks[$funcName])) {
-            self::$mocks[$funcName] = [];
-        }
-
-        $className = get_class($classObject);
-        $namespace = self::getClassNameSpace($className);
-
-        if (!isset(self::$mocks[$funcName][$namespace])) {
             $mockerClass = get_class() . '_' . $funcName;
             $object      = new $mockerClass($funcName);
-            self::$mocks[$funcName][$namespace] = $object;
+            self::$mocks[$funcName] = $object;
         }
 
-        return self::$mocks[$funcName][$namespace];
+        return self::$mocks[$funcName];
     }
 
     /**
@@ -60,22 +52,23 @@ class PhpFunctionMocker
      */
     public static function bootstrap(ClassLoader $classLoader = null)
     {
-        $getDefinedFunctions = function ($class) use ($classLoader) {
-            $result = get_defined_functions()['internal'];
+        $nativeFunctions     = array_flip(get_defined_functions()['internal']);
+        $getDefinedFunctions = function ($class) use ($classLoader, &$nativeFunctions) {
+            $result = $nativeFunctions;
             if ($classLoader) {
                 $file = $classLoader->findFile($class);
                 if ($file) {
-                    $phpFunctions = array_flip($result);
-                    $content      = file_get_contents($file);
-                    $tokens       = token_get_all($content);
+                    $tokens       = token_get_all(
+                        file_get_contents($file)
+                    );
                     $functions    = [ ];
                     for ($i = 0; $i < count($tokens); $i++) {
                         $token = $tokens[$i];
                         $isPossibleFunction = is_array($token) &&
                                               T_STRING === $token[0] &&
-                                              isset($phpFunctions[$token[1]]);
+                                              isset($nativeFunctions[$token[1]]);
                         if ($isPossibleFunction) {
-                            $functions[] = $token[1];
+                            $functions[$token[1]] = $token[1];
                         }
                     }
 
@@ -83,12 +76,12 @@ class PhpFunctionMocker
                 }
             }
 
-            return $result;
+            return array_keys($result);
         };
 
 
         \spl_autoload_register(function ($className) use ($getDefinedFunctions) {
-            $namespace = substr($className, 0, strrpos($className, '\\'));
+            $namespace = self::getClassNameSpace($className);
             if (!$namespace) {
                 return;
             }
@@ -109,15 +102,21 @@ class PhpFunctionMocker
      */
     private static function defineFunction($funcName, $namespace)
     {
+        static $phpNamespace;
+
+        $myReference = get_class();
+        if ($phpNamespace === null) {
+            $phpNamespace = 'X' . md5($myReference);
+        }
+
         if (function_exists("{$namespace}\\{$funcName}")) {
             return;
         }
-        $myReference = get_class();
-        $myNamespace = self::getClassNameSpace($myReference);
 
-        $function       = new \ReflectionFunction('\\' . $funcName);
-        $argList        = self::getFunctionArgumentList($function);
-        $callList       = self::getFunctionCallList($function->getParameters());
+        $myNamespace = self::getClassNameSpace($myReference);
+        $function    = new \ReflectionFunction('\\' . $funcName);
+        $argList     = self::getFunctionArgumentList($function);
+        $callList    = self::getFunctionCallList($function->getParameters());
 
         $separatedArgList  = $argList === '' ? '' : ', ' .  $argList;
         $separatedCallList = $callList === '' ? '' : ', ' .  $callList;
@@ -128,9 +127,9 @@ class PhpFunctionMocker
 namespace {$myNamespace} {
     class PhpFunctionMocker_{$funcName} extends PhpFunctionMocker
     {
-        public static function invokeMethod(\$callable, \$isNativeCall {$separatedArgList})
+        public static function invokeMethod(\$callable {$separatedArgList})
         {
-            if (\$callable instanceof \\Closure) {
+            if (\$callable instanceof \\Closure || \method_exists(\$callable, '__invoke')) {
                 return \$callable({$callList});
             }
 
@@ -140,9 +139,32 @@ namespace {$myNamespace} {
         public function __invoke({$argList})
         {
             \$callable = \$this->getTargetCallable();
-            return self::invokeMethod(\$callable, \$this->isNativeCall() {$separatedCallList});
+            return self::invokeMethod(\$callable {$separatedCallList});
         }
     }
+}
+MAGIC
+            );
+        }
+
+        if (!function_exists("{$phpNamespace}\\{$funcName}")) {
+            eval(<<<MAGIC
+namespace {$phpNamespace} {
+   function {$funcName} ({$argList})
+   {
+       \$closure = function() {
+                return isset(\\{$myReference}::\$mocks['{$funcName}']) ?
+                    \\{$myReference}::\$mocks['{$funcName}'] : null;
+       };
+
+       \$closure = \$closure->bindTo(null, '\\{$myReference}');
+       \$mocker  = \$closure();
+       return \$mocker !== null ? \$mocker({$callList}) :
+                                  \\{$myNamespace}\\PhpFunctionMocker_{$funcName}::invokeMethod(
+                                      '\\{$funcName}'
+                                      {$separatedCallList}
+                                  );
+   }
 }
 MAGIC
             );
@@ -152,21 +174,7 @@ MAGIC
 namespace {$namespace} {
    function {$funcName} ({$argList})
    {
-       \$closure = function() {
-                return isset(\\{$myReference}::\$mocks['{$funcName}'],
-                             \\{$myReference}::\$mocks['{$funcName}']['{$namespace}']) ?
-                    \\{$myReference}::\$mocks['{$funcName}']['{$namespace}'] :
-                    null;
-       };
-
-       \$closure = \$closure->bindTo(null, '\\{$myReference}');
-       \$mocker  = \$closure->__invoke();
-       return \$mocker !== null ? \$mocker({$callList}) :
-                                  \\{$myNamespace}\\PhpFunctionMocker_{$funcName}::invokeMethod(
-                                      '\\{$funcName}',
-                                      true
-                                      {$separatedCallList}
-                                  );
+       return \\{$phpNamespace}\\{$funcName}({$callList});
    }
 }
 MAGIC
@@ -326,16 +334,6 @@ CODE;
     public function restoreNativeHandler()
     {
         $this->callable = null;
-    }
-
-    /**
-     * Checks whether we are going to call native php method
-     *
-     * @return bool
-     */
-    protected function isNativeCall()
-    {
-        return !is_callable($this->callable);
     }
 
     /**

@@ -158,7 +158,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      */
     public function testStreamSelectFail()
     {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select', $this->selector);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
         $mocker->setCallable(function () {
             return false;
         });
@@ -175,7 +175,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      */
     public function testTimeOutExceptionWillBeThrown()
     {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select', $this->selector);
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
         $mocker->setCallable(function (array &$read = null, array &$write = null) {
             $read  = [];
             $write = [];
@@ -235,7 +235,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     /** {@inheritdoc} */
     protected function tearDown()
     {
-        PhpFunctionMocker::getPhpFunctionMocker('stream_select', $this->selector)->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
         $this->socket->close();
     }
 }
