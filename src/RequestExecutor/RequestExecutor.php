@@ -26,7 +26,7 @@ class RequestExecutor implements RequestExecutorInterface
     /**
      * Array of registered sockets
      *
-     * @var SocketInterface[][]
+     * @var array[][]
      */
     private $sockets = [];
 
@@ -91,6 +91,13 @@ class RequestExecutor implements RequestExecutorInterface
             'subscribers' => null,
             'meta'        => $meta,
         ];
+    }
+
+    /** {@inheritdoc} */
+    public function hasSocket(SocketInterface $socket)
+    {
+        $hash = $this->getSocketStorageKey($socket);
+        return isset($this->sockets[$hash]);
     }
 
     /** {@inheritdoc} */
@@ -244,6 +251,7 @@ class RequestExecutor implements RequestExecutorInterface
             }
 
             $socket = $item['socket'];
+            /** @var SocketInterface $socket */
             $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::INITIALIZE);
 
             try {
@@ -342,6 +350,7 @@ class RequestExecutor implements RequestExecutorInterface
         $this->sockets[$hash]['meta'][self::META_REQUEST_COMPLETE] = true;
 
         $socket = $item['socket'];
+        /** @var SocketInterface $socket */
         $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::DISCONNECTED);
 
         try {
@@ -482,11 +491,13 @@ class RequestExecutor implements RequestExecutorInterface
                 ($meta[self::META_CONNECTION_FINISH_TIME] !== null &&
                  $microtime - $meta[self::META_LAST_IO_START_TIME] > $meta[self::META_IO_TIMEOUT]);
             if ($isTimeout) {
-                $event = new Event($this, $item['socket'], $meta[self::META_USER_CONTEXT], EventType::TIMEOUT);
+                /** @var SocketInterface $socket */
+                $socket = $item['socket'];
+                $event = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::TIMEOUT);
                 try {
-                    $this->callSocketSubscribers($item['socket'], $event);
+                    $this->callSocketSubscribers($socket, $event);
                 } catch (\Exception $e) {
-                    $this->callExceptionSubscribers($item['socket'], $event, $e);
+                    $this->callExceptionSubscribers($socket, $event, $e);
                 }
                 $result[] = $key;
             }

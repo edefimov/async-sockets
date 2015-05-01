@@ -115,6 +115,10 @@ class PhpFunctionMocker
 
         $myNamespace = self::getClassNameSpace($myReference);
         $function    = new \ReflectionFunction('\\' . $funcName);
+        if (method_exists($function, 'isVariadic') && $function->isVariadic()) {
+            return;
+        }
+
         $argList     = self::getFunctionArgumentList($function);
         $callList    = self::getFunctionCallList($function->getParameters());
 
@@ -211,7 +215,7 @@ MAGIC
         }
 
         \ksort($result);
-        return implode(',', $result);
+        return \implode(',', $result);
     }
 
     /**
@@ -230,7 +234,7 @@ MAGIC
         }
 
         \ksort($result);
-        return implode(',', $result);
+        return \implode(',', $result);
     }
 
     /**

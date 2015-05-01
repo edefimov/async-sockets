@@ -38,29 +38,53 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     /**
      * Test that socket object will be returned in read context property
      *
+     * @param string $operation Operation to execute
+     * @param int    $countRead Amount of sockets, that must be ready to read
+     * @param int    $countWrite Amount of sockets, that must be ready to write
+     *
      * @return void
+     * @dataProvider socketOperationDataProvider
      */
-    public function testSelectRead()
+    public function testSelectReadWrite($operation, $countRead, $countWrite)
     {
-        $this->selector->addSocketOperation($this->socket, RequestExecutorInterface::OPERATION_READ);
-        $result = $this->selector->select(0);
-        self::assertCount(1, $result->getRead(), 'Unexpected result of read selector');
-        self::assertCount(0, $result->getWrite(), 'Unexpected result of write selector');
-        self::assertSame($this->socket, $result->getRead()[0], 'Unexpected object returned for read operation');
+        $this->selector->addSocketOperation($this->socket, $operation);
+        $this->verifySocketSelectOperation($countRead, $countWrite);
     }
 
     /**
-     * Test that socket object will be returned in read context property
+     * testAddSocketArrayReadWrite
+     *
+     * @param string $operation Operation to execute
+     * @param int    $countRead Amount of sockets, that must be ready to read
+     * @param int    $countWrite Amount of sockets, that must be ready to write
      *
      * @return void
+     * @depends testSelectReadWrite
+     * @dataProvider socketOperationDataProvider
      */
-    public function testSelectWrite()
+    public function testAddSocketArrayReadWrite($operation, $countRead, $countWrite)
     {
-        $this->selector->addSocketOperation($this->socket, RequestExecutorInterface::OPERATION_WRITE);
-        $result = $this->selector->select(0);
-        self::assertCount(1, $result->getWrite(), 'Unexpected result of write selector');
-        self::assertCount(0, $result->getRead(), 'Unexpected result of read selector');
-        self::assertSame($this->socket, $result->getWrite()[0], 'Unexpected object returned for write operation');
+        $this->selector->addSocketOperationArray([$this->socket], $operation);
+        $this->verifySocketSelectOperation($countRead, $countWrite);
+    }
+
+    /**
+     * testAddSocketArrayWrite
+     *
+     * @param string $operation Operation to execute
+     * @param int    $countRead Amount of sockets, that must be ready to read
+     * @param int    $countWrite Amount of sockets, that must be ready to write
+     *
+     * @return void
+     * @depends testAddSocketArrayReadWrite
+     * @dataProvider socketOperationDataProvider
+     */
+    public function testAddSocketArrayReadWriteComplexArray($operation, $countRead, $countWrite)
+    {
+        $this->selector->addSocketOperationArray([
+            [ $this->socket, $operation ]
+        ]);
+        $this->verifySocketSelectOperation($countRead, $countWrite);
     }
 
     /**
@@ -75,105 +99,67 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testAddSocketArrayRead
+     * testAddSocketArrayWithInvalidArrayStructure
+     *
+     * @param array $socketData Socket add data
      *
      * @return void
-     * @depends testSelectRead
-     * @depends testSelectWrite
-     */
-    public function testAddSocketArrayRead()
-    {
-        $this->selector->addSocketOperationArray([$this->socket], RequestExecutorInterface::OPERATION_READ);
-        $result = $this->selector->select(0);
-        self::assertCount(1, $result->getRead(), 'Unexpected result of read selector');
-        self::assertCount(0, $result->getWrite(), 'Unexpected result of write selector');
-        self::assertSame($this->socket, $result->getRead()[0], 'Unexpected object returned for read operation');
-    }
-
-    /**
-     * testAddSocketArrayWithInvalidArrayStructure1
-     *
-     * @return void
-     * @depends testSelectRead
-     * @depends testSelectWrite
+     * @depends testSelectReadWrite
+     * @dataProvider invalidSocketAddDataProvider
      * @expectedException \InvalidArgumentException
      */
-    public function testAddSocketArrayWithInvalidArrayStructure1()
+    public function testAddSocketArrayWithInvalidArrayStructure(array $socketData)
     {
-        $this->selector->addSocketOperationArray([ [$this->socket] ]);
-    }
-
-    /**
-     * testAddSocketArrayWithInvalidArrayStructure2
-     *
-     * @return void
-     * @depends testSelectRead
-     * @depends testSelectWrite
-     * @expectedException \InvalidArgumentException
-     */
-    public function testAddSocketArrayWithInvalidArrayStructure2()
-    {
-        $this->selector->addSocketOperationArray([ $this->socket ]);
-    }
-
-    /**
-     * testAddSocketArrayWrite
-     *
-     * @return void
-     * @depends testSelectRead
-     * @depends testSelectWrite
-     */
-    public function testAddSocketArrayWrite()
-    {
-        $this->selector->addSocketOperationArray([
-            [ $this->socket, RequestExecutorInterface::OPERATION_WRITE ]
-        ]);
-
-        $result = $this->selector->select(0);
-        self::assertCount(1, $result->getWrite(), 'Unexpected result of write selector');
-        self::assertCount(0, $result->getRead(), 'Unexpected result of read selector');
-        self::assertSame($this->socket, $result->getWrite()[0], 'Unexpected object returned for write operation');
+        $this->selector->addSocketOperationArray($socketData);
     }
 
     /**
      * testRemoveSocket
      *
+     * @param string $operation Operation to execute
+     *
      * @return void
-     * @depends testSelectRead
-     * @depends testSelectWrite
+     * @depends testSelectReadWrite
+     * @dataProvider socketOperationDataProvider
      * @expectedException \InvalidArgumentException
      */
-    public function testRemoveSocket()
+    public function testRemoveSocket($operation)
     {
-        $this->selector->addSocketOperation($this->socket, RequestExecutorInterface::OPERATION_READ);
-        $this->selector->removeSocketOperation($this->socket, RequestExecutorInterface::OPERATION_READ);
+        $this->selector->addSocketOperation($this->socket, $operation);
+        $this->selector->removeSocketOperation($this->socket, $operation);
         $this->selector->select(0);
     }
 
     /**
      * testStreamSelectFail
      *
+     * @param string $operation Operation to execute
+     *
      * @return void
+     * @dataProvider socketOperationDataProvider
      * @expectedException \AsyncSockets\Exception\SocketException
      */
-    public function testStreamSelectFail()
+    public function testStreamSelectFail($operation)
     {
         $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
         $mocker->setCallable(function () {
             return false;
         });
 
-        $this->selector->addSocketOperation($this->socket, RequestExecutorInterface::OPERATION_READ);
+        $this->selector->addSocketOperation($this->socket, $operation);
         $this->selector->select(0);
     }
 
     /**
      * testTimeOutExceptionWillBeThrown
      *
+     * @param string $operation Operation to execute
+     *
      * @return void
+     * @dataProvider socketOperationDataProvider
      * @expectedException \AsyncSockets\Exception\TimeoutException
      */
-    public function testTimeOutExceptionWillBeThrown()
+    public function testTimeOutExceptionWillBeThrown($operation)
     {
         $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
         $mocker->setCallable(function (array &$read = null, array &$write = null) {
@@ -182,21 +168,23 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
             return 0;
         });
 
-        $this->selector->addSocketOperation($this->socket, RequestExecutorInterface::OPERATION_READ);
+        $this->selector->addSocketOperation($this->socket, $operation);
         $this->selector->select(0);
     }
 
     /**
      * testRemoveAllSocketOperations
      *
+     * @param string $operation Operation to execute
+     *
      * @return void
-     * @depends testSelectRead
-     * @depends testSelectWrite
+     * @depends testSelectReadWrite
+     * @dataProvider socketOperationDataProvider
      * @expectedException \InvalidArgumentException
      */
-    public function testRemoveAllSocketOperations()
+    public function testRemoveAllSocketOperations($operation)
     {
-        $this->selector->addSocketOperation($this->socket, RequestExecutorInterface::OPERATION_READ);
+        $this->selector->addSocketOperation($this->socket, $operation);
         $this->selector->removeAllSocketOperations($this->socket);
         $this->selector->select(0);
     }
@@ -204,28 +192,57 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     /**
      * testChangeSocketOperation
      *
+     * @param string $operation Operation to execute
+     * @param int    $countRead Amount of sockets, that must be ready to read
+     * @param int    $countWrite Amount of sockets, that must be ready to write
+     *
      * @return void
      * @depends testRemoveAllSocketOperations
+     * @dataProvider socketOperationDataProvider
      */
-    public function testChangeSocketOperation()
+    public function testChangeSocketOperation($operation, $countRead, $countWrite)
     {
         $this->selector->addSocketOperationArray([
             [$this->socket, RequestExecutorInterface::OPERATION_READ],
             [$this->socket, RequestExecutorInterface::OPERATION_WRITE],
         ]);
 
-        $this->selector->changeSocketOperation($this->socket, RequestExecutorInterface::OPERATION_READ);
-        $result = $this->selector->select(0);
-        self::assertCount(1, $result->getRead(), 'Unexpected result of read selector');
-        self::assertCount(0, $result->getWrite(), 'Unexpected result of write selector');
-        self::assertSame($this->socket, $result->getRead()[0], 'Unexpected object returned for read operation');
+        $this->selector->changeSocketOperation($this->socket, $operation);
+        $this->verifySocketSelectOperation($countRead, $countWrite);
+    }
+
+    /**
+     * socketOperationDataProvider
+     *
+     * @return array
+     */
+    public function socketOperationDataProvider()
+    {
+        // form: operation, ready to read, ready to write
+        return [
+            [RequestExecutorInterface::OPERATION_READ, 1, 0],
+            [RequestExecutorInterface::OPERATION_WRITE, 0, 1],
+        ];
+    }
+
+    /**
+     * invalidSocketAddDataProvider
+     *
+     * @return array
+     */
+    public function invalidSocketAddDataProvider()
+    {
+        return [
+            [ [ [$this->socket] ] ],
+            [ [ $this->socket ] ]
+        ];
     }
 
     /** {@inheritdoc} */
     protected function setUp()
     {
         parent::setUp();
-        $this->socket   = new FileSocket();
+        $this->socket = new FileSocket();
         $this->socket->open('php://temp');
         $this->socket->setBlocking(false);
 
@@ -237,5 +254,22 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     {
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
         $this->socket->close();
+    }
+
+    /**
+     * Check validity of select operation
+     *
+     * @param int $countRead Amount of sockets, that must be ready to read
+     * @param int $countWrite Amount of sockets, that must be ready to write
+     *
+     * @return void
+     */
+    private function verifySocketSelectOperation($countRead, $countWrite)
+    {
+        $result = $this->selector->select(0);
+        self::assertCount($countRead, $result->getRead(), 'Unexpected result of read selector');
+        self::assertCount($countWrite, $result->getWrite(), 'Unexpected result of write selector');
+        $testSocket = $result->getRead() + $result->getWrite();
+        self::assertSame($this->socket, $testSocket[ 0 ], 'Unexpected object returned for operation');
     }
 }

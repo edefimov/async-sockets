@@ -112,6 +112,15 @@ interface RequestExecutorInterface
     public function addSocket(SocketInterface $socket, $operation, array $metadata = null);
 
     /**
+     * Checks whether given socket was added to this executor
+     *
+     * @param SocketInterface $socket Socket object
+     *
+     * @return bool
+     */
+    public function hasSocket(SocketInterface $socket);
+
+    /**
      * Remove socket from list
      *
      * @param SocketInterface $socket Socket to remove
