@@ -237,6 +237,106 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testEventFireSequence
+     *
+     * @param string $operation Operation to execute
+     * @param string $eventType Event type
+     * @return void
+     * @depends testMetadataCanChange
+     * @dataProvider socketOperationDataProvider
+     */
+    public function testEventFireSequence($operation, $eventType)
+    {
+        $this->executor->addSocket($this->socket, $operation, [
+            RequestExecutor::META_ADDRESS => 'php://temp'
+        ]);
+
+        $mock = $this->getMock('\Countable', ['count']);
+
+        $handlers = [
+            EventType::INITIALIZE   => function (Event $event) use ($mock) {
+                $this->verifyEvent($event, $mock, 1);
+                $meta = $this->executor->getSocketMetaData($this->socket);
+                self::assertNull(
+                    $meta[RequestExecutor::META_CONNECTION_START_TIME],
+                    'Connection start time must be null at this point'
+                );
+                self::assertNull(
+                    $meta[RequestExecutor::META_CONNECTION_FINISH_TIME],
+                    'Connection finish time must be null at this point'
+                );
+                self::assertNull(
+                    $meta[RequestExecutor::META_LAST_IO_START_TIME],
+                    'Last io time must be null at this point'
+                );
+            },
+            EventType::CONNECTED    => function (Event $event) use ($mock) {
+                $this->verifyEvent($event, $mock, 2);
+                $meta = $this->executor->getSocketMetaData($this->socket);
+                self::assertNotNull(
+                    $meta[RequestExecutor::META_CONNECTION_START_TIME],
+                    'Connection start time must not be null at this point'
+                );
+                self::assertNull(
+                    $meta[RequestExecutor::META_CONNECTION_FINISH_TIME],
+                    'Connection finish time must not be null at this point'
+                );
+                self::assertNull(
+                    $meta[RequestExecutor::META_LAST_IO_START_TIME],
+                    'Last io time must be null at this point'
+                );
+            },
+            EventType::READ         => function (Event $event) use ($mock) {
+                $this->verifyEvent($event, $mock, 3);
+                self::assertInstanceOf(
+                    'AsyncSockets\Event\IoEvent',
+                    $event,
+                    'On read event IoEvent object must be provided'
+                );
+            },
+            EventType::WRITE        => function (Event $event) use ($mock) {
+                $this->verifyEvent($event, $mock, 3);
+                self::assertInstanceOf(
+                    'AsyncSockets\Event\IoEvent',
+                    $event,
+                    'On write event IoEvent object must be provided'
+                );
+            },
+            EventType::DISCONNECTED => function (Event $event) use ($mock) {
+                $this->verifyEvent($event, $mock, 4);
+            },
+            EventType::FINALIZE     => function (Event $event) use ($mock) {
+                $this->verifyEvent($event, $mock, 5);
+            },
+            EventType::EXCEPTION    => function (SocketExceptionEvent $event) {
+                self::fail('Exception occurred: ' . $event->getException()->getMessage());
+            }
+        ];
+
+        $mock->expects(self::exactly(count($handlers) - 2))
+            ->method('count')
+            ->willReturnOnConsecutiveCalls(1, 2, 3, 4, 5);
+
+        $this->executor->addHandler($handlers);
+
+        $this->executor->execute();
+    }
+
+    /**
+     * socketOperationDataProvider
+     *
+     * @return array
+     */
+    public function socketOperationDataProvider()
+    {
+        // form: operation, event
+        return [
+            [RequestExecutor::OPERATION_READ, EventType::READ],
+            [RequestExecutor::OPERATION_WRITE, EventType::WRITE],
+        ];
+    }
+
+    /**
      * metadataKeysDataProvider
      *
      * @return array
@@ -265,5 +365,24 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         }
 
         return $metadata;
+    }
+
+    /**
+     * verifyEvent
+     *
+     * @param Event      $event Event to test
+     * @param \Countable $mock Mock object with sequence information
+     * @param int        $sequence Sequence number of this event
+     *
+     * @return void
+     */
+    private function verifyEvent(
+        Event $event,
+        \Countable $mock,
+        $sequence
+    ) {
+        self::assertEquals($sequence, count($mock), $event->getType() . ' must be fired ' . $sequence);
+        self::assertSame($this->socket, $event->getSocket(), 'Strange socket provided');
+        self::assertNotNull($event->getExecutor(), 'Request executor was not provided');
     }
 }

@@ -9,26 +9,16 @@
  */
 namespace AsyncSockets\Event;
 
-use Symfony\Component\EventDispatcher\Event as SymfonyEvent;
-
 /**
- * Define AbstractEvent as the extension of Symfony event object, so if you have installed
+ * Define AbstractEvent as the alias for Symfony event object, so if you have installed
  * symfony EventDispatcher component then AbstractEvent will be fully compatible with
  * EventDispatcher's event system
  */
-if (class_exists('Symfony\Component\EventDispatcher\Event', true)) {
+if (!class_alias('Symfony\Component\EventDispatcher\Event', 'AsyncSockets\Event\AbstractEvent', true)) {
     /**
      * Class AbstractEvent
      */
-    class AbstractEvent extends SymfonyEvent
-    {
-
-    }
-} else {
-    /**
-     * Class AbstractEvent
-     */
-    class AbstractEvent
+    abstract class AbstractEvent
     {
 
     }

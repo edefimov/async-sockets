@@ -49,7 +49,7 @@ interface RequestExecutorInterface
      * Float value with microseconds when connection process has ended. If connection process hasn't finished
      * yet, the value will be null. Read-only value
      */
-    const META_CONNECTION_FINISH_TIME = 'connectStartTime';
+    const META_CONNECTION_FINISH_TIME = 'connectFinishTime';
 
     /**
      * Float value with microseconds when last io operation has started. Read-only value

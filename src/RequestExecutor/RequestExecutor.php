@@ -26,7 +26,7 @@ class RequestExecutor implements RequestExecutorInterface
     /**
      * Array of registered sockets
      *
-     * @var array[][]
+     * @var SocketInterface[][]
      */
     private $sockets = [];
 
@@ -251,12 +251,11 @@ class RequestExecutor implements RequestExecutorInterface
             }
 
             $socket = $item['socket'];
-            /** @var SocketInterface $socket */
             $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::INITIALIZE);
 
             try {
-                $this->setSocketOperationTime($this->sockets[$hash]['meta'], self::META_CONNECTION_START_TIME);
                 $this->callSocketSubscribers($socket, $event);
+                $this->setSocketOperationTime($this->sockets[$hash]['meta'], self::META_CONNECTION_START_TIME);
                 if (!$socket->getStreamResource()) {
                     $meta          = $this->sockets[ $hash ][ 'meta' ];
                     $streamContext = $this->getStreamContextFromMetaData($meta);
@@ -447,9 +446,20 @@ class RequestExecutor implements RequestExecutorInterface
     {
         $result = [];
         foreach ($sockets as $socket) {
-            $key   = $this->requireAddedSocketKey($socket);
-            $meta  = & $this->sockets[$key]['meta'];
-            $event = new IoEvent($this, $socket, $meta[self::META_USER_CONTEXT], $eventType);
+            $key          = $this->requireAddedSocketKey($socket);
+            $meta         = &$this->sockets[ $key ][ 'meta' ];
+            $wasConnected = $meta[ self::META_CONNECTION_FINISH_TIME ] !== null;
+            if (!$wasConnected) {
+                $event = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::CONNECTED);
+                try {
+                    $this->callSocketSubscribers($socket, $event);
+                } catch (\Exception $e) {
+                    $this->callExceptionSubscribers($socket, $event, $e);
+                    $result[] = $key;
+                    continue;
+                }
+            }
+            $event = new IoEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $eventType);
             $this->setSocketOperationTime($meta, self::META_CONNECTION_FINISH_TIME);
 
             try {
@@ -491,7 +501,6 @@ class RequestExecutor implements RequestExecutorInterface
                 ($meta[self::META_CONNECTION_FINISH_TIME] !== null &&
                  $microtime - $meta[self::META_LAST_IO_START_TIME] > $meta[self::META_IO_TIMEOUT]);
             if ($isTimeout) {
-                /** @var SocketInterface $socket */
                 $socket = $item['socket'];
                 $event = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::TIMEOUT);
                 try {
