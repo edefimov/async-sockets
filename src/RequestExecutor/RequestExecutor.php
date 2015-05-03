@@ -52,11 +52,27 @@ class RequestExecutor implements RequestExecutorInterface
     private $defaultSocketTimeout;
 
     /**
-     * Constructor
+     * Enables or disables double exception handling.
+     * When true, and you exception event handler throws an exception,
+     * then exception event handler will be called again with SocketExceptionEvent object inside originalEvent of
+     * passed event object. This is the last chance to correct the situation.
+     * When false, then the first exception inside exception handler will be thrown higher.
+     *
+     * @var bool
+     * @see AsyncSockets\Event\SocketExceptionEvent
      */
-    public function __construct()
+    private $allowDoubleExceptions = true;
+
+    /**
+     * Constructor
+     *
+     * @param bool $allowDoubleExceptions Enable or disable exception handling after exception occurred in
+     *                                    exception event handler
+     */
+    public function __construct($allowDoubleExceptions = true)
     {
-        $this->defaultSocketTimeout = (int) ini_get('default_socket_timeout');
+        $this->defaultSocketTimeout  = (int) ini_get('default_socket_timeout');
+        $this->allowDoubleExceptions = $allowDoubleExceptions;
     }
 
 
@@ -190,6 +206,7 @@ class RequestExecutor implements RequestExecutorInterface
                 continue;
             }
 
+            $subscribers = is_callable($subscribers) ? [$subscribers] : $subscribers;
             foreach ($subscribers as $subscriber) {
                 $key = array_search($subscriber, $eventStorage[$eventName], true);
                 if ($key !== false) {
@@ -213,11 +230,16 @@ class RequestExecutor implements RequestExecutorInterface
         }
         $this->isExecuting = true;
 
-        $this->processMainExecutionLoop();
-        foreach ($this->sockets as $item) {
-            $this->disconnectSingleSocket($item['socket']);
+        try {
+            $this->processMainExecutionLoop();
+            $this->disconnectSocketsByKeys(array_keys($this->sockets));
+            $this->isExecuting = false;
+        } catch (\Exception $e) {
+            $this->emergencyShutdown();
+            $this->isExecuting = false;
+            throw $e;
         }
-        $this->isExecuting = false;
+
     }
 
     /**
@@ -265,7 +287,7 @@ class RequestExecutor implements RequestExecutorInterface
 
             } catch (\Exception $e) {
                 $this->sockets[$hash]['meta'][self::META_REQUEST_COMPLETE] = true;
-                $this->callExceptionSubscribers($socket, $event, $e);
+                $this->callExceptionSubscribers($socket, $e, $event);
             }
         }
     }
@@ -274,6 +296,7 @@ class RequestExecutor implements RequestExecutorInterface
      * Process I/O operations on sockets
      *
      * @return void
+     * @throws \Exception
      */
     private function processMainExecutionLoop()
     {
@@ -302,9 +325,7 @@ class RequestExecutor implements RequestExecutorInterface
                         $this->processSingleIoEvent($context->getWrite(), EventType::WRITE)
                     );
 
-                    foreach ($doneSockets as $key) {
-                        $this->disconnectSingleSocket($this->sockets[$key]['socket'], $selector);
-                    }
+                    $this->disconnectSocketsByKeys($doneSockets, $selector);
 
                     $activeSocketsKeys = array_diff($activeSocketsKeys, $doneSockets);
                 } catch (TimeoutException $e) {
@@ -313,17 +334,17 @@ class RequestExecutor implements RequestExecutorInterface
 
                 $timeoutKeys = $this->processTimeoutSockets($activeSocketsKeys);
 
-                foreach ($timeoutKeys as $key) {
-                    $this->disconnectSingleSocket($this->sockets[$key]['socket'], $selector);
-                }
+                $this->disconnectSocketsByKeys($timeoutKeys, $selector);
 
                 unset($doneSockets, $timeoutKeys);
             } while (true);
         } catch (\Exception $e) {
-            foreach ($this->sockets as $item) {
-                $meta  = $item['meta'];
-                $event = new Event($this, $item['socket'], $meta[self::META_USER_CONTEXT], 'internal');
-                $this->callExceptionSubscribers($item['socket'], $event, $e);
+            if ($this->allowDoubleExceptions) {
+                foreach ($this->sockets as $item) {
+                    $this->callExceptionSubscribers($item['socket'], $e, null);
+                }
+            } else {
+                throw $e;
             }
         }
     }
@@ -358,7 +379,7 @@ class RequestExecutor implements RequestExecutorInterface
                 $this->callSocketSubscribers($socket, $event);
             }
         } catch (\Exception $e) {
-            $this->callExceptionSubscribers($socket, $event, $e);
+            $this->callExceptionSubscribers($socket, $e, $event);
         }
 
         $this->callSocketSubscribers(
@@ -425,15 +446,27 @@ class RequestExecutor implements RequestExecutorInterface
      * Notify subscribers about exception
      *
      * @param SocketInterface $socket Socket object
-     * @param Event           $event Event object
      * @param \Exception      $exception Thrown exception
+     * @param Event           $event Event object
      *
      * @return void
      */
-    private function callExceptionSubscribers(SocketInterface $socket, Event $event, \Exception $exception)
+    private function callExceptionSubscribers(SocketInterface $socket, \Exception $exception, Event $event = null)
     {
-        $exceptionEvent = new SocketExceptionEvent($exception, $event, $this, $socket, $event->getContext());
+        static $prevExceptionEvent;
+
+        $key            = $this->requireAddedSocketKey($socket);
+        $meta           = $this->sockets[$key]['meta'];
+        $exceptionEvent = new SocketExceptionEvent(
+            $exception,
+            $event ?: $prevExceptionEvent,
+            $this,
+            $socket,
+            $meta[self::META_USER_CONTEXT]
+        );
+        $prevExceptionEvent = $exceptionEvent;
         $this->callSocketSubscribers($socket, $exceptionEvent);
+        $prevExceptionEvent = null;
     }
 
     /**
@@ -456,7 +489,7 @@ class RequestExecutor implements RequestExecutorInterface
                 try {
                     $this->callSocketSubscribers($socket, $event);
                 } catch (\Exception $e) {
-                    $this->callExceptionSubscribers($socket, $event, $e);
+                    $this->callExceptionSubscribers($socket, $e, $event);
                     $result[] = $key;
                     continue;
                 }
@@ -473,7 +506,7 @@ class RequestExecutor implements RequestExecutorInterface
                     $meta[self::META_OPERATION] = $nextOperation;
                 }
             } catch (\Exception $e) {
-                $this->callExceptionSubscribers($socket, $event, $e);
+                $this->callExceptionSubscribers($socket, $e, $event);
                 $result[] = $key;
             }
 
@@ -508,7 +541,7 @@ class RequestExecutor implements RequestExecutorInterface
                 try {
                     $this->callSocketSubscribers($socket, $event);
                 } catch (\Exception $e) {
-                    $this->callExceptionSubscribers($socket, $event, $e);
+                    $this->callExceptionSubscribers($socket, $e, $event);
                 }
                 $result[] = $key;
             }
@@ -644,5 +677,41 @@ class RequestExecutor implements RequestExecutorInterface
         }
 
         return null;
+    }
+
+    /**
+     * Shutdown all sockets after we have pair of unhandled exceptions, or when we had first exception
+     * in exception event handler with META_ALLOW_DOUBLE_EXCEPTION_HANDLING = false
+     *
+     * @return void
+     */
+    private function emergencyShutdown()
+    {
+        foreach ($this->sockets as $key => $data) {
+            $socket = $data['socket'];
+            try {
+                /** @var SocketInterface $socket */
+                $socket->close();
+            } catch (\Exception $e) {
+                // nothing required
+            }
+
+            $this->sockets[ $key ][ 'meta' ][ self::META_REQUEST_COMPLETE ] = true;
+        }
+    }
+
+    /**
+     * Disconnect array of sockets by given keys
+     *
+     * @param string[]      $keys List of socket keys to disconnect
+     * @param AsyncSelector $selector Selector object
+     *
+     * @return void
+     */
+    private function disconnectSocketsByKeys(array $keys, AsyncSelector $selector = null)
+    {
+        foreach ($keys as $key) {
+            $this->disconnectSingleSocket($this->sockets[ $key ][ 'socket' ], $selector);
+        }
     }
 }
