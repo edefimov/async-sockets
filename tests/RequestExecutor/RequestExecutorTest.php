@@ -12,8 +12,10 @@ namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
+use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\RequestExecutor\RequestExecutor;
+use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\Socket\FileSocket;
 
 /**
@@ -46,6 +48,15 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
         $this->socket   = new FileSocket();
         $this->executor = new RequestExecutor();
+    }
+
+    /** {@inheritdoc} */
+    protected function tearDown()
+    {
+        parent::tearDown();
+        PhpFunctionMocker::getPhpFunctionMocker('time')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('microtime')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
     }
 
     /**
@@ -286,20 +297,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                     'Last io time must be null at this point'
                 );
             },
-            EventType::READ         => function (Event $event) use ($mock) {
+            $eventType              => function (Event $event) use ($mock) {
                 $this->verifyEvent($event, $mock, 3);
                 self::assertInstanceOf(
                     'AsyncSockets\Event\IoEvent',
                     $event,
-                    'On read event IoEvent object must be provided'
-                );
-            },
-            EventType::WRITE        => function (Event $event) use ($mock) {
-                $this->verifyEvent($event, $mock, 3);
-                self::assertInstanceOf(
-                    'AsyncSockets\Event\IoEvent',
-                    $event,
-                    'On write event IoEvent object must be provided'
+                    'On ' . $event->getType() . ' event IoEvent object must be provided'
                 );
             },
             EventType::DISCONNECTED => function (Event $event) use ($mock) {
@@ -308,17 +311,187 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             EventType::FINALIZE     => function (Event $event) use ($mock) {
                 $this->verifyEvent($event, $mock, 5);
             },
-            EventType::EXCEPTION    => function (SocketExceptionEvent $event) {
-                self::fail('Exception occurred: ' . $event->getException()->getMessage());
-            }
+            EventType::EXCEPTION    => [$this, 'socketExceptionEventHandler'],
         ];
 
-        $mock->expects(self::exactly(count($handlers) - 2))
+        $mock->expects(self::exactly(count($handlers) - 1))
             ->method('count')
             ->willReturnOnConsecutiveCalls(1, 2, 3, 4, 5);
 
         $this->executor->addHandler($handlers);
 
+        $this->executor->execute();
+    }
+
+    /**
+     * testTimeoutOnConnect
+     *
+     * @param string $operation Operation to execute
+     * @param string $eventType Event type
+     *
+     * @return void
+     * @depends testEventFireSequence
+     * @dataProvider socketOperationDataProvider
+     */
+    public function testTimeoutOnConnect($operation, $eventType)
+    {
+        $timeGenerator = function () {
+            static $time = 0;
+            return $time++;
+        };
+
+        $failHandler = function (Event $event) {
+            self::fail($event->getType() . ' mustn\'t have been called');
+        };
+
+        PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
+        PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
+        $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
+        $streamSelect->setCallable(function (array &$read = null, array &$write = null) {
+            $read  = [];
+            $write = [];
+            return 0;
+        });
+
+
+        $this->executor->addSocket($this->socket, $operation, [
+            RequestExecutor::META_ADDRESS => 'php://temp',
+            RequestExecutor::META_CONNECTION_TIMEOUT => 1
+        ]);
+
+        $mock = $this->getMock('\Countable', ['count']);
+        $mock->expects(self::exactly(3))
+            ->method('count');
+
+        $this->executor->addHandler([
+            EventType::INITIALIZE   => [$mock, 'count'],
+            EventType::CONNECTED    => $failHandler,
+            $eventType              => $failHandler,
+            EventType::DISCONNECTED => $failHandler,
+            EventType::FINALIZE     => [$mock, 'count'],
+            EventType::TIMEOUT      => [$mock, 'count'],
+            EventType::EXCEPTION    => [$this, 'socketExceptionEventHandler'],
+        ]);
+        $this->executor->execute();
+    }
+
+    /**
+     * testTimeoutOnIo
+     *
+     * @param string $operation Operation to execute
+     * @param string $eventType Event type
+     *
+     * @return void
+     * @depends testTimeoutOnConnect
+     * @dataProvider socketOperationDataProvider
+     */
+    public function testTimeoutOnIo($operation, $eventType)
+    {
+        $timeGenerator = function () {
+            static $time = 0;
+            return $time++;
+        };
+
+        PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
+        PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
+
+        $this->executor->addSocket($this->socket, $operation, [
+            RequestExecutor::META_ADDRESS => 'php://temp',
+            RequestExecutor::META_IO_TIMEOUT => 1
+        ]);
+
+        $mock = $this->getMock('\Countable', ['count']);
+        $mock->expects(self::exactly(5))
+            ->method('count');
+
+        $this->executor->addHandler([
+            EventType::INITIALIZE   => [$mock, 'count'],
+            EventType::CONNECTED    => [$mock, 'count'],
+            $eventType              => function (IoEvent $event) {
+                $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
+                $streamSelect->setCallable(function (array &$read = null, array &$write = null) {
+                    $read  = [];
+                    $write = [];
+                    return 1;
+                });
+
+                if ($event->getType() === EventType::READ) {
+                    $event->nextIsWrite();
+                } else {
+                    $event->nextIsRead();
+                }
+            },
+            EventType::DISCONNECTED => [$mock, 'count'],
+            EventType::FINALIZE     => [$mock, 'count'],
+            EventType::TIMEOUT      => [$mock, 'count'],
+            EventType::EXCEPTION    => [$this, 'socketExceptionEventHandler'],
+        ]);
+        $this->executor->execute();
+    }
+
+    /**
+     * testExceptionIsCaughtInEvent
+     *
+     * @param string $eventType Event type to throw exception in
+     * @param string $operation Operation to start
+     *
+     * @return void
+     * @depends testTimeoutOnConnect
+     * @dataProvider eventTypeDataProvider
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Test passed
+     * @expectedExceptionCode 200
+     */
+    public function testExceptionIsCaughtInEvent($eventType, $operation)
+    {
+        $meta = [
+            RequestExecutor::META_ADDRESS => 'php://temp'
+        ];
+
+        if ($eventType == EventType::TIMEOUT) {
+            $timeGenerator = function () {
+                static $time = 0;
+                return $time++;
+            };
+
+            PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
+            PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
+
+            $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
+            $streamSelect->setCallable(function (array &$read = null, array &$write = null) {
+                $read  = [];
+                $write = [];
+                return 0;
+            });
+
+            $meta[RequestExecutor::META_CONNECTION_TIMEOUT] = 1;
+        }
+
+        $this->executor->addSocket($this->socket, $operation, $meta);
+
+        $handler = function (Event $event) use ($eventType) {
+            $readWriteTypes = [EventType::READ, EventType::WRITE];
+            $throwException = $event->getType() === $eventType ||
+                              (in_array($eventType, $readWriteTypes) && in_array($event->getType(), $readWriteTypes));
+            if ($throwException) {
+                throw new \RuntimeException('Test passed', 200);
+            }
+        };
+
+        $this->executor->addHandler(
+            [
+                EventType::INITIALIZE   => $handler,
+                EventType::CONNECTED    => $handler,
+                EventType::READ         => $handler,
+                EventType::WRITE        => $handler,
+                EventType::DISCONNECTED => $handler,
+                EventType::FINALIZE     => $handler,
+                EventType::TIMEOUT      => $handler,
+                EventType::EXCEPTION    => function (SocketExceptionEvent $event) {
+                    throw $event->getException();
+                },
+            ]
+        );
         $this->executor->execute();
     }
 
@@ -365,6 +538,40 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         }
 
         return $metadata;
+    }
+
+    /**
+     * eventTypeDataProvider
+     *
+     * @return array
+     */
+    public function eventTypeDataProvider()
+    {
+        static $result;
+
+        if (!$result) {
+            $ref    = new \ReflectionClass('AsyncSockets\Event\EventType');
+            $result = [];
+            foreach ($ref->getConstants() as $value) {
+                if ($value !== EventType::EXCEPTION) {
+                    $result[] = [ $value, RequestExecutor::OPERATION_READ ];
+                    $result[] = [ $value, RequestExecutor::OPERATION_WRITE ];
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * socketExceptionEventHandler
+     *
+     * @param SocketExceptionEvent $event Event object
+     *
+     * @return void
+     */
+    public function socketExceptionEventHandler(SocketExceptionEvent $event)
+    {
+        self::fail('Exception occurred: ' . $event->getException()->getMessage());
     }
 
     /**

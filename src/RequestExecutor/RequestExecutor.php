@@ -354,7 +354,9 @@ class RequestExecutor implements RequestExecutorInterface
 
         try {
             $socket->close();
-            $this->callSocketSubscribers($socket, $event);
+            if ($meta[ self::META_CONNECTION_FINISH_TIME ] !== null) {
+                $this->callSocketSubscribers($socket, $event);
+            }
         } catch (\Exception $e) {
             $this->callExceptionSubscribers($socket, $event, $e);
         }
@@ -574,8 +576,9 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private function calculateSelectorTimeout(array $activeKeys)
     {
+        $result = [ 'sec' => 0, 'microsec' => 0 ];
         if (!$activeKeys) {
-            return [ 'sec' => 0, 'microsec' => 0 ];
+            return $result;
         }
 
         $timeList  = [];
@@ -598,11 +601,15 @@ class RequestExecutor implements RequestExecutorInterface
             }
         }
 
-        $timeout = min($timeList);
-        return [
-            'sec'      => (int) floor($timeout),
-            'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000
-        ];
+        if ($timeList) {
+            $timeout = min($timeList);
+            $result = [
+                'sec'      => (int) floor($timeout),
+                'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000
+            ];
+        }
+
+        return $result;
     }
 
     /**
