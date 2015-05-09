@@ -361,7 +361,12 @@ CODE;
      */
     private static function generateParameterName(\ReflectionParameter $parameter)
     {
-        return '$' . $parameter->getName() . $parameter->getPosition();
+        $name = $parameter->getName();
+        if ($name === '...' && version_compare(PHP_VERSION, '5.6', 'lt')) {
+            $name = 'x' . dechex(crc32($name));
+        }
+
+        return '$' . $name . $parameter->getPosition();
     }
 
     /**
