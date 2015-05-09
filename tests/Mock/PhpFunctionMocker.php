@@ -37,7 +37,9 @@ class PhpFunctionMocker
         if (!isset(self::$mocks[$funcName])) {
             $mockerClass = get_class() . '_' . $funcName;
             $object      = new $mockerClass($funcName);
-            self::$mocks[$funcName] = $object;
+            $defName     = self::getFunctionDefinitionName($funcName);
+
+            self::$mocks[$defName] = $object;
         }
 
         return self::$mocks[$funcName];
@@ -119,7 +121,7 @@ class PhpFunctionMocker
 
         $myNamespace = self::getClassNameSpace($myReference);
         $function    = new \ReflectionFunction('\\' . $funcName);
-        if (method_exists($function, 'isVariadic') && $function->isVariadic()) {
+        if (self::isVariadicFunction($function)) {
             return;
         }
 
@@ -128,12 +130,13 @@ class PhpFunctionMocker
 
         $separatedArgList  = $argList === '' ? '' : ', ' .  $argList;
         $separatedCallList = $callList === '' ? '' : ', ' .  $callList;
+        $functionDefName   = self::getFunctionDefinitionName($funcName);
 
         if (!class_exists("{$myReference}_{$funcName}", false)) {
             $invocationCode = self::getInvocationCode($function);
             eval(<<<MAGIC
 namespace {$myNamespace} {
-    class PhpFunctionMocker_{$funcName} extends PhpFunctionMocker
+    class PhpFunctionMocker_{$functionDefName} extends PhpFunctionMocker
     {
         public static function invokeMethod(\$callable {$separatedArgList})
         {
@@ -188,14 +191,14 @@ MAGIC
 );
         }
 
-        if (!function_exists("{$phpNamespace}\\{$funcName}")) {
+        if (!function_exists("{$phpNamespace}\\{$functionDefName}")) {
             eval(<<<MAGIC
 namespace {$phpNamespace} {
-   function {$funcName} ({$argList})
+   function {$functionDefName} ({$argList})
    {
-       \$mocker = getmocker('{$funcName}');
+       \$mocker = getmocker('{$functionDefName}');
        return \$mocker !== null ? \$mocker({$callList}) :
-                                  \\{$myNamespace}\\PhpFunctionMocker_{$funcName}::invokeMethod(
+                                  \\{$myNamespace}\\PhpFunctionMocker_{$functionDefName}::invokeMethod(
                                       '\\{$funcName}'
                                       {$separatedCallList}
                                   );
@@ -205,15 +208,33 @@ MAGIC
             );
         }
 
+        $sourceFnNameSpace = self::getClassNameSpace($funcName);
+        $sourceFnNameSpace = $sourceFnNameSpace ? '\\' . $sourceFnNameSpace : '';
+        if ($sourceFnNameSpace) {
+            $funcName = substr($funcName, strlen($sourceFnNameSpace));
+        }
+
         eval(<<<MAGIC
-namespace {$namespace} {
+namespace {$namespace}{$sourceFnNameSpace} {
    function {$funcName} ({$argList})
    {
-       return \\{$phpNamespace}\\{$funcName}({$callList});
+       return \\{$phpNamespace}\\{$functionDefName}({$callList});
    }
 }
 MAGIC
         );
+    }
+
+    /**
+     * Return function definition name in Mock namespace
+     *
+     * @param string $name Function original name
+     *
+     * @return string
+     */
+    private static function getFunctionDefinitionName($name)
+    {
+        return preg_replace('#[^a-zA-Z0-9_]+#', '_', $name);
     }
 
     /**
@@ -237,7 +258,8 @@ MAGIC
             }
 
             if ($parameter->isDefaultValueAvailable()) {
-                $argument .= '=' . $parameter->getDefaultValue();
+                $defaultValue = $parameter->getDefaultValue();
+                $argument .= '=' . (self::parameterValueToString($defaultValue) ?: 'null');
             } elseif ($parameter->isOptional()) {
                 $argument .= ' = null';
             }
@@ -248,6 +270,37 @@ MAGIC
         \ksort($result);
 
         return trim(\implode(',', $result));
+    }
+
+    /**
+     * Conver parameter value to string
+     *
+     * @param mixed $value Value
+     *
+     * @return string
+     */
+    private static function parameterValueToString($value)
+    {
+        switch (true) {
+            case $value === null:
+                $result = 'null';
+                break;
+            case is_bool($value):
+                $result = $value ? 'true' : 'false';
+                break;
+            case is_array($value):
+                $result = [];
+                foreach ($value as $k => $v) {
+                    $result[] = $k . '=>' . self::parameterValueToString($v);
+                }
+
+                $result = 'array(' . implode(',', $result) . ')';
+                break;
+            default:
+                $result = '';
+        }
+
+        return $result;
     }
 
     /**
@@ -268,6 +321,29 @@ MAGIC
         \ksort($result);
 
         return trim(\implode(',', $result));
+    }
+
+    /**
+     * Check whether given function is variadic
+     *
+     * @param \ReflectionFunction $function Function to test
+     *
+     * @return bool
+     */
+    private static function isVariadicFunction(\ReflectionFunction $function)
+    {
+        if (method_exists($function, 'isVariadic')) {
+            return $function->isVariadic();
+        }
+
+        // php < 5.6 work-around
+        foreach ($function->getParameters() as $parameter) {
+            if ($parameter->getName() === '...') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -325,7 +401,12 @@ CODE;
      */
     private static function getClassNameSpace($className)
     {
-        return substr($className, 0, strrpos($className, '\\'));
+        $pos = strrpos($className, '\\');
+        if ($pos === false) {
+            return '';
+        }
+
+        return substr($className, 0, $pos);
     }
 
     /**
