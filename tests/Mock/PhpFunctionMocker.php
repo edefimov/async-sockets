@@ -52,23 +52,23 @@ class PhpFunctionMocker
      */
     public static function bootstrap(ClassLoader $classLoader = null)
     {
-        $nativeFunctions     = array_flip(get_defined_functions()['internal']);
+        $nativeFunctions     = array_flip(get_defined_functions()[ 'internal' ]);
         $getDefinedFunctions = function ($class) use ($classLoader, &$nativeFunctions) {
             $result = $nativeFunctions;
             if ($classLoader) {
                 $file = $classLoader->findFile($class);
                 if ($file) {
-                    $tokens       = token_get_all(
+                    $tokens    = token_get_all(
                         file_get_contents($file)
                     );
-                    $functions    = [ ];
+                    $functions = [ ];
                     for ($i = 0; $i < count($tokens); $i++) {
-                        $token = $tokens[$i];
+                        $token              = $tokens[ $i ];
                         $isPossibleFunction = is_array($token) &&
-                                              T_STRING === $token[0] &&
-                                              isset($nativeFunctions[$token[1]]);
+                                              T_STRING === $token[ 0 ] &&
+                                              isset($nativeFunctions[ $token[ 1 ] ]);
                         if ($isPossibleFunction) {
-                            $functions[$token[1]] = $token[1];
+                            $functions[ $token[ 1 ] ] = $token[ 1 ];
                         }
                     }
 
@@ -80,16 +80,20 @@ class PhpFunctionMocker
         };
 
 
-        \spl_autoload_register(function ($className) use ($getDefinedFunctions) {
-            $namespace = self::getClassNameSpace($className);
-            if (!$namespace) {
-                return;
-            }
+        \spl_autoload_register(
+            function ($className) use ($getDefinedFunctions) {
+                $namespace = self::getClassNameSpace($className);
+                if (!$namespace) {
+                    return;
+                }
 
-            foreach ($getDefinedFunctions($className) as $function) {
-                self::defineFunction($function, $namespace);
-            }
-        }, true, true);
+                foreach ($getDefinedFunctions($className) as $function) {
+                    self::defineFunction($function, $namespace);
+                }
+            },
+            true,
+            true
+        );
     }
 
     /**
@@ -119,8 +123,8 @@ class PhpFunctionMocker
             return;
         }
 
-        $argList     = self::getFunctionArgumentList($function);
-        $callList    = self::getFunctionCallList($function->getParameters());
+        $argList  = self::getFunctionArgumentList($function);
+        $callList = self::getFunctionCallList($function->getParameters());
 
         $separatedArgList  = $argList === '' ? '' : ', ' .  $argList;
         $separatedCallList = $callList === '' ? '' : ', ' .  $callList;
@@ -137,6 +141,20 @@ namespace {$myNamespace} {
                 return \$callable({$callList});
             }
 
+            if (is_array(\$callable)) {
+                if (count(\$callable) == 2) {
+                     \$obj = reset(\$callable);
+                     \$fn  = end(\$callable);
+                     if (is_object(\$obj) && \method_exists(\$obj, \$fn)) {
+                         return \$obj->\$fn({$callList});
+                     } elseif (is_string(\$obj)) {
+                         return \$obj::\$fn({$callList});
+                     }
+                }
+
+                throw new \InvalidArgumentException('Wrong parameters were passed to {$funcName}');
+            }
+
             {$invocationCode}
         }
 
@@ -151,18 +169,31 @@ MAGIC
             );
         }
 
+        if (!function_exists("{$phpNamespace}\\getmocker")) {
+            eval(<<<MAGIC
+namespace {$phpNamespace} {
+    function getmocker(\$function)
+    {
+        static \$ref;
+        if (!\$ref) {
+            \$ref = new \ReflectionProperty("\\\\{$myReference}", 'mocks');
+            \$ref->setAccessible(true);
+        }
+
+        \$value = \$ref->getValue();
+        return isset(\$value[\$function]) ? \$value[\$function] : null;
+    }
+}
+MAGIC
+);
+        }
+
         if (!function_exists("{$phpNamespace}\\{$funcName}")) {
             eval(<<<MAGIC
 namespace {$phpNamespace} {
    function {$funcName} ({$argList})
    {
-       \$closure = function() {
-                return isset(\\{$myReference}::\$mocks['{$funcName}']) ?
-                    \\{$myReference}::\$mocks['{$funcName}'] : null;
-       };
-
-       \$closure = \$closure->bindTo(null, '\\{$myReference}');
-       \$mocker  = \$closure();
+       \$mocker = getmocker('{$funcName}');
        return \$mocker !== null ? \$mocker({$callList}) :
                                   \\{$myNamespace}\\PhpFunctionMocker_{$funcName}::invokeMethod(
                                       '\\{$funcName}'
@@ -194,9 +225,9 @@ MAGIC
      */
     private static function getFunctionArgumentList(\ReflectionFunction $function)
     {
-        $result = [];
+        $result = [ ];
         foreach ($function->getParameters() as $parameter) {
-            $argument   = '$' . $parameter->getName();
+            $argument = self::generateParameterName($parameter);
             if ($parameter->isPassedByReference()) {
                 $argument = '&' . $argument;
             }
@@ -211,11 +242,12 @@ MAGIC
                 $argument .= ' = null';
             }
 
-            $result[$parameter->getPosition()] = $argument;
+            $result[ $parameter->getPosition() ] = $argument;
         }
 
         \ksort($result);
-        return \implode(',', $result);
+
+        return trim(\implode(',', $result));
     }
 
     /**
@@ -227,14 +259,15 @@ MAGIC
      */
     private static function getFunctionCallList(array $parameters)
     {
-        $result = [];
+        $result = [ ];
         foreach ($parameters as $parameter) {
-            $argument   = '$' . $parameter->getName();
-            $result[$parameter->getPosition()] = $argument;
+            $argument                            = self::generateParameterName($parameter);
+            $result[ $parameter->getPosition() ] = $argument;
         }
 
         \ksort($result);
-        return \implode(',', $result);
+
+        return trim(\implode(',', $result));
     }
 
     /**
@@ -246,13 +279,13 @@ MAGIC
      */
     private static function getInvocationCode(\ReflectionFunction $function)
     {
-        $code = [];
+        $code = [ ];
         $name = $function->getName();
 
         /** @var \ReflectionParameter[] $parameters */
-        $parameters = [];
+        $parameters = [ ];
         foreach ($function->getParameters() as $parameter) {
-            $parameters[$parameter->getPosition()] = $parameter;
+            $parameters[ $parameter->getPosition() ] = $parameter;
         }
 
         if (!$parameters) {
@@ -268,13 +301,14 @@ MAGIC
         foreach ($parameters as $position => $parameter) {
             $callList = self::getFunctionCallList(array_slice($orderedParameters, 0, $position + 1));
             if ($parameter->isOptional()) {
-                $code[$parameter->getPosition()] = <<<CODE
-if (\${$parameter->getName()} !== null) {
+                $parameterName = self::generateParameterName($parameter);
+                $code[ $parameter->getPosition() ] = <<<CODE
+if ({$parameterName} !== null) {
     return \\{$name}({$callList});
 }
 CODE;
             } else {
-                $code[] = "return \\{$name}({$callList});";
+                $code[ ] = "return \\{$name}({$callList});";
                 break;
             }
         }
@@ -316,6 +350,18 @@ CODE;
     public function __construct($functionName)
     {
         $this->functionName = $functionName;
+    }
+
+    /**
+     * Generate unique parameter name
+     *
+     * @param \ReflectionParameter $parameter Parameter object
+     *
+     * @return string
+     */
+    private static function generateParameterName(\ReflectionParameter $parameter)
+    {
+        return '$' . $parameter->getName() . $parameter->getPosition();
     }
 
     /**
