@@ -100,7 +100,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
 
         $mocker = PhpFunctionMocker::getPhpFunctionMocker('fwrite');
         $mocker->setCallable(function ($handle, $data) use ($testString, &$counter, &$retString) {
-            if ($counter < strlen($testString) && $data) {
+            if ($data && $counter < strlen($testString)) {
                 ++$counter;
                 $retString .= $data[0];
                 return 1;

@@ -11,7 +11,7 @@
 $loader = require_once __DIR__ . '/../vendor/autoload.php';
 
 /** @var Composer\Autoload\ClassLoader $loader */
-$loader->addPsr4('Demo\\', 'Demo');
+$loader->addPsr4('Demo\\', __DIR__ . '/Demo');
 
 register_shutdown_function(function () {
     echo "\n\nStatistics:\n";

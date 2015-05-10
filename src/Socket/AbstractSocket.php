@@ -30,13 +30,6 @@ abstract class AbstractSocket implements SocketInterface
     private $resource;
 
     /**
-     * Current address
-     *
-     * @var string
-     */
-    private $effectiveAddress;
-
-    /**
      * Destructor
      */
     public function __destruct()
@@ -59,8 +52,7 @@ abstract class AbstractSocket implements SocketInterface
     {
         $this->close();
 
-        $this->effectiveAddress = $address;
-        $this->resource         = $this->createSocketResource($address, $context ?: stream_context_get_default());
+        $this->resource = $this->createSocketResource($address, $context ?: stream_context_get_default());
 
         return is_resource($this->resource);
     }

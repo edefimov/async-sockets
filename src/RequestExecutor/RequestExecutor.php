@@ -14,6 +14,7 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
+use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\SocketInterface;
@@ -52,27 +53,11 @@ class RequestExecutor implements RequestExecutorInterface
     private $defaultSocketTimeout;
 
     /**
-     * Enables or disables double exception handling.
-     * When true, and you exception event handler throws an exception,
-     * then exception event handler will be called again with SocketExceptionEvent object inside originalEvent of
-     * passed event object. This is the last chance to correct the situation.
-     * When false, then the first exception inside exception handler will be thrown higher.
-     *
-     * @var bool
-     * @see AsyncSockets\Event\SocketExceptionEvent
-     */
-    private $allowDoubleExceptions = true;
-
-    /**
      * Constructor
-     *
-     * @param bool $allowDoubleExceptions Enable or disable exception handling after exception occurred in
-     *                                    exception event handler
      */
-    public function __construct($allowDoubleExceptions = true)
+    public function __construct()
     {
         $this->defaultSocketTimeout  = (int) ini_get('default_socket_timeout');
-        $this->allowDoubleExceptions = $allowDoubleExceptions;
     }
 
 
@@ -285,7 +270,7 @@ class RequestExecutor implements RequestExecutorInterface
                     $socket->open($meta[self::META_ADDRESS], $streamContext);
                 }
 
-            } catch (\Exception $e) {
+            } catch (SocketException $e) {
                 $this->sockets[$hash]['meta'][self::META_REQUEST_COMPLETE] = true;
                 $this->callExceptionSubscribers($socket, $e, $event);
             }
@@ -296,57 +281,52 @@ class RequestExecutor implements RequestExecutorInterface
      * Process I/O operations on sockets
      *
      * @return void
-     * @throws \Exception
      */
     private function processMainExecutionLoop()
     {
         $selector = new AsyncSelector();
 
-        try {
-            do {
-                $this->processConnect();
-                $activeSocketsKeys = $this->getActiveSocketKeys();
-                if (!$activeSocketsKeys) {
-                    break;
-                }
+        do {
+            $this->processConnect();
+            $activeSocketsKeys = $this->getActiveSocketKeys();
+            if (!$activeSocketsKeys) {
+                break;
+            }
 
-                foreach ($activeSocketsKeys as $key) {
-                    $item = $this->sockets[$key];
-                    $meta = $item['meta'];
-                    $this->setSocketOperationTime($this->sockets[$key]['meta'], self::META_LAST_IO_START_TIME);
-                    $selector->addSocketOperation($item['socket'], $meta[self::META_OPERATION]);
-                }
+            foreach ($activeSocketsKeys as $key) {
+                $item = $this->sockets[$key];
+                $meta = $item['meta'];
+                $this->setSocketOperationTime($this->sockets[$key]['meta'], self::META_LAST_IO_START_TIME);
+                $selector->addSocketOperation($item['socket'], $meta[self::META_OPERATION]);
+            }
 
-                try {
-                    $timeout     = $this->calculateSelectorTimeout($activeSocketsKeys);
-                    $context     = $selector->select($timeout['sec'], $timeout['microsec']);
-                    $doneSockets = array_merge(
-                        $this->processSingleIoEvent($context->getRead(), EventType::READ),
-                        $this->processSingleIoEvent($context->getWrite(), EventType::WRITE)
-                    );
+            try {
+                $timeout     = $this->calculateSelectorTimeout($activeSocketsKeys);
+                $context     = $selector->select($timeout['sec'], $timeout['microsec']);
+                $doneSockets = array_merge(
+                    $this->processSingleIoEvent($context->getRead(), EventType::READ),
+                    $this->processSingleIoEvent($context->getWrite(), EventType::WRITE)
+                );
 
-                    $this->disconnectSocketsByKeys($doneSockets, $selector);
+                $this->disconnectSocketsByKeys($doneSockets, $selector);
 
-                    $activeSocketsKeys = array_diff($activeSocketsKeys, $doneSockets);
-                } catch (TimeoutException $e) {
-                    // do nothing
-                }
-
-                $timeoutKeys = $this->processTimeoutSockets($activeSocketsKeys);
-
-                $this->disconnectSocketsByKeys($timeoutKeys, $selector);
-
-                unset($doneSockets, $timeoutKeys);
-            } while (true);
-        } catch (\Exception $e) {
-            if ($this->allowDoubleExceptions) {
+                $activeSocketsKeys = array_diff($activeSocketsKeys, $doneSockets);
+            } catch (TimeoutException $e) {
+                // do nothing
+            } catch (SocketException $e) {
                 foreach ($this->sockets as $item) {
                     $this->callExceptionSubscribers($item['socket'], $e, null);
                 }
-            } else {
-                throw $e;
+
+                return;
             }
-        }
+
+            $timeoutKeys = $this->processTimeoutSockets($activeSocketsKeys);
+
+            $this->disconnectSocketsByKeys($timeoutKeys, $selector);
+
+            unset($doneSockets, $timeoutKeys);
+        } while (true);
     }
 
     /**
@@ -378,18 +358,18 @@ class RequestExecutor implements RequestExecutorInterface
             if ($meta[ self::META_CONNECTION_FINISH_TIME ] !== null) {
                 $this->callSocketSubscribers($socket, $event);
             }
-        } catch (\Exception $e) {
+        } catch (SocketException $e) {
             $this->callExceptionSubscribers($socket, $e, $event);
+        }
+
+        if ($selector) {
+            $selector->removeAllSocketOperations($socket);
         }
 
         $this->callSocketSubscribers(
             $socket,
             new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::FINALIZE)
         );
-
-        if ($selector) {
-            $selector->removeAllSocketOperations($socket);
-        }
     }
 
     /**
@@ -446,27 +426,23 @@ class RequestExecutor implements RequestExecutorInterface
      * Notify subscribers about exception
      *
      * @param SocketInterface $socket Socket object
-     * @param \Exception      $exception Thrown exception
+     * @param SocketException $exception Thrown exception
      * @param Event           $event Event object
      *
      * @return void
      */
-    private function callExceptionSubscribers(SocketInterface $socket, \Exception $exception, Event $event = null)
+    private function callExceptionSubscribers(SocketInterface $socket, SocketException $exception, Event $event = null)
     {
-        static $prevExceptionEvent;
-
         $key            = $this->requireAddedSocketKey($socket);
         $meta           = $this->sockets[$key]['meta'];
         $exceptionEvent = new SocketExceptionEvent(
             $exception,
-            $event ?: $prevExceptionEvent,
             $this,
             $socket,
-            $meta[self::META_USER_CONTEXT]
+            $meta[self::META_USER_CONTEXT],
+            $event
         );
-        $prevExceptionEvent = $exceptionEvent;
         $this->callSocketSubscribers($socket, $exceptionEvent);
-        $prevExceptionEvent = null;
     }
 
     /**
@@ -488,7 +464,7 @@ class RequestExecutor implements RequestExecutorInterface
                 $event = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::CONNECTED);
                 try {
                     $this->callSocketSubscribers($socket, $event);
-                } catch (\Exception $e) {
+                } catch (SocketException $e) {
                     $this->callExceptionSubscribers($socket, $e, $event);
                     $result[] = $key;
                     continue;
@@ -503,9 +479,10 @@ class RequestExecutor implements RequestExecutorInterface
                 if ($nextOperation === null) {
                     $result[] = $key;
                 } else {
-                    $meta[self::META_OPERATION] = $nextOperation;
+                    $meta[self::META_OPERATION]          = $nextOperation;
+                    $meta[self::META_LAST_IO_START_TIME] = null;
                 }
-            } catch (\Exception $e) {
+            } catch (SocketException $e) {
                 $this->callExceptionSubscribers($socket, $e, $event);
                 $result[] = $key;
             }
@@ -534,13 +511,14 @@ class RequestExecutor implements RequestExecutorInterface
                 ($meta[self::META_CONNECTION_FINISH_TIME] === null &&
                  $microtime - $meta[self::META_CONNECTION_START_TIME] > $meta[self::META_CONNECTION_TIMEOUT]) ||
                 ($meta[self::META_CONNECTION_FINISH_TIME] !== null &&
+                 $meta[self::META_LAST_IO_START_TIME] !== null &&
                  $microtime - $meta[self::META_LAST_IO_START_TIME] > $meta[self::META_IO_TIMEOUT]);
             if ($isTimeout) {
                 $socket = $item['socket'];
                 $event = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::TIMEOUT);
                 try {
                     $this->callSocketSubscribers($socket, $event);
-                } catch (\Exception $e) {
+                } catch (SocketException $e) {
                     $this->callExceptionSubscribers($socket, $e, $event);
                 }
                 $result[] = $key;
@@ -609,11 +587,7 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private function calculateSelectorTimeout(array $activeKeys)
     {
-        $result = [ 'sec' => 0, 'microsec' => 0 ];
-        if (!$activeKeys) {
-            return $result;
-        }
-
+        $result    = [ 'sec' => 0, 'microsec' => 0 ];
         $timeList  = [];
         $microtime = microtime(true);
         foreach ($activeKeys as $key) {
@@ -680,8 +654,7 @@ class RequestExecutor implements RequestExecutorInterface
     }
 
     /**
-     * Shutdown all sockets after we have pair of unhandled exceptions, or when we had first exception
-     * in exception event handler with META_ALLOW_DOUBLE_EXCEPTION_HANDLING = false
+     * Shutdown all sockets in case of unhandled exception
      *
      * @return void
      */

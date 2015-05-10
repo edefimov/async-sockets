@@ -152,11 +152,9 @@ class RequestExecutorClient
     /**
      * Disconnect event
      *
-     * @param Event $event Event object
-     *
      * @return void
      */
-    public function onGitHubDisconnect(Event $event)
+    public function onGitHubDisconnect()
     {
         echo "GitHub socket has disconnected\n";
     }
@@ -170,7 +168,8 @@ class RequestExecutorClient
      */
     public function onPackagistConnected(Event $event)
     {
-        echo "Connected to Packagist\n";
+        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        echo "Connected to Packagist: {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
     }
 
     /**
@@ -182,7 +181,8 @@ class RequestExecutorClient
      */
     public function onGitHubConnected(Event $event)
     {
-        echo "Connected to GitHub\n";
+        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        echo "Connected to GitHub: {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
     }
 
     /**
@@ -207,7 +207,8 @@ class RequestExecutorClient
      */
     public function onTimeout(Event $event)
     {
-        echo "Timeout happened on some socket\n";
+        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        echo "Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
     }
 
     /**

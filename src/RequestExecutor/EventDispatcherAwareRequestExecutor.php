@@ -16,7 +16,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 /**
  * Class EventDispatcherAwareRequestExecutor
  */
-class EventDispatcherAwareRequestExecutor extends RequestExecutor
+class EventDispatcherAwareRequestExecutor extends RequestExecutor implements EventDispatcherAware
 {
     /**
      * EventDispatcherInterface
@@ -25,13 +25,7 @@ class EventDispatcherAwareRequestExecutor extends RequestExecutor
      */
     private $eventDispatcher;
 
-    /**
-     * Sets EventDispatcher
-     *
-     * @param EventDispatcherInterface $eventDispatcher New value for EventDispatcher
-     *
-     * return void
-     */
+    /** {@inheritdoc} */
     public function setEventDispatcher(EventDispatcherInterface $eventDispatcher = null)
     {
         $this->eventDispatcher = $eventDispatcher;

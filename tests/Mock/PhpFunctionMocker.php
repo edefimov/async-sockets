@@ -188,7 +188,7 @@ namespace {$phpNamespace} {
     }
 }
 MAGIC
-);
+            );
         }
 
         if (!function_exists("{$phpNamespace}\\{$functionDefName}")) {

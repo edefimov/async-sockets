@@ -10,6 +10,7 @@
 
 namespace AsyncSockets\Event;
 
+use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -23,32 +24,32 @@ class SocketExceptionEvent extends Event
     /**
      * Exception linked with event
      *
-     * @var \Exception
+     * @var SocketException
      */
     private $exception;
 
     /**
      * Event caused the exception
      *
-     * @var Event
+     * @var Event|null
      */
     private $originalEvent;
 
     /**
      * Constructor
      *
-     * @param \Exception               $exception Exception occurred during request
-     * @param Event                    $originalEvent Original event
+     * @param SocketException          $exception Exception occurred during request
      * @param RequestExecutorInterface $executor Request executor object
      * @param SocketInterface          $socket   Socket for this request
      * @param mixed                    $context  Any optional user data for event
+     * @param Event                    $originalEvent Original event
      */
     public function __construct(
-        \Exception               $exception,
-        Event                    $originalEvent,
+        SocketException          $exception,
         RequestExecutorInterface $executor,
         SocketInterface          $socket,
-        $context
+        $context,
+        Event                    $originalEvent = null
     ) {
         parent::__construct($executor, $socket, $context, EventType::EXCEPTION);
         $this->exception     = $exception;
@@ -58,7 +59,7 @@ class SocketExceptionEvent extends Event
     /**
      * Return thrown exception
      *
-     * @return \Exception
+     * @return SocketException
      */
     public function getException()
     {
@@ -68,7 +69,7 @@ class SocketExceptionEvent extends Event
     /**
      * Return event caused exception
      *
-     * @return Event
+     * @return Event|null Null means that exception occurred outside another Event
      */
     public function getOriginalEvent()
     {
