@@ -24,4 +24,4 @@ after_script:
 matrix:
   allow_failures:
       - php: 7.0
-      - nightly
+      - php: nightly
