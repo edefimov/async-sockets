@@ -67,29 +67,14 @@ class Client
         ]);
 
 
-        $executor->addHandler([
-                                 EventType::INITIALIZE => [$this, 'onInitialize'],
-                                 EventType::WRITE      => [$this, 'onWrite'],
-                                 EventType::READ       => [$this, 'onRead'],
-                             ]);
+        $executor->addHandler(
+            [
+                EventType::WRITE => [ $this, 'onWrite' ],
+                EventType::READ  => [ $this, 'onRead' ],
+            ]
+        );
 
         $executor->execute();
-    }
-
-    /**
-     * Socket initialize event
-     *
-     * @param Event $event Event object
-     *
-     * @return void
-     */
-    public function onInitialize(Event $event)
-    {
-        $context = $event->getContext();
-        $socket  = $event->getSocket();
-
-        $context['customArgument'] = md5(spl_object_hash($socket));
-        $event->getExecutor()->setSocketMetaData($socket, RequestExecutorInterface::META_USER_CONTEXT, $context);
     }
 
     /**
@@ -104,7 +89,8 @@ class Client
         $context = $event->getContext();
         $socket  = $event->getSocket();
 
-        $socket->write($context['data']);
+        $lenWritten = $socket->write($context['data']);
+        echo 'Written: ' . number_format($lenWritten, 0, '.', ' ') . " bytes\n";
         $event->nextIsRead();
     }
 

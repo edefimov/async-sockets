@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Interface EventDispatcherAware
+ * Interface EventDispatcherAwareInterface
  */
-interface EventDispatcherAware
+interface EventDispatcherAwareInterface
 {
     /**
      * Sets EventDispatcher

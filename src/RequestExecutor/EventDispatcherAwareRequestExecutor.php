@@ -16,7 +16,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 /**
  * Class EventDispatcherAwareRequestExecutor
  */
-class EventDispatcherAwareRequestExecutor extends RequestExecutor implements EventDispatcherAware
+class EventDispatcherAwareRequestExecutor extends RequestExecutor implements EventDispatcherAwareInterface
 {
     /**
      * EventDispatcherInterface
