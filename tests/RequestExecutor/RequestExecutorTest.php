@@ -214,7 +214,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -269,7 +269,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $this->socket
         );
 
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -322,7 +322,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $this->socket
         );
 
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -407,7 +407,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -453,7 +453,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ],
             $this->socket
         );
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -492,9 +492,50 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ],
             $this->socket
         );
-        $this->executor->execute();
+        $this->executor->executeRequest();
 
         self::fail('Event handler must have been executed');
+    }
+
+    /**
+     * testStopRequest
+     *
+     * @param string $operation Operation to test
+     * @param string $eventType Event type for operation
+     *
+     * @return void
+     * @dataProvider socketOperationDataProvider
+     */
+    public function testStopRequest($operation, $eventType)
+    {
+        $failHandler = function (Event $event) {
+            self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
+        };
+
+        $this->executor->addSocket(
+            $this->socket,
+            $operation,
+            [
+                RequestExecutor::META_ADDRESS => 'php://temp',
+            ]
+        );
+
+        $mock = $this->getMock('Countable', ['count']);
+        $mock->expects(self::exactly(2))->method('count');
+
+        $this->executor->addHandler(
+            [
+                EventType::CONNECTED => function (Event $event) {
+                    $event->getExecutor()->stopRequest();
+                },
+                $eventType              => $failHandler,
+                EventType::DISCONNECTED => [$mock, 'count'],
+                EventType::FINALIZE     => [$mock, 'count'],
+                EventType::EXCEPTION    => $failHandler,
+            ],
+            $this->socket
+        );
+        $this->executor->executeRequest();
     }
 
     /**
@@ -521,12 +562,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $this->executor->addHandler(
             [
                 $eventType => function () {
-                    $this->executor->execute();
+                    $this->executor->executeRequest();
                 }
             ],
             $this->socket
         );
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -613,7 +654,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                     $meta[RequestExecutor::META_CONNECTION_START_TIME],
                     'Connection start time must not be null at this point'
                 );
-                self::assertNull(
+                self::assertNotNull(
                     $meta[RequestExecutor::META_CONNECTION_FINISH_TIME],
                     'Connection finish time must not be null at this point'
                 );
@@ -644,7 +685,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->addHandler($handlers);
 
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -695,7 +736,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             EventType::FINALIZE     => [$mock, 'count'],
             EventType::TIMEOUT      => [$mock, 'count'],
         ]);
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -748,7 +789,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             EventType::FINALIZE     => [$mock, 'count'],
             EventType::TIMEOUT      => [$mock, 'count'],
         ]);
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -813,7 +854,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 EventType::EXCEPTION    => $handler,
             ]
         );
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**
@@ -879,7 +920,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 EventType::EXCEPTION    => [$mock, 'count'],
             ]
         );
-        $this->executor->execute();
+        $this->executor->executeRequest();
     }
 
     /**

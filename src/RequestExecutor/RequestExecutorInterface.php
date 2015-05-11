@@ -202,7 +202,17 @@ interface RequestExecutorInterface
      *
      * @api
      */
-    public function execute();
+    public function executeRequest();
+
+    /**
+     * Stop execution for all registered sockets. Applicable only during request execution
+     *
+     * @return void
+     * @throws \BadMethodCallException When called on non-executing request
+     *
+     * @api
+     */
+    public function stopRequest();
 
     /**
      * Return flag whether process is in execute stage

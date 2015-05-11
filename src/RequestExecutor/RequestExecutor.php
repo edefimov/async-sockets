@@ -15,6 +15,7 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\Exception\StopRequestExecuteException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\SocketInterface;
@@ -51,6 +52,20 @@ class RequestExecutor implements RequestExecutorInterface
      * @var int
      */
     private $defaultSocketTimeout;
+
+    /**
+     * Flag, indicating stopping request
+     *
+     * @var bool
+     */
+    private $isRequestStopped;
+
+    /**
+     * Flag, indicating stopping request is in progress
+     *
+     * @var bool
+     */
+    private $isRequestStopInProggress;
 
     /**
      * Constructor
@@ -208,24 +223,44 @@ class RequestExecutor implements RequestExecutorInterface
     }
 
     /** {@inheritdoc} */
-    public function execute()
+    public function executeRequest()
     {
         if ($this->isExecuting()) {
             throw new \LogicException('Request is already in progress');
         }
-        $this->isExecuting = true;
+        $this->isExecuting              = true;
+        $this->isRequestStopped         = false;
+        $this->isRequestStopInProggress = false;
 
         try {
             $this->processMainExecutionLoop();
             $this->disconnectSocketsByKeys(array_keys($this->sockets));
             $this->isExecuting = false;
+        } catch (StopRequestExecuteException $e) {
+            $this->isRequestStopInProggress = true;
+            $this->disconnectSocketsByKeys(array_keys($this->sockets));
+            $this->isExecuting              = false;
+            $this->isRequestStopped         = false;
+            $this->isRequestStopInProggress = false;
         } catch (\Exception $e) {
             $this->emergencyShutdown();
-            $this->isExecuting = false;
+            $this->isExecuting              = false;
+            $this->isRequestStopped         = false;
+            $this->isRequestStopInProggress = false;
             throw $e;
         }
-
     }
+
+    /** {@inheritdoc} */
+    public function stopRequest()
+    {
+        if (!$this->isExecuting()) {
+            throw new \BadMethodCallException('Can not stop inactive request');
+        }
+
+        $this->isRequestStopped = true;
+    }
+
 
     /**
      * Verifies that socket was added and return its key in storage
@@ -412,6 +447,7 @@ class RequestExecutor implements RequestExecutorInterface
      * @param Event           $event  Event object
      *
      * @return void
+     * @throws StopRequestExecuteException
      */
     private function callSocketSubscribers(SocketInterface $socket, Event $event)
     {
@@ -420,6 +456,10 @@ class RequestExecutor implements RequestExecutorInterface
             call_user_func_array($subscriber, [$event]);
         }
         $this->handleSocketEvent($socket, $event);
+
+        if ($this->isRequestStopped && !$this->isRequestStopInProggress) {
+            throw new StopRequestExecuteException();
+        }
     }
 
     /**
@@ -460,6 +500,7 @@ class RequestExecutor implements RequestExecutorInterface
             $key          = $this->requireAddedSocketKey($socket);
             $meta         = &$this->sockets[ $key ][ 'meta' ];
             $wasConnected = $meta[ self::META_CONNECTION_FINISH_TIME ] !== null;
+            $this->setSocketOperationTime($meta, self::META_CONNECTION_FINISH_TIME);
             if (!$wasConnected) {
                 $event = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::CONNECTED);
                 try {
@@ -470,9 +511,8 @@ class RequestExecutor implements RequestExecutorInterface
                     continue;
                 }
             }
-            $event = new IoEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $eventType);
-            $this->setSocketOperationTime($meta, self::META_CONNECTION_FINISH_TIME);
 
+            $event = new IoEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $eventType);
             try {
                 $this->callSocketSubscribers($socket, $event);
                 $nextOperation = $event->getNextOperation();

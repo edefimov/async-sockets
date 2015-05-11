@@ -96,7 +96,7 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
             $dispatcher->addListener($value, $handler);
         }
 
-        $this->executor->execute();
+        $this->executor->executeRequest();
 
     }
 }

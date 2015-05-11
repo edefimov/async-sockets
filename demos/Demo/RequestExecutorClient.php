@@ -64,7 +64,7 @@ class RequestExecutorClient
             EventType::TIMEOUT    => [$this, 'onTimeout'],
         ]);
 
-        $executor->execute();
+        $executor->executeRequest();
     }
 
     /**
