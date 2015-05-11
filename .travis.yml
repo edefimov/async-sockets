@@ -14,12 +14,15 @@ before_install:
 install: composer install --prefer-source --dev
 
 before_script:
-  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then PHPUNIT_FLAGS="--coverage-clover ./build/logs/clover.xml"; else PHPUNIT_FLAGS=""; fi
+  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then PHPUNIT_FLAGS_1="--coverage-clover ./build/logs/clover-with-eventdispatcher.xml"; else PHPUNIT_FLAGS_1=""; fi
+  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then PHPUNIT_FLAGS_2="--coverage-clover ./build/logs/clover-no-eventdispatcher.xml"; else PHPUNIT_FLAGS_2=""; fi
 
-script: phpunit -c tests/travis/travis.phpunit.xml $PHPUNIT_FLAGS
+script:
+  - phpunit -c tests/travis/travis.phpunit.xml $PHPUNIT_FLAGS_1
+  - phpunit -c tests/travis/no-eventdispatcher.phpunit.xml $PHPUNIT_FLAGS_2
 
 after_script:
-  - php vendor/bin/coveralls -v --no-interaction --exclude-no-stmt
+  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then php vendor/bin/coveralls -v --no-interaction --exclude-no-stmt; fi
 
 matrix:
   allow_failures:

@@ -2,23 +2,21 @@
          xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.1/phpunit.xsd"
          backupGlobals="false"
          colors="true"
-         bootstrap="tests/bootstrap.php"
+         bootstrap="./../bootstrap.php"
     >
     <testsuites>
         <testsuite name="Async sockets">
-            <directory>tests</directory>
-            <exclude>tests/Event/AbstractEventNoEventDispatcherTest.php</exclude>
+            <file>./../../tests/Event/AbstractEventNoEventDispatcherTest.php</file>
         </testsuite>
     </testsuites>
 
     <filter>
         <whitelist>
-            <directory>./src</directory>
+            <file>./../../src/Event/AbstractEvent.php</file>
             <exclude>
-                <directory>./tests</directory>
-                <directory>./vendor</directory>
-                <directory>./bin</directory>
-                <directory>./demos</directory>
+                <directory>./../../tests</directory>
+                <directory>./../../vendor</directory>
+                <directory>./../../demos</directory>
             </exclude>
         </whitelist>
     </filter>
