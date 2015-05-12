@@ -32,6 +32,6 @@ $ composer require 'edefimov/async-sockets':dev-master
 [master-coverall-url]: https://coveralls.io/r/edefimov/async-sockets
 [master-sensiolabs-image]: https://img.shields.io/sensiolabs/i/c816a980-e97a-46ae-b334-16c6bfd1ec4a.svg?style=flat
 [master-sensiolabs-url]: https://insight.sensiolabs.com/projects/c816a980-e97a-46ae-b334-16c6bfd1ec4a
-[master-versioneye-image]: https://img.shields.io/versioneye/d/edefimov/async-sockets.svg?style=flat
+[master-versioneye-image]: https://www.versioneye.com/user/projects/55525b5706c318305500014b/badge.png?style=flat
 [master-versioneye-url]: https://www.versioneye.com/user/projects/55525b5706c318305500014b
 
