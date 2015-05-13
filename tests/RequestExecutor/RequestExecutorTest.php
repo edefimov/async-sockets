@@ -472,8 +472,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $this->socket,
             $operation,
             [
-                RequestExecutor::META_ADDRESS               => 'php://temp',
-                RequestExecutor::META_SOCKET_STREAM_CONTEXT => stream_context_get_default(),
+                RequestExecutor::META_ADDRESS => 'php://temp',
             ]
         );
 
@@ -539,6 +538,17 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testStopRequestNonExecuting
+     *
+     * @return void
+     * @expectedException \BadMethodCallException
+     */
+    public function testStopRequestNonExecuting()
+    {
+        $this->executor->stopRequest();
+    }
+
+    /**
      * testCantExecuteTwice
      *
      * @param string $operation Operation to test
@@ -568,6 +578,56 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $this->socket
         );
         $this->executor->executeRequest();
+    }
+
+    /**
+     * testPassingStreamContextHandle
+     *
+     * @param string $operation Operation to test
+     *
+     * @return void
+     * @dataProvider socketOperationDataProvider
+     * @depends testStopRequest
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Test passed
+     * @expectedExceptionCode 354
+     */
+    public function testPassingStreamContextHandle($operation)
+    {
+        $streamContextHandle  = stream_context_create([]);
+        $socketStreamResource = fopen('php://temp', 'rw');
+
+        $mock = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\AbstractSocket',
+            [],
+            '',
+            true,
+            true,
+            true,
+            ['open']
+        );
+
+        $mock
+            ->expects(self::any())
+            ->method('open')
+            ->with('php://temp', $streamContextHandle)
+            ->willThrowException(new \RuntimeException('Test passed', 354));
+
+
+
+
+
+        $this->executor->addSocket(
+            $mock,
+            $operation,
+            [
+                RequestExecutor::META_ADDRESS               => 'php://temp',
+                RequestExecutor::META_SOCKET_STREAM_CONTEXT => $streamContextHandle
+            ]
+        );
+
+        $this->executor->executeRequest();
+        fclose($socketStreamResource);
     }
 
     /**
