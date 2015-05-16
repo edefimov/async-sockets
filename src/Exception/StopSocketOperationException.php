@@ -10,9 +10,9 @@
 namespace AsyncSockets\Exception;
  
 /**
- * Class StopRequestExecuteException. Internal exception, never thrown outside
+ * Class StopSocketOperationException. Internal exception, never thrown outside
  */
-final class StopRequestExecuteException extends \Exception
+final class StopSocketOperationException extends SocketException
 {
 
 }

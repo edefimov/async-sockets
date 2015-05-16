@@ -16,7 +16,10 @@ use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopRequestExecuteException;
+use AsyncSockets\Exception\StopSocketOperationException;
 use AsyncSockets\Exception\TimeoutException;
+use AsyncSockets\RequestExecutor\Metadata\HandlerBag;
+use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -28,16 +31,16 @@ class RequestExecutor implements RequestExecutorInterface
     /**
      * Array of registered sockets
      *
-     * @var SocketInterface[][]
+     * @var OperationMetadata[]
      */
-    private $sockets = [];
+    private $operations = [];
 
     /**
      * List of registered callables for this executor
      *
-     * @var callable[]
+     * @var HandlerBag
      */
-    private $subscribers = [];
+    private $subscribers;
 
     /**
      * Flag whether we are executing request
@@ -72,15 +75,16 @@ class RequestExecutor implements RequestExecutorInterface
      */
     public function __construct()
     {
-        $this->defaultSocketTimeout  = (int) ini_get('default_socket_timeout');
+        $this->defaultSocketTimeout = (int) ini_get('default_socket_timeout');
+        $this->subscribers          = new HandlerBag();
     }
 
 
     /** {@inheritdoc} */
     public function addSocket(SocketInterface $socket, $operation, array $metadata = null)
     {
-        $hash = $this->getSocketStorageKey($socket);
-        if (isset($this->sockets[$hash])) {
+        $hash = $this->getOperationStorageKey($socket);
+        if (isset($this->operations[$hash])) {
             throw new \LogicException('Can not add socket twice');
         }
 
@@ -102,48 +106,44 @@ class RequestExecutor implements RequestExecutorInterface
             ]
         );
 
-        $this->sockets[$hash] = [
-            'socket'      => $socket,
-            'subscribers' => null,
-            'meta'        => $meta,
-        ];
+        $this->operations[$hash] = new OperationMetadata($socket, $meta);
     }
 
     /** {@inheritdoc} */
     public function hasSocket(SocketInterface $socket)
     {
-        $hash = $this->getSocketStorageKey($socket);
-        return isset($this->sockets[$hash]);
+        $hash = $this->getOperationStorageKey($socket);
+        return isset($this->operations[$hash]);
     }
 
     /** {@inheritdoc} */
     public function removeSocket(SocketInterface $socket)
     {
-        $key = $this->getSocketStorageKey($socket);
-        if (!isset($this->sockets[$key])) {
+        $key = $this->getOperationStorageKey($socket);
+        if (!isset($this->operations[$key])) {
             return;
         }
 
-        $meta = $this->sockets[$key]['meta'];
+        $meta = $this->operations[$key]->getMetadata();
         if (!$meta[self::META_REQUEST_COMPLETE] && $this->isExecuting()) {
             throw new \LogicException('Can not remove unprocessed socket during request processing');
         }
 
-        unset($this->sockets[$key]);
+        unset($this->operations[$key]);
     }
 
 
     /** {@inheritdoc} */
     public function getSocketMetaData(SocketInterface $socket)
     {
-        $hash = $this->requireAddedSocketKey($socket);
-        return $this->sockets[$hash]['meta'];
+        $hash = $this->requireOperationKey($socket);
+        return $this->operations[$hash]->getMetadata();
     }
 
     /** {@inheritdoc} */
     public function setSocketMetaData(SocketInterface $socket, $key, $value = null)
     {
-        $writeableKeys = [
+        $writableKeys = [
             self::META_ADDRESS               => 1,
             self::META_USER_CONTEXT          => 1,
             self::META_OPERATION             => 1,
@@ -156,64 +156,37 @@ class RequestExecutor implements RequestExecutorInterface
             $key = [ $key => $value ];
         }
 
-        $key  = array_intersect_key($key, $writeableKeys);
-        $hash = $this->requireAddedSocketKey($socket);
+        $key  = array_intersect_key($key, $writableKeys);
+        $hash = $this->requireOperationKey($socket);
 
-        $this->sockets[$hash]['meta'] = array_merge(
-            $this->sockets[$hash]['meta'],
-            $key
-        );
+        $this->operations[$hash]->setMetadata($key);
     }
 
     /** {@inheritdoc} */
     public function addHandler(array $events, SocketInterface $socket = null)
     {
-        if ($socket) {
-            $hash = $this->requireAddedSocketKey($socket);
-            if (!$this->sockets[$hash]['subscribers']) {
-                $this->sockets[$hash]['subscribers'] = [];
-            }
+        $bag = $socket ?
+            $this->requireOperation($socket)->getSubscribers() :
+            $this->subscribers;
 
-            $eventStorage = & $this->sockets[$hash]['subscribers'];
-        } else {
-            $eventStorage = & $this->subscribers;
-        }
-
-        foreach ($events as $eventName => $subscriber) {
-            $eventStorage[$eventName] = array_merge(
-                isset($eventStorage[$eventName]) ? $eventStorage[$eventName] : [],
-                is_callable($subscriber) ? [$subscriber] : $subscriber
-            );
-        }
+        $bag->addHandler($events);
     }
 
     /** {@inheritdoc} */
     public function removeHandler(array $events, SocketInterface $socket = null)
     {
         if ($socket) {
-            $hash = $this->getSocketStorageKey($socket);
-            if (!isset($this->sockets[$hash]) || !$this->sockets[$hash]['subscribers']) {
+            $hash = $this->getOperationStorageKey($socket);
+            if (!isset($this->operations[$hash])) {
                 return;
             }
 
-            $eventStorage = & $this->sockets[$hash]['subscribers'];
+            $bag = $this->operations[$hash]->getSubscribers();
         } else {
-            $eventStorage = & $this->subscribers;
+            $bag = $this->subscribers;
         }
 
-        foreach ($events as $eventName => $subscribers) {
-            if (!isset($eventStorage[$eventName])) {
-                continue;
-            }
-
-            $subscribers = is_callable($subscribers) ? [$subscribers] : $subscribers;
-            foreach ($subscribers as $subscriber) {
-                $key = array_search($subscriber, $eventStorage[$eventName], true);
-                if ($key !== false) {
-                    unset($eventStorage[$eventName][$key]);
-                }
-            }
-        }
+        $bag->removeHandler($events);
     }
 
     /** {@inheritdoc} */
@@ -234,11 +207,11 @@ class RequestExecutor implements RequestExecutorInterface
 
         try {
             $this->processMainExecutionLoop();
-            $this->disconnectSocketsByKeys(array_keys($this->sockets));
+            $this->disconnectSocketsByKeys(array_keys($this->operations));
             $this->isExecuting = false;
         } catch (StopRequestExecuteException $e) {
             $this->isRequestStopInProgress = true;
-            $this->disconnectSocketsByKeys(array_keys($this->sockets));
+            $this->disconnectSocketsByKeys(array_keys($this->operations));
             $this->isExecuting             = false;
             $this->isRequestStopped        = false;
             $this->isRequestStopInProgress = false;
@@ -261,6 +234,16 @@ class RequestExecutor implements RequestExecutorInterface
         $this->isRequestStopped = true;
     }
 
+    /** {@inheritdoc} */
+    public function cancelSocketRequest(SocketInterface $socket)
+    {
+        if (!$this->isExecuting()) {
+            throw new \BadMethodCallException('Can not stop inactive request');
+        }
+
+        $this->requireOperation($socket)->setOperationCancelled(true);
+    }
+
 
     /**
      * Verifies that socket was added and return its key in storage
@@ -269,14 +252,26 @@ class RequestExecutor implements RequestExecutorInterface
      *
      * @return string
      */
-    private function requireAddedSocketKey(SocketInterface $socket)
+    private function requireOperationKey(SocketInterface $socket)
     {
-        $hash = $this->getSocketStorageKey($socket);
-        if (!isset($this->sockets[$hash])) {
+        $hash = $this->getOperationStorageKey($socket);
+        if (!isset($this->operations[$hash])) {
             throw new \OutOfBoundsException('Trying to perform operation on not added socket');
         }
 
         return $hash;
+    }
+
+    /**
+     * Require operation metadata for given socket
+     *
+     * @param SocketInterface $socket Socket object
+     *
+     * @return OperationMetadata
+     */
+    private function requireOperation(SocketInterface $socket)
+    {
+        return $this->operations[ $this->requireOperationKey($socket) ];
     }
 
     /**
@@ -286,27 +281,25 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private function processConnect()
     {
-        foreach ($this->sockets as $hash => $item) {
-            $meta = $item['meta'];
+        foreach ($this->operations as $item) {
+            $meta = $item->getMetadata();
             if ($meta[self::META_CONNECTION_START_TIME] !== null || $meta[self::META_REQUEST_COMPLETE]) {
                 continue;
             }
 
-            $socket = $item['socket'];
+            $socket = $item->getSocket();
             $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::INITIALIZE);
 
             try {
                 $this->callSocketSubscribers($socket, $event);
-                $this->setSocketOperationTime($this->sockets[$hash]['meta'], self::META_CONNECTION_START_TIME);
+                $this->setSocketOperationTime($item, self::META_CONNECTION_START_TIME);
                 if (!$socket->getStreamResource()) {
-                    $meta          = $this->sockets[ $hash ][ 'meta' ];
                     $streamContext = $this->getStreamContextFromMetaData($meta);
-
                     $socket->open($meta[self::META_ADDRESS], $streamContext);
                 }
                 $socket->setBlocking(false);
             } catch (SocketException $e) {
-                $this->sockets[$hash]['meta'][self::META_REQUEST_COMPLETE] = true;
+                $item->setMetadata(self::META_REQUEST_COMPLETE, true);
                 $this->callExceptionSubscribers($socket, $e, $event);
             }
         }
@@ -320,6 +313,9 @@ class RequestExecutor implements RequestExecutorInterface
     private function processMainExecutionLoop()
     {
         $selector = new AsyncSelector();
+        foreach ($this->operations as $item) {
+            $item->initialize();
+        }
 
         do {
             $this->processConnect();
@@ -329,10 +325,10 @@ class RequestExecutor implements RequestExecutorInterface
             }
 
             foreach ($activeSocketsKeys as $key) {
-                $item = $this->sockets[$key];
-                $meta = $item['meta'];
-                $this->setSocketOperationTime($this->sockets[$key]['meta'], self::META_LAST_IO_START_TIME);
-                $selector->addSocketOperation($item['socket'], $meta[self::META_OPERATION]);
+                $item = $this->operations[$key];
+                $meta = $item->getMetadata();
+                $this->setSocketOperationTime($item, self::META_LAST_IO_START_TIME);
+                $selector->addSocketOperation($item->getSocket(), $meta[self::META_OPERATION]);
             }
 
             try {
@@ -349,8 +345,8 @@ class RequestExecutor implements RequestExecutorInterface
             } catch (TimeoutException $e) {
                 // do nothing
             } catch (SocketException $e) {
-                foreach ($this->sockets as $item) {
-                    $this->callExceptionSubscribers($item['socket'], $e, null);
+                foreach ($this->operations as $item) {
+                    $this->callExceptionSubscribers($item->getSocket(), $e, null);
                 }
 
                 return;
@@ -374,18 +370,16 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private function disconnectSingleSocket(SocketInterface $socket, AsyncSelector $selector = null)
     {
-        $hash = $this->requireAddedSocketKey($socket);
-        $item = $this->sockets[$hash];
-        $meta = $item['meta'];
+        $item = $this->requireOperation($socket);
+        $meta = $item->getMetadata();
 
         if ($meta[self::META_REQUEST_COMPLETE]) {
             return;
         }
 
-        $this->sockets[$hash]['meta'][self::META_REQUEST_COMPLETE] = true;
+        $item->setMetadata(self::META_REQUEST_COMPLETE, true);
 
-        $socket = $item['socket'];
-        /** @var SocketInterface $socket */
+        $socket = $item->getSocket();
         $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::DISCONNECTED);
 
         try {
@@ -416,13 +410,11 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private function getEventSubscribers(SocketInterface $socket, $eventName)
     {
-        $hash              = $this->requireAddedSocketKey($socket);
-        $socketInfo        = $this->sockets[ $hash ];
-        $subscribers       = $socketInfo['subscribers'] ?: [ ];
-        $subscribers       = isset($subscribers[ $eventName ]) ? $subscribers[ $eventName ] : [ ];
-        $globalSubscribers = isset($this->subscribers[ $eventName ]) ? $this->subscribers[ $eventName ] : [ ];
-
-        return array_merge($subscribers, $globalSubscribers);
+        $item = $this->requireOperation($socket);
+        return array_merge(
+            $item->getSubscribers()->getHandlersFor($eventName),
+            $this->subscribers->getHandlersFor($eventName)
+        );
     }
 
     /**
@@ -460,6 +452,12 @@ class RequestExecutor implements RequestExecutorInterface
         if ($this->isRequestStopped && !$this->isRequestStopInProgress) {
             throw new StopRequestExecuteException();
         }
+
+        $item = $this->requireOperation($socket);
+        if ($item->isOperationCancelled()) {
+            $item->setOperationCancelled(false);
+            throw new StopSocketOperationException();
+        }
     }
 
     /**
@@ -473,8 +471,11 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private function callExceptionSubscribers(SocketInterface $socket, SocketException $exception, Event $event = null)
     {
-        $key            = $this->requireAddedSocketKey($socket);
-        $meta           = $this->sockets[$key]['meta'];
+        if ($exception instanceof StopSocketOperationException) {
+            return;
+        }
+
+        $meta           = $this->requireOperation($socket)->getMetadata();
         $exceptionEvent = new SocketExceptionEvent(
             $exception,
             $this,
@@ -497,10 +498,11 @@ class RequestExecutor implements RequestExecutorInterface
     {
         $result = [];
         foreach ($sockets as $socket) {
-            $key          = $this->requireAddedSocketKey($socket);
-            $meta         = &$this->sockets[ $key ][ 'meta' ];
+            $key          = $this->requireOperationKey($socket);
+            $item         = $this->operations[$key];
+            $meta         = $item->getMetadata();
             $wasConnected = $meta[ self::META_CONNECTION_FINISH_TIME ] !== null;
-            $this->setSocketOperationTime($meta, self::META_CONNECTION_FINISH_TIME);
+            $this->setSocketOperationTime($item, self::META_CONNECTION_FINISH_TIME);
             if (!$wasConnected) {
                 $event = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::CONNECTED);
                 try {
@@ -544,8 +546,8 @@ class RequestExecutor implements RequestExecutorInterface
     {
         $result = [];
         foreach ($keys as $key) {
-            $item      = $this->sockets[$key];
-            $meta      = & $this->sockets[$key]['meta'];
+            $item      = $this->operations[$key];
+            $meta      = $item->getMetadata();
             $microtime = microtime(true);
             $isTimeout =
                 ($meta[self::META_CONNECTION_FINISH_TIME] === null &&
@@ -554,7 +556,7 @@ class RequestExecutor implements RequestExecutorInterface
                  $meta[self::META_LAST_IO_START_TIME] !== null &&
                  $microtime - $meta[self::META_LAST_IO_START_TIME] > $meta[self::META_IO_TIMEOUT]);
             if ($isTimeout) {
-                $socket = $item['socket'];
+                $socket = $item->getSocket();
                 $event = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::TIMEOUT);
                 try {
                     $this->callSocketSubscribers($socket, $event);
@@ -563,7 +565,6 @@ class RequestExecutor implements RequestExecutorInterface
                 }
                 $result[] = $key;
             }
-            unset($meta);
         }
 
         return $result;
@@ -577,8 +578,9 @@ class RequestExecutor implements RequestExecutorInterface
     private function getActiveSocketKeys()
     {
         $result = [];
-        foreach ($this->sockets as $key => $item) {
-            if (!$item['meta'][self::META_REQUEST_COMPLETE]) {
+        foreach ($this->operations as $key => $item) {
+            $meta = $item->getMetadata();
+            if (!$meta[self::META_REQUEST_COMPLETE]) {
                 $result[ ] = $key;
             }
         }
@@ -589,13 +591,14 @@ class RequestExecutor implements RequestExecutorInterface
     /**
      * Set start or finish time in metadata of the socket
      *
-     * @param array &$meta Socket meta data
-     * @param string $key Metadata key to set
+     * @param OperationMetadata $operationMetadata Socket meta data
+     * @param string            $key Metadata key to set
      *
      * @return void
      */
-    private function setSocketOperationTime(array &$meta, $key)
+    private function setSocketOperationTime(OperationMetadata $operationMetadata, $key)
     {
+        $meta = $operationMetadata->getMetadata();
         switch ($key) {
             case self::META_CONNECTION_START_TIME:
                 $doSetValue = $meta[self::META_CONNECTION_START_TIME] === null;
@@ -614,7 +617,7 @@ class RequestExecutor implements RequestExecutorInterface
         }
 
         if ($doSetValue) {
-            $meta[$key] = microtime(true);
+            $operationMetadata->setMetadata($key, microtime(true));
         }
     }
 
@@ -631,7 +634,7 @@ class RequestExecutor implements RequestExecutorInterface
         $timeList  = [];
         $microtime = microtime(true);
         foreach ($activeKeys as $key) {
-            $meta = $this->sockets[$key]['meta'];
+            $meta = $this->operations[$key]->getMetadata();
             if ($meta[self::META_CONNECTION_FINISH_TIME] === null) {
                 $timeout = $meta[self::META_CONNECTION_START_TIME] === null ?
                     $meta[self::META_CONNECTION_TIMEOUT] :
@@ -666,7 +669,7 @@ class RequestExecutor implements RequestExecutorInterface
      *
      * @return string
      */
-    private function getSocketStorageKey(SocketInterface $socket)
+    private function getOperationStorageKey(SocketInterface $socket)
     {
         return spl_object_hash($socket);
     }
@@ -700,16 +703,14 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private function emergencyShutdown()
     {
-        foreach ($this->sockets as $key => $data) {
-            $socket = $data['socket'];
+        foreach ($this->operations as $item) {
             try {
-                /** @var SocketInterface $socket */
-                $socket->close();
+                $item->getSocket()->close();
             } catch (\Exception $e) {
                 // nothing required
             }
 
-            $this->sockets[ $key ][ 'meta' ][ self::META_REQUEST_COMPLETE ] = true;
+            $item->setMetadata(self::META_REQUEST_COMPLETE, true);
         }
     }
 
@@ -724,7 +725,7 @@ class RequestExecutor implements RequestExecutorInterface
     private function disconnectSocketsByKeys(array $keys, AsyncSelector $selector = null)
     {
         foreach ($keys as $key) {
-            $this->disconnectSingleSocket($this->sockets[ $key ][ 'socket' ], $selector);
+            $this->disconnectSingleSocket($this->operations[ $key ]->getSocket(), $selector);
         }
     }
 }

@@ -215,6 +215,18 @@ interface RequestExecutorInterface
     public function stopRequest();
 
     /**
+     * Cancel network operation for given socket. Applicable only during request execution
+     *
+     * @param SocketInterface $socket
+     *
+     * @return void
+     * @throws \BadMethodCallException When called on non-executing request
+     *
+     * @api
+     */
+    public function cancelSocketRequest(SocketInterface $socket);
+
+    /**
      * Return flag whether process is in execute stage
      *
      * @return bool
