@@ -20,7 +20,7 @@ abstract class AbstractSocket implements SocketInterface
     /**
      * Socket reading buffer size
      */
-    const SOCKET_READ_BUFFER_SIZE = 4096;
+    const SOCKET_READ_BUFFER_SIZE = 8192;
 
     /**
      * This socket resource
@@ -72,13 +72,15 @@ abstract class AbstractSocket implements SocketInterface
     {
         $result = '';
         do {
-            $data = fread($this->resource, self::SOCKET_READ_BUFFER_SIZE);
+            // work-around https://bugs.php.net/bug.php?id=52602
+            $rawData = stream_socket_recvfrom($this->resource, self::SOCKET_READ_BUFFER_SIZE, MSG_PEEK);
+            $data    = fread($this->resource, self::SOCKET_READ_BUFFER_SIZE);
             if ($data === false) {
                 $this->throwNetworkSocketException('Failed to read data');
             }
 
             $result .= $data;
-        } while ($data !== '');
+        } while ($data !== '' && $rawData !== false);
 
         return $result;
     }

@@ -65,7 +65,7 @@ class RequestExecutor implements RequestExecutorInterface
      *
      * @var bool
      */
-    private $isRequestStopInProggress;
+    private $isRequestStopInProgress;
 
     /**
      * Constructor
@@ -228,25 +228,25 @@ class RequestExecutor implements RequestExecutorInterface
         if ($this->isExecuting()) {
             throw new \LogicException('Request is already in progress');
         }
-        $this->isExecuting              = true;
-        $this->isRequestStopped         = false;
-        $this->isRequestStopInProggress = false;
+        $this->isExecuting             = true;
+        $this->isRequestStopped        = false;
+        $this->isRequestStopInProgress = false;
 
         try {
             $this->processMainExecutionLoop();
             $this->disconnectSocketsByKeys(array_keys($this->sockets));
             $this->isExecuting = false;
         } catch (StopRequestExecuteException $e) {
-            $this->isRequestStopInProggress = true;
+            $this->isRequestStopInProgress = true;
             $this->disconnectSocketsByKeys(array_keys($this->sockets));
-            $this->isExecuting              = false;
-            $this->isRequestStopped         = false;
-            $this->isRequestStopInProggress = false;
+            $this->isExecuting             = false;
+            $this->isRequestStopped        = false;
+            $this->isRequestStopInProgress = false;
         } catch (\Exception $e) {
             $this->emergencyShutdown();
-            $this->isExecuting              = false;
-            $this->isRequestStopped         = false;
-            $this->isRequestStopInProggress = false;
+            $this->isExecuting             = false;
+            $this->isRequestStopped        = false;
+            $this->isRequestStopInProgress = false;
             throw $e;
         }
     }
@@ -304,7 +304,7 @@ class RequestExecutor implements RequestExecutorInterface
 
                     $socket->open($meta[self::META_ADDRESS], $streamContext);
                 }
-
+                $socket->setBlocking(false);
             } catch (SocketException $e) {
                 $this->sockets[$hash]['meta'][self::META_REQUEST_COMPLETE] = true;
                 $this->callExceptionSubscribers($socket, $e, $event);
@@ -457,7 +457,7 @@ class RequestExecutor implements RequestExecutorInterface
         }
         $this->handleSocketEvent($socket, $event);
 
-        if ($this->isRequestStopped && !$this->isRequestStopInProggress) {
+        if ($this->isRequestStopped && !$this->isRequestStopInProgress) {
             throw new StopRequestExecuteException();
         }
     }

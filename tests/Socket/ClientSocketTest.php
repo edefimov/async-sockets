@@ -82,6 +82,12 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
             return $counter < strlen($testString) ? $testString[$counter++] : '';
         });
 
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () use ($testString, $counter) {
+                return $counter < strlen($testString) ? $testString[$counter] : false;
+            }
+        );
+
         $this->socket->open('it has no meaning here');
         $retString = $this->socket->read();
         self::assertEquals($testString, $retString, 'Unexpected result was read');
@@ -183,6 +189,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fread')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fwrite')->restoreNativeHandler();
     }
 }
