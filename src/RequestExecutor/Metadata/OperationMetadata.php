@@ -9,7 +9,9 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\Socket\PartialSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
+use AsyncSockets\Socket\SocketResponse;
 
 /**
  * Class OperationMetadata
@@ -52,6 +54,13 @@ class OperationMetadata
     private $isRunning;
 
     /**
+     * Previous response for this socket
+     *
+     * @var PartialSocketResponse
+     */
+    private $previousResponse;
+
+    /**
      * OperationMetadata constructor.
      *
      * @param SocketInterface $socket Socket object
@@ -74,6 +83,29 @@ class OperationMetadata
     {
         $this->isOperationCancelled = false;
         $this->isRunning            = false;
+        $this->previousResponse     = null;
+    }
+
+    /**
+     * Return previous response
+     *
+     * @return PartialSocketResponse
+     */
+    public function getPreviousResponse()
+    {
+        return $this->previousResponse;
+    }
+
+    /**
+     * Sets PreviousResponse
+     *
+     * @param PartialSocketResponse $previousResponse New value for PreviousResponse
+     *
+     * @return PartialSocketResponse
+     */
+    public function setPreviousResponse(PartialSocketResponse $previousResponse = null)
+    {
+        $this->previousResponse = $previousResponse;
     }
 
     /**

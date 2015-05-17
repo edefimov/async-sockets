@@ -63,6 +63,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
         $this->socket   = new FileSocket();
         $this->executor = $this->createRequestExecutor();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(function () {
+            return '';
+        });
     }
 
     /** {@inheritdoc} */
@@ -72,6 +75,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('time')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
     }
 
     /**
@@ -392,9 +396,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $this->executor->addSocket($mock, $operation);
         $this->executor->addHandler(
             [
-                EventType::READ => function (IoEvent $event) {
-                    $event->getSocket()->read();
-                },
                 EventType::WRITE => function (IoEvent $event) {
                     $event->getSocket()->write('I will pass the test');
                 },

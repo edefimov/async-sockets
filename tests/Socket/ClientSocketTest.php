@@ -83,13 +83,13 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
         });
 
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
-            function () use ($testString, $counter) {
-                return $counter < strlen($testString) ? $testString[$counter] : false;
+            function () use ($testString, &$counter) {
+                return $counter < strlen($testString) ? $testString[$counter] : '';
             }
         );
 
         $this->socket->open('it has no meaning here');
-        $retString = $this->socket->read();
+        $retString = $this->socket->read()->getData();
         self::assertEquals($testString, $retString, 'Unexpected result was read');
     }
 

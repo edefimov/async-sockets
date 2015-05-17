@@ -20,7 +20,7 @@ abstract class AbstractSocket implements SocketInterface
     /**
      * Socket reading buffer size
      */
-    const SOCKET_READ_BUFFER_SIZE = 8192;
+    const SOCKET_BUFFER_SIZE = 8192;
 
     /**
      * This socket resource
@@ -68,21 +68,39 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function read()
+    public function read(PartialSocketResponse $previousResponse = null)
     {
-        $result = '';
+        $result       = $previousResponse ? $previousResponse->getData() : $this->readActualData();
+        $microseconds = 200000;
         do {
-            // work-around https://bugs.php.net/bug.php?id=52602
-            $rawData = stream_socket_recvfrom($this->resource, self::SOCKET_READ_BUFFER_SIZE, MSG_PEEK);
-            $data    = fread($this->resource, self::SOCKET_READ_BUFFER_SIZE);
-            if ($data === false) {
+            $read     = [ $this->resource ];
+            $nomatter = null;
+            $select = stream_select($read, $nomatter, $nomatter, 0, $microseconds);
+            if ($select === false) {
                 $this->throwNetworkSocketException('Failed to read data');
             }
 
-            $result .= $data;
-        } while ($data !== '' && $rawData !== false);
+            if ($select === 0) {
+                break;
+            }
 
-        return $result;
+            // work-around https://bugs.php.net/bug.php?id=52602
+            $rawData = stream_socket_recvfrom($this->resource, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
+
+            if ($rawData !== false) {
+                if ($rawData === '') {
+                    break;
+                }
+
+                $data = $this->readActualData();
+
+                $result .= $data;
+            } else {
+                return new PartialSocketResponse($result);
+            }
+        } while (true);
+
+        return new SocketResponse($result);
     }
 
     /** {@inheritdoc} */
@@ -133,5 +151,20 @@ abstract class AbstractSocket implements SocketInterface
     protected function throwNetworkSocketException($message)
     {
         throw new NetworkSocketException($this, $message);
+    }
+
+    /**
+     * Read actual data from socket
+     *
+     * @return string
+     */
+    private function readActualData()
+    {
+        $data = fread($this->resource, self::SOCKET_BUFFER_SIZE);
+        if ($data === false) {
+            $this->throwNetworkSocketException('Failed to read data');
+        }
+
+        return $data;
     }
 }

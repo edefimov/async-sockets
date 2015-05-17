@@ -97,6 +97,5 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
         }
 
         $this->executor->executeRequest();
-
     }
 }

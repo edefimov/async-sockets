@@ -13,6 +13,7 @@ namespace AsyncSockets\RequestExecutor;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
+use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopRequestExecuteException;
@@ -21,6 +22,7 @@ use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\Metadata\HandlerBag;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\Socket\AsyncSelector;
+use AsyncSockets\Socket\PartialSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -549,8 +551,18 @@ class RequestExecutor implements RequestExecutorInterface
                 }
             }
 
-            $event = new IoEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $eventType);
             try {
+                if ($eventType === EventType::READ) {
+                    $response = $socket->read($item->getPreviousResponse());
+                    if ($response instanceof PartialSocketResponse) {
+                        $item->setPreviousResponse($response);
+                        continue;
+                    }
+                    $event = new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $response);
+                } else {
+                    $event = new IoEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $eventType);
+                }
+
                 $this->callSocketSubscribers($socket, $event);
                 $nextOperation = $event->getNextOperation();
                 if ($nextOperation === null) {

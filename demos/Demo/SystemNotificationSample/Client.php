@@ -12,6 +12,7 @@ namespace Demo\SystemNotificationSample;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
+use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -74,7 +75,7 @@ class Client
             ]
         );
 
-        $executor->execute();
+        $executor->executeRequest();
     }
 
     /**
@@ -97,18 +98,16 @@ class Client
     /**
      * Read event
      *
-     * @param IoEvent $event Event object
+     * @param ReadEvent $event Event object
      *
      * @return void
      */
-    public function onRead(IoEvent $event)
+    public function onRead(ReadEvent $event)
     {
         $context = $event->getContext();
         $socket  = $event->getSocket();
 
-        $context['response'] = $socket->read();
-
-        echo 'Received: ' . number_format(strlen($context['response']), 0, '.', ' ') . " bytes\n";
+        echo 'Received: ' . number_format(strlen($event->getResponse()->getData()), 0, '.', ' ') . " bytes\n";
 
         $event->getExecutor()->setSocketMetaData($socket, RequestExecutorInterface::META_USER_CONTEXT, $context);
         $event->nextOperationNotRequired();

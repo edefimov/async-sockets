@@ -13,6 +13,7 @@ namespace Demo;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
+use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -101,17 +102,17 @@ class RequestExecutorClient
     /**
      * Read event
      *
-     * @param IoEvent $event Event object
+     * @param ReadEvent $event Event object
      *
      * @return void
      */
-    public function onRead(IoEvent $event)
+    public function onRead(ReadEvent $event)
     {
         $context = $event->getContext();
         $socket  = $event->getSocket();
         $meta    = $event->getExecutor()->getSocketMetaData($event->getSocket());
 
-        $context['response'] = $socket->read();
+        $context['response'] = $event->getResponse()->getData();
 
         echo $meta[RequestExecutorInterface::META_ADDRESS] . ' read ' .
              number_format(strlen($context['response']), 0, ',', ' ') . " bytes \n";

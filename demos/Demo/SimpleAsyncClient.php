@@ -13,6 +13,7 @@ namespace Demo;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
+use AsyncSockets\Socket\PartialSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -42,14 +43,16 @@ final class SimpleAsyncClient
 
             $data = [
                 spl_object_hash($client) => [
-                    'address' => 'tls://github.com:443',
-                    'data'    => "GET / HTTP/1.1\nHost: github.com\n\n"
+                    'address'      => 'tls://github.com:443',
+                    'data'         => "GET / HTTP/1.1\nHost: github.com\n\n",
+                    'lastResponse' => null,
                 ],
 
 
                 spl_object_hash($anotherClient) => [
                     'address' => 'tls://packagist.org:443',
-                    'data'    => "GET / HTTP/1.1\nHost: packagist.org\n\n"
+                    'data'    => "GET / HTTP/1.1\nHost: packagist.org\n\n",
+                    'lastResponse' => null,
                 ],
             ];
 
@@ -73,13 +76,18 @@ final class SimpleAsyncClient
                         $selector->removeAllSocketOperations($socket);
                         $aliveClients -= 1;
                     }
-
                 }
 
                 foreach ($context->getRead() as $socket) {
-                    $numReadClient += 1;
-                    echo $socket->read() . "\n\n\n";
-                    $selector->removeAllSocketOperations($socket);
+                    $response = $socket->read($data[spl_object_hash($socket)]['lastResponse']);
+                    if (!($response instanceof PartialSocketResponse)) {
+                        $numReadClient += 1;
+                        echo $response->getData() . "\n\n\n";
+                        $selector->removeAllSocketOperations($socket);
+                    } else {
+                        $data[spl_object_hash($socket)]['lastResponse'] = $response;
+                        $selector->addSocketOperation($socket, RequestExecutorInterface::OPERATION_READ);
+                    }
                 }
             } while ($numReadClient < $aliveClients);
 
