@@ -19,6 +19,7 @@ Library's workflow process is built on event model, but also select like and com
 - custom sockets setup by php stream contexts
 - custom user context for each socket
 - stop request either for certain socket or for all of them
+- strategies for limiting number of running requests
 - error handling is based on exceptions
 - sends notification about socket events to the system
 

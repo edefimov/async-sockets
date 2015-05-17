@@ -71,6 +71,13 @@ class RequestExecutor implements RequestExecutorInterface
     private $isRequestStopInProgress;
 
     /**
+     * Decider for request limitation
+     *
+     * @var LimitationDecider
+     */
+    private $decider;
+
+    /**
      * Constructor
      */
     public function __construct()
@@ -201,25 +208,20 @@ class RequestExecutor implements RequestExecutorInterface
         if ($this->isExecuting()) {
             throw new \LogicException('Request is already in progress');
         }
-        $this->isExecuting             = true;
-        $this->isRequestStopped        = false;
-        $this->isRequestStopInProgress = false;
+
+        $this->initializeRequest();
 
         try {
             $this->processMainExecutionLoop();
             $this->disconnectSocketsByKeys(array_keys($this->operations));
-            $this->isExecuting = false;
+            $this->finalizeRequest();
         } catch (StopRequestExecuteException $e) {
             $this->isRequestStopInProgress = true;
             $this->disconnectSocketsByKeys(array_keys($this->operations));
-            $this->isExecuting             = false;
-            $this->isRequestStopped        = false;
-            $this->isRequestStopInProgress = false;
+            $this->finalizeRequest();
         } catch (\Exception $e) {
             $this->emergencyShutdown();
-            $this->isExecuting             = false;
-            $this->isRequestStopped        = false;
-            $this->isRequestStopInProgress = false;
+            $this->finalizeRequest();
             throw $e;
         }
     }
@@ -282,12 +284,17 @@ class RequestExecutor implements RequestExecutorInterface
     private function processConnect()
     {
         foreach ($this->operations as $item) {
-            $meta = $item->getMetadata();
-            if ($meta[self::META_CONNECTION_START_TIME] !== null || $meta[self::META_REQUEST_COMPLETE]) {
+            $decision = $this->decide($item);
+            if ($decision === LimitationDecider::DECISION_PROCESS_SCHEDULED) {
+                break;
+            } elseif ($decision === LimitationDecider::DECISION_SKIP_CURRENT) {
                 continue;
+            } elseif ($decision !== LimitationDecider::DECISION_OK) {
+                throw new \LogicException('Unknown decision ' . $decision . ' received');
             }
 
             $socket = $item->getSocket();
+            $meta   = $item->getMetadata();
             $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::INITIALIZE);
 
             try {
@@ -298,11 +305,39 @@ class RequestExecutor implements RequestExecutorInterface
                     $socket->open($meta[self::META_ADDRESS], $streamContext);
                 }
                 $socket->setBlocking(false);
+                $item->setRunning(true);
             } catch (SocketException $e) {
                 $item->setMetadata(self::META_REQUEST_COMPLETE, true);
                 $this->callExceptionSubscribers($socket, $e, $event);
             }
         }
+    }
+
+    /**
+     * Decide how to process given operation
+     *
+     * @param OperationMetadata $operationMetadata Operation to decide
+     *
+     * @return int One of LimitationDecider::DECISION_* consts
+     */
+    private function decide(OperationMetadata $operationMetadata)
+    {
+        if ($operationMetadata->isRunning()) {
+            return LimitationDecider::DECISION_SKIP_CURRENT;
+        }
+
+        $decision = $this->decider->decide($this, $operationMetadata->getSocket(), count($this->operations));
+        if ($decision !== LimitationDecider::DECISION_OK) {
+            return $decision;
+        }
+
+        $meta           = $operationMetadata->getMetadata();
+        $isSkippingThis = ($meta[self::META_CONNECTION_START_TIME] !== null || $meta[self::META_REQUEST_COMPLETE]);
+        if ($isSkippingThis) {
+            return LimitationDecider::DECISION_SKIP_CURRENT;
+        }
+
+        return LimitationDecider::DECISION_OK;
     }
 
     /**
@@ -521,8 +556,12 @@ class RequestExecutor implements RequestExecutorInterface
                 if ($nextOperation === null) {
                     $result[] = $key;
                 } else {
-                    $meta[self::META_OPERATION]          = $nextOperation;
-                    $meta[self::META_LAST_IO_START_TIME] = null;
+                    $item->setMetadata(
+                        [
+                            self::META_OPERATION          => $nextOperation,
+                            self::META_LAST_IO_START_TIME => null,
+                        ]
+                    );
                 }
             } catch (SocketException $e) {
                 $this->callExceptionSubscribers($socket, $e, $event);
@@ -580,7 +619,7 @@ class RequestExecutor implements RequestExecutorInterface
         $result = [];
         foreach ($this->operations as $key => $item) {
             $meta = $item->getMetadata();
-            if (!$meta[self::META_REQUEST_COMPLETE]) {
+            if (!$meta[self::META_REQUEST_COMPLETE] && $item->isRunning()) {
                 $result[ ] = $key;
             }
         }
@@ -727,5 +766,45 @@ class RequestExecutor implements RequestExecutorInterface
         foreach ($keys as $key) {
             $this->disconnectSingleSocket($this->operations[ $key ]->getSocket(), $selector);
         }
+    }
+
+    /** {@inheritdoc} */
+    public function setLimitationDecider(LimitationDecider $decider = null)
+    {
+        if ($this->isExecuting()) {
+            throw new \BadMethodCallException('Can not change limitation decider during request processing');
+        }
+
+        $this->decider = $decider;
+    }
+
+    /**
+     * Initializes internal data before request
+     *
+     * @return void
+     */
+    private function initializeRequest()
+    {
+        if (!$this->decider) {
+            $this->setLimitationDecider(new NoLimitationDecider());
+        }
+
+        $this->isExecuting             = true;
+        $this->isRequestStopped        = false;
+        $this->isRequestStopInProgress = false;
+        $this->decider->initialize($this);
+    }
+
+    /**
+     * Process internal tasks after request is finished
+     *
+     * @return void
+     */
+    private function finalizeRequest()
+    {
+        $this->decider->finalize($this);
+        $this->isExecuting             = false;
+        $this->isRequestStopped        = false;
+        $this->isRequestStopInProgress = false;
     }
 }

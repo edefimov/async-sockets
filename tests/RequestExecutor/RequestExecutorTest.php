@@ -16,6 +16,8 @@ use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\RequestExecutor\LimitationDecider;
+use AsyncSockets\RequestExecutor\NoLimitationDecider;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
@@ -600,6 +602,45 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testSetLimitationDeciderOnExecute
+     *
+     * @param string $operation Operation to test
+     * @param string $eventType Event type for operation
+     *
+     * @return void
+     * @expectedException \BadMethodCallException
+     * @dataProvider socketOperationDataProvider
+     */
+    public function testSetLimitationDeciderOnExecute($operation, $eventType)
+    {
+        $failHandler = function (Event $event) {
+            self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
+        };
+
+        $this->executor->addSocket(
+            $this->socket,
+            $operation,
+            [
+                RequestExecutor::META_ADDRESS => 'php://temp',
+            ]
+        );
+
+        $this->executor->addHandler(
+            [
+                EventType::INITIALIZE => function (Event $event) {
+                    $event->getExecutor()->setLimitationDecider(new NoLimitationDecider());
+                },
+                $eventType              => $failHandler,
+                EventType::DISCONNECTED => $failHandler,
+                EventType::FINALIZE     => $failHandler,
+            ],
+            $this->socket
+        );
+
+        $this->executor->executeRequest();
+    }
+
+    /**
      * testStopRequestNonExecuting
      *
      * @return void
@@ -747,6 +788,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @param string $operation Operation to execute
      * @param string $eventType Event type
+     *
      * @return void
      * @depends testMetadataCanChange
      * @dataProvider socketOperationDataProvider
@@ -818,6 +860,42 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->addHandler($handlers);
 
+        $this->executor->executeRequest();
+    }
+
+    /**
+     * testLimitationDecider
+     *
+     * @param string $operation Operation to execute
+     *
+     * @return void
+     * @dataProvider socketOperationDataProvider
+     * @expectedException \LogicException
+     */
+    public function testLimitationDecider($operation)
+    {
+        $this->executor->addSocket($this->socket, $operation, [
+            RequestExecutor::META_ADDRESS => 'php://temp',
+        ]);
+        $this->executor->addSocket(clone $this->socket, $operation, [
+            RequestExecutor::META_ADDRESS => 'php://temp',
+        ]);
+        $this->executor->addSocket(clone $this->socket, $operation, [
+            RequestExecutor::META_ADDRESS => 'php://temp',
+        ]);
+
+        $decider = $this->getMock('AsyncSockets\RequestExecutor\NoLimitationDecider', ['decide']);
+        $decider->expects(self::any())
+            ->method('decide')
+            ->willReturnOnConsecutiveCalls(
+                LimitationDecider::DECISION_OK,
+                LimitationDecider::DECISION_SKIP_CURRENT,
+                LimitationDecider::DECISION_PROCESS_SCHEDULED,
+                LimitationDecider::DECISION_OK,
+                mt_rand(200, 500)
+            );
+
+        $this->executor->setLimitationDecider($decider);
         $this->executor->executeRequest();
     }
 

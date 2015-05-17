@@ -45,6 +45,13 @@ class OperationMetadata
     private $isOperationCancelled;
 
     /**
+     * Flag whether this socket request is running
+     *
+     * @var bool
+     */
+    private $isRunning;
+
+    /**
      * OperationMetadata constructor.
      *
      * @param SocketInterface $socket Socket object
@@ -52,10 +59,10 @@ class OperationMetadata
      */
     public function __construct(SocketInterface $socket, array $metadata)
     {
-        $this->socket               = $socket;
-        $this->metadata             = $metadata;
-        $this->subscribers          = new HandlerBag();
-        $this->isOperationCancelled = false;
+        $this->socket      = $socket;
+        $this->metadata    = $metadata;
+        $this->subscribers = new HandlerBag();
+        $this->initialize();
     }
 
     /**
@@ -66,6 +73,29 @@ class OperationMetadata
     public function initialize()
     {
         $this->isOperationCancelled = false;
+        $this->isRunning            = false;
+    }
+
+    /**
+     * Return flag whether request is running
+     *
+     * @return boolean
+     */
+    public function isRunning()
+    {
+        return $this->isRunning;
+    }
+
+    /**
+     * Sets running flag
+     *
+     * @param boolean $isRunning New value for IsRunning
+     *
+     * @return void
+     */
+    public function setRunning($isRunning)
+    {
+        $this->isRunning = $isRunning;
     }
 
     /**

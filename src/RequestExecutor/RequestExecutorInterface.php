@@ -234,4 +234,17 @@ interface RequestExecutorInterface
      * @api
      */
     public function isExecuting();
+
+    /**
+     * Set decider for limiting running at once requests
+     *
+     * @param LimitationDecider $decider New decider. If null, then NoLimitationDecider will be used
+     *
+     * @return void
+     * @throws \BadMethodCallException When called on executing request
+     * @see NoLimitationDecider
+     *
+     * @api
+     */
+    public function setLimitationDecider(LimitationDecider $decider = null);
 }
