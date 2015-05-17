@@ -14,7 +14,7 @@ use AsyncSockets\Socket\SocketInterface;
 /**
  * Class NoLimitationDecider
  */
-class NoLimitationDecider implements LimitationDecider
+class NoLimitationDecider implements LimitationDeciderInterface
 {
     /** {@inheritdoc} */
     public function initialize(RequestExecutorInterface $executor)

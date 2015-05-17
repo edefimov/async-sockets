@@ -57,9 +57,9 @@ class RequestExecutorClient
             EventType::DISCONNECTED => function () {
                 echo "Some socket disconnected\n";
             },
-            EventType::INITIALIZE => [$this, 'onInitialize'],
-            EventType::WRITE      => [$this, 'onWrite'],
-            EventType::READ       => [$this, 'onRead'],
+            EventType::INITIALIZE => [$this, 'logEvent'],
+            EventType::WRITE      => [ [$this, 'logEvent'], [$this, 'onWrite'] ],
+            EventType::READ       => [ [$this, 'logEvent'], [$this, 'onRead'] ],
             EventType::EXCEPTION  => [$this, 'onException'],
             EventType::TIMEOUT    => [$this, 'onTimeout'],
         ]);
@@ -68,19 +68,18 @@ class RequestExecutorClient
     }
 
     /**
-     * Socket initialize event
+     * Log event
      *
      * @param Event $event Event object
      *
      * @return void
      */
-    public function onInitialize(Event $event)
+    public function logEvent(Event $event)
     {
-        $context = $event->getContext();
-        $socket  = $event->getSocket();
-
-        $context['customArgument'] = md5(spl_object_hash($socket));
-        $event->getExecutor()->setSocketMetaData($socket, RequestExecutorInterface::META_USER_CONTEXT, $context);
+        $now  = new \DateTime();
+        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        echo '[' . $now->format('Y-m-d H:i:s') . '] ' . $event->getType() . ' on socket ' .
+             $meta[RequestExecutorInterface::META_ADDRESS] . "\n";
     }
 
     /**
@@ -110,10 +109,12 @@ class RequestExecutorClient
     {
         $context = $event->getContext();
         $socket  = $event->getSocket();
+        $meta    = $event->getExecutor()->getSocketMetaData($event->getSocket());
 
         $context['response'] = $socket->read();
 
-        echo $context['response'];
+        echo $meta[RequestExecutorInterface::META_ADDRESS] . ' read ' .
+             number_format(strlen($context['response']), 0, ',', ' ') . " bytes \n";
 
         $event->getExecutor()->setSocketMetaData($socket, RequestExecutorInterface::META_USER_CONTEXT, $context);
         $event->nextOperationNotRequired();
@@ -128,8 +129,6 @@ class RequestExecutorClient
      */
     public function onPackagistDisconnect(Event $event)
     {
-        echo "Packagist socket has disconnected\n";
-
         $context  = $event->getContext();
         $socket   = $event->getSocket();
         $executor = $event->getExecutor();
@@ -138,6 +137,7 @@ class RequestExecutorClient
         $isTryingOneMoreTime = isset($context[ 'attempts' ]) &&
             $context[ 'attempts' ] - 1 > 0 &&
             $meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ];
+        echo "Packagist socket has disconnected\n";
         if ($isTryingOneMoreTime) {
             echo "Trying to get data one more time\n";
 

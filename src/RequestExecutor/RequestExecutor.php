@@ -73,7 +73,7 @@ class RequestExecutor implements RequestExecutorInterface
     /**
      * Decider for request limitation
      *
-     * @var LimitationDecider
+     * @var LimitationDeciderInterface
      */
     private $decider;
 
@@ -285,11 +285,11 @@ class RequestExecutor implements RequestExecutorInterface
     {
         foreach ($this->operations as $item) {
             $decision = $this->decide($item);
-            if ($decision === LimitationDecider::DECISION_PROCESS_SCHEDULED) {
+            if ($decision === LimitationDeciderInterface::DECISION_PROCESS_SCHEDULED) {
                 break;
-            } elseif ($decision === LimitationDecider::DECISION_SKIP_CURRENT) {
+            } elseif ($decision === LimitationDeciderInterface::DECISION_SKIP_CURRENT) {
                 continue;
-            } elseif ($decision !== LimitationDecider::DECISION_OK) {
+            } elseif ($decision !== LimitationDeciderInterface::DECISION_OK) {
                 throw new \LogicException('Unknown decision ' . $decision . ' received');
             }
 
@@ -318,26 +318,26 @@ class RequestExecutor implements RequestExecutorInterface
      *
      * @param OperationMetadata $operationMetadata Operation to decide
      *
-     * @return int One of LimitationDecider::DECISION_* consts
+     * @return int One of LimitationDeciderInterface::DECISION_* consts
      */
     private function decide(OperationMetadata $operationMetadata)
     {
         if ($operationMetadata->isRunning()) {
-            return LimitationDecider::DECISION_SKIP_CURRENT;
+            return LimitationDeciderInterface::DECISION_SKIP_CURRENT;
         }
 
         $decision = $this->decider->decide($this, $operationMetadata->getSocket(), count($this->operations));
-        if ($decision !== LimitationDecider::DECISION_OK) {
+        if ($decision !== LimitationDeciderInterface::DECISION_OK) {
             return $decision;
         }
 
         $meta           = $operationMetadata->getMetadata();
         $isSkippingThis = ($meta[self::META_CONNECTION_START_TIME] !== null || $meta[self::META_REQUEST_COMPLETE]);
         if ($isSkippingThis) {
-            return LimitationDecider::DECISION_SKIP_CURRENT;
+            return LimitationDeciderInterface::DECISION_SKIP_CURRENT;
         }
 
-        return LimitationDecider::DECISION_OK;
+        return LimitationDeciderInterface::DECISION_OK;
     }
 
     /**
@@ -769,7 +769,7 @@ class RequestExecutor implements RequestExecutorInterface
     }
 
     /** {@inheritdoc} */
-    public function setLimitationDecider(LimitationDecider $decider = null)
+    public function setLimitationDecider(LimitationDeciderInterface $decider = null)
     {
         if ($this->isExecuting()) {
             throw new \BadMethodCallException('Can not change limitation decider during request processing');

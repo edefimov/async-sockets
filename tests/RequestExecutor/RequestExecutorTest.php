@@ -16,7 +16,7 @@ use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
-use AsyncSockets\RequestExecutor\LimitationDecider;
+use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
 use AsyncSockets\RequestExecutor\NoLimitationDecider;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\Socket\SocketInterface;
@@ -888,10 +888,10 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $decider->expects(self::any())
             ->method('decide')
             ->willReturnOnConsecutiveCalls(
-                LimitationDecider::DECISION_OK,
-                LimitationDecider::DECISION_SKIP_CURRENT,
-                LimitationDecider::DECISION_PROCESS_SCHEDULED,
-                LimitationDecider::DECISION_OK,
+                LimitationDeciderInterface::DECISION_OK,
+                LimitationDeciderInterface::DECISION_SKIP_CURRENT,
+                LimitationDeciderInterface::DECISION_PROCESS_SCHEDULED,
+                LimitationDeciderInterface::DECISION_OK,
                 mt_rand(200, 500)
             );
 

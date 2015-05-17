@@ -238,7 +238,7 @@ interface RequestExecutorInterface
     /**
      * Set decider for limiting running at once requests
      *
-     * @param LimitationDecider $decider New decider. If null, then NoLimitationDecider will be used
+     * @param LimitationDeciderInterface $decider New decider. If null, then NoLimitationDecider will be used
      *
      * @return void
      * @throws \BadMethodCallException When called on executing request
@@ -246,5 +246,5 @@ interface RequestExecutorInterface
      *
      * @api
      */
-    public function setLimitationDecider(LimitationDecider $decider = null);
+    public function setLimitationDecider(LimitationDeciderInterface $decider = null);
 }
