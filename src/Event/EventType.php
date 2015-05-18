@@ -42,16 +42,18 @@ final class EventType
     const CONNECTED = 'socket.event.connected';
 
     /**
-     * Socket data has been read into event object. ReadEvent object will be given in argument.
+     * Socket data has been read into event object. ReadEvent object will be given in argument. Use event object
+     * to get received data
      *
      * @see ReadEvent
      */
     const READ = 'socket.event.read';
 
     /**
-     * Socket data can be written. IoEvent object will be given in argument.
+     * Socket data can be written. WriteEvent object will be given in argument. Use event object
+     * for writing data
      *
-     * @see IoEvent
+     * @see WriteEvent
      */
     const WRITE = 'socket.event.write';
 

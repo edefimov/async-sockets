@@ -18,7 +18,7 @@ use AsyncSockets\Exception\NetworkSocketException;
 abstract class AbstractSocket implements SocketInterface
 {
     /**
-     * Socket reading buffer size
+     * Socket buffer size
      */
     const SOCKET_BUFFER_SIZE = 8192;
 
@@ -68,14 +68,15 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function read(PartialSocketResponse $previousResponse = null)
+    public function read(ChunkSocketResponse $previousResponse = null)
     {
-        $result       = $previousResponse ? $previousResponse->getData() : $this->readActualData();
-        $microseconds = 200000;
+        $result        = '';
+        $microseconds  = 25000;
+        $isDataChanged = false;
         do {
             $read     = [ $this->resource ];
             $nomatter = null;
-            $select = stream_select($read, $nomatter, $nomatter, 0, $microseconds);
+            $select   = stream_select($read, $nomatter, $nomatter, 0, $microseconds);
             if ($select === false) {
                 $this->throwNetworkSocketException('Failed to read data');
             }
@@ -86,7 +87,6 @@ abstract class AbstractSocket implements SocketInterface
 
             // work-around https://bugs.php.net/bug.php?id=52602
             $rawData = stream_socket_recvfrom($this->resource, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
-
             if ($rawData !== false) {
                 if ($rawData === '') {
                     break;
@@ -94,13 +94,16 @@ abstract class AbstractSocket implements SocketInterface
 
                 $data = $this->readActualData();
 
-                $result .= $data;
+                $result       .= $data;
+                $isDataChanged = true;
             } else {
-                return new PartialSocketResponse($result);
+                return $isDataChanged || !$previousResponse ?
+                    new ChunkSocketResponse($result, $previousResponse) :
+                    $previousResponse;
             }
         } while (true);
 
-        return new SocketResponse($result);
+        return new SocketResponse((string) $previousResponse  . $result);
     }
 
     /** {@inheritdoc} */

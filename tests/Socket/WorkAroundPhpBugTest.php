@@ -13,6 +13,7 @@ namespace Tests\AsyncSockets\Socket;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\ReadEvent;
+use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\ClientSocket;
@@ -57,9 +58,9 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->addHandler(
             [
-                EventType::WRITE => function (IoEvent $event) {
+                EventType::WRITE => function (WriteEvent $event) {
                     $context = $event->getContext();
-                    $event->getSocket()->write($context['data']);
+                    $event->setData($context['data']);
                     $event->nextIsRead();
                 },
                 EventType::READ => function (ReadEvent $event) {

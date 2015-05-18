@@ -44,14 +44,14 @@ interface SocketInterface extends StreamResourceInterface
     /**
      * Read data from this socket
      *
-     * @param PartialSocketResponse $previousResponse Previous response, if there was one
+     * @param ChunkSocketResponse $previousResponse Previous response, if there was one
      *
      * @return SocketResponse
      * @throws NetworkSocketException
      *
      * @api
      */
-    public function read(PartialSocketResponse $previousResponse = null);
+    public function read(ChunkSocketResponse $previousResponse = null);
 
     /**
      * Write data to this socket

@@ -13,6 +13,7 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\ReadEvent;
+use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -81,17 +82,16 @@ class Client
     /**
      * Write event
      *
-     * @param IoEvent $event Event object
+     * @param WriteEvent $event Event object
      *
      * @return void
      */
-    public function onWrite(IoEvent $event)
+    public function onWrite(WriteEvent $event)
     {
         $context = $event->getContext();
-        $socket  = $event->getSocket();
 
-        $lenWritten = $socket->write($context['data']);
-        echo 'Written: ' . number_format($lenWritten, 0, '.', ' ') . " bytes\n";
+        $event->setData($context['data']);
+        echo 'About to write: ' . number_format(strlen($context['data']), 0, '.', ' ') . " bytes\n";
         $event->nextIsRead();
     }
 

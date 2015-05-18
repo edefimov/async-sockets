@@ -11,9 +11,9 @@ namespace Demo;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
-use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
+use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\ConstantLimitationDecider;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -99,16 +99,14 @@ class SocketPool
     /**
      * Write event
      *
-     * @param IoEvent $event Event object
+     * @param WriteEvent $event Event object
      *
      * @return void
      */
-    public function onWrite(IoEvent $event)
+    public function onWrite(WriteEvent $event)
     {
         $context = $event->getContext();
-        $socket  = $event->getSocket();
-
-        $socket->write($context['data']);
+        $event->setData($context['data']);
         $event->nextIsRead();
     }
 

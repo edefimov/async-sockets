@@ -13,7 +13,7 @@ namespace Demo;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
-use AsyncSockets\Socket\PartialSocketResponse;
+use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -80,7 +80,7 @@ final class SimpleAsyncClient
 
                 foreach ($context->getRead() as $socket) {
                     $response = $socket->read($data[spl_object_hash($socket)]['lastResponse']);
-                    if (!($response instanceof PartialSocketResponse)) {
+                    if (!($response instanceof ChunkSocketResponse)) {
                         $numReadClient += 1;
                         echo $response->getData() . "\n\n\n";
                         $selector->removeAllSocketOperations($socket);

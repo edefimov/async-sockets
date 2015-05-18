@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
+use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\ClientSocket;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
@@ -128,10 +129,110 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
      */
     public function testExceptionWillBeThrownOnReadError()
     {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fread');
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
         $mocker->setCallable(function () {
             return false;
         });
+
+        $this->socket->open('it has no meaning here');
+        $this->socket->read();
+    }
+
+    /**
+     * testChunkReading
+     *
+     * @return void
+     */
+    public function testChunkReading()
+    {
+        $data      = 'I will pass this test';
+        $splitData = str_split($data, 1);
+        $freadMock = $this->getMock('Countable', ['count']);
+        $freadMock->expects(self::any())
+            ->method('count')
+            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($splitData));
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(function () {
+            return 1;
+        });
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(function () use ($freadMock) {
+            /** @var \Countable $freadMock */
+            return $freadMock->count();
+        });
+
+        $streamSocketRecvFromData = [];
+        foreach ($splitData as $letter) {
+            $streamSocketRecvFromData[] = $letter;
+            $streamSocketRecvFromData[] = false;
+            if (mt_rand(1, 10) % 2) {
+                $streamSocketRecvFromData[] = false;
+            }
+        }
+        $streamSocketRecvFromData[] = '';
+        $socketReadMock = $this->getMock('Countable', ['count']);
+        $socketReadMock->expects(self::any())
+            ->method('count')
+            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($streamSocketRecvFromData));
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () use ($socketReadMock) {
+                /** @var \Countable $socketReadMock */
+                return $socketReadMock->count();
+            }
+        );
+
+        $response = null;
+        $this->socket->open('it has no meaning here');
+        do {
+            $response = $this->socket->read($response);
+        } while ($response instanceof ChunkSocketResponse);
+
+        self::assertInstanceOf('AsyncSockets\Socket\SocketResponse', $response);
+        self::assertNotInstanceOf(
+            'AsyncSockets\Socket\ChunkSocketResponse',
+            $response,
+            'Final response must not be chunk'
+        );
+
+        self::assertEquals($data, (string) $response, 'Received data is incorrect');
+    }
+
+    /**
+     * testNothingHappenIfNotSelected
+     *
+     * @return void
+     */
+    public function testNothingHappenIfNotSelected()
+    {
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
+        $mocker->setCallable(function () {
+            return 0;
+        });
+
+        $this->socket->open('it has no meaning here');
+        self::assertInstanceOf('AsyncSockets\Socket\SocketResponse', $this->socket->read(), 'Strange response');
+    }
+
+    /**
+     * testActualReadingFail
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\NetworkSocketException
+     */
+    public function testActualReadingFail()
+    {
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(function () {
+            return 1;
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(function () {
+            /** @var \Countable $freadMock */
+            return false;
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () {
+                return 'x';
+            }
+        );
 
         $this->socket->open('it has no meaning here');
         $this->socket->read();
@@ -190,6 +291,7 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fread')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fwrite')->restoreNativeHandler();
     }
 }

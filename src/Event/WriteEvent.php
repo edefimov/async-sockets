@@ -10,21 +10,19 @@
 namespace AsyncSockets\Event;
 
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
-use AsyncSockets\Socket\SocketResponse;
 
 /**
- * Class ReadEvent
+ * Class WriteEvent
  */
-class ReadEvent extends IoEvent
+class WriteEvent extends IoEvent
 {
     /**
-     * Data read from network
+     * Data to send
      *
-     * @var SocketResponse
+     * @var string
      */
-    private $response;
+    private $data;
 
     /**
      * Constructor
@@ -32,35 +30,54 @@ class ReadEvent extends IoEvent
      * @param RequestExecutorInterface $executor Request executor object
      * @param SocketInterface          $socket   Socket for this request
      * @param mixed                    $context  Any optional user data for event
-     * @param SocketResponse           $response Network data for read operation
      */
     public function __construct(
         RequestExecutorInterface $executor,
         SocketInterface $socket,
-        $context,
-        SocketResponse $response
+        $context
     ) {
-        parent::__construct($executor, $socket, $context, EventType::READ);
-        $this->response = $response;
+        parent::__construct($executor, $socket, $context, EventType::WRITE);
     }
 
     /**
-     * Return Response
+     * Return Data
      *
-     * @return SocketResponse
+     * @return string
      */
-    public function getResponse()
+    public function getData()
     {
-        return $this->response;
+        return $this->data;
     }
 
     /**
-     * Return true, if response in this event is partial
+     * Sets Data
+     *
+     * @param string $data New value for Data
+     *
+     * @return void
+     */
+    public function setData($data)
+    {
+        $this->data = $data;
+    }
+
+    /**
+     * Checks whether request has data
      *
      * @return bool
      */
-    public function isPartial()
+    public function hasData()
     {
-        return $this->response instanceof ChunkSocketResponse;
+        return $this->data !== null;
+    }
+
+    /**
+     * Clear send data
+     *
+     * @return void
+     */
+    public function clearData()
+    {
+        $this->data = null;
     }
 }

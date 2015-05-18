@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
-use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
+use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopRequestExecuteException;
 use AsyncSockets\Exception\StopSocketOperationException;
@@ -22,7 +22,7 @@ use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\Metadata\HandlerBag;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\Socket\AsyncSelector;
-use AsyncSockets\Socket\PartialSocketResponse;
+use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -30,6 +30,21 @@ use AsyncSockets\Socket\SocketInterface;
  */
 class RequestExecutor implements RequestExecutorInterface
 {
+    /**
+     * Io was completely done
+     */
+    const IO_STATE_DONE = 0;
+
+    /**
+     * Partial i/o result
+     */
+    const IO_STATE_PARTIAL = 1;
+
+    /**
+     * Exception during I/O processing
+     */
+    const IO_STATE_EXCEPTION = 2;
+
     /**
      * Array of registered sockets
      *
@@ -551,39 +566,90 @@ class RequestExecutor implements RequestExecutorInterface
                 }
             }
 
-            try {
-                if ($eventType === EventType::READ) {
-                    $response = $socket->read($item->getPreviousResponse());
-                    if ($response instanceof PartialSocketResponse) {
-                        $item->setPreviousResponse($response);
-                        continue;
-                    }
-                    $event = new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $response);
-                } else {
-                    $event = new IoEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $eventType);
-                }
-
-                $this->callSocketSubscribers($socket, $event);
-                $nextOperation = $event->getNextOperation();
-                if ($nextOperation === null) {
-                    $result[] = $key;
-                } else {
-                    $item->setMetadata(
-                        [
-                            self::META_OPERATION          => $nextOperation,
-                            self::META_LAST_IO_START_TIME => null,
-                        ]
-                    );
-                }
-            } catch (SocketException $e) {
-                $this->callExceptionSubscribers($socket, $e, $event);
-                $result[] = $key;
+            if ($eventType === EventType::READ) {
+                $ioState = $this->processReadIo($item, $nextOperation);
+            } else {
+                $ioState = $this->processWriteIo($item, $nextOperation);
             }
 
-            unset($meta);
+            switch ($ioState) {
+                case self::IO_STATE_DONE:
+                    if ($nextOperation === null) {
+                        $result[] = $key;
+                    } else {
+                        $item->setMetadata(
+                            [
+                                self::META_OPERATION          => $nextOperation,
+                                self::META_LAST_IO_START_TIME => null,
+                            ]
+                        );
+                    }
+                    break;
+                case self::IO_STATE_PARTIAL:
+                    continue;
+                case self::IO_STATE_EXCEPTION:
+                    $result[] = $key;
+                    break;
+            }
         }
 
         return $result;
+    }
+
+    /**
+     * Process reading operation
+     *
+     * @param OperationMetadata $operationMetadata Metadata
+     * @param string|null       &$nextOperation Next operation to perform on socket
+     *
+     * @return int One of IO_STATE_* consts
+     * @throws StopRequestExecuteException
+     */
+    private function processReadIo(OperationMetadata $operationMetadata, &$nextOperation)
+    {
+        $meta     = $operationMetadata->getMetadata();
+        $socket   = $operationMetadata->getSocket();
+        $response = $socket->read($operationMetadata->getPreviousResponse());
+        if ($response instanceof ChunkSocketResponse) {
+            $operationMetadata->setPreviousResponse($response);
+            return self::IO_STATE_PARTIAL;
+        }
+
+        $event = new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $response);
+        try {
+            $this->callSocketSubscribers($socket, $event);
+            $nextOperation = $event->getNextOperation();
+            return self::IO_STATE_DONE;
+        } catch (SocketException $e) {
+            $this->callExceptionSubscribers($socket, $e, $event);
+            return self::IO_STATE_EXCEPTION;
+        }
+    }
+
+    /**
+     * Process write operation
+     *
+     * @param OperationMetadata $operationMetadata Metadata
+     * @param string|null       &$nextOperation Next operation to perform on socket
+     *
+     * @return int One of IO_STATE_* consts
+     */
+    private function processWriteIo(OperationMetadata $operationMetadata, &$nextOperation)
+    {
+        $meta   = $operationMetadata->getMetadata();
+        $socket = $operationMetadata->getSocket();
+        $event  = new WriteEvent($this, $socket, $meta[ self::META_USER_CONTEXT ]);
+        try {
+            $this->callSocketSubscribers($socket, $event);
+            if ($event->hasData()) {
+                $socket->write($event->getData());
+            }
+            $nextOperation = $event->getNextOperation();
+            return self::IO_STATE_DONE;
+        } catch (SocketException $e) {
+            $this->callExceptionSubscribers($socket, $e, $event);
+            return self::IO_STATE_EXCEPTION;
+        }
     }
 
     /**

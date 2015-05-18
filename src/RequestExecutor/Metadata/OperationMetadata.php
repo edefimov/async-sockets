@@ -9,9 +9,8 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
-use AsyncSockets\Socket\PartialSocketResponse;
+use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
-use AsyncSockets\Socket\SocketResponse;
 
 /**
  * Class OperationMetadata
@@ -56,7 +55,7 @@ class OperationMetadata
     /**
      * Previous response for this socket
      *
-     * @var PartialSocketResponse
+     * @var ChunkSocketResponse
      */
     private $previousResponse;
 
@@ -89,7 +88,7 @@ class OperationMetadata
     /**
      * Return previous response
      *
-     * @return PartialSocketResponse
+     * @return ChunkSocketResponse
      */
     public function getPreviousResponse()
     {
@@ -99,11 +98,11 @@ class OperationMetadata
     /**
      * Sets PreviousResponse
      *
-     * @param PartialSocketResponse $previousResponse New value for PreviousResponse
+     * @param ChunkSocketResponse $previousResponse New value for PreviousResponse
      *
-     * @return PartialSocketResponse
+     * @return ChunkSocketResponse
      */
-    public function setPreviousResponse(PartialSocketResponse $previousResponse = null)
+    public function setPreviousResponse(ChunkSocketResponse $previousResponse = null)
     {
         $this->previousResponse = $previousResponse;
     }

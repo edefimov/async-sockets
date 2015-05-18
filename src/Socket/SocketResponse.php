@@ -32,7 +32,17 @@ class SocketResponse
     }
 
     /**
-     * Return received data
+     * Return original data as it was on creation
+     *
+     * @return string
+     */
+    protected function getOriginalData()
+    {
+        return $this->data;
+    }
+
+    /**
+     * Return full received data
      *
      * @return string
      */

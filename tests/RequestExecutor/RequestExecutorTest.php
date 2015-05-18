@@ -14,6 +14,7 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
+use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
@@ -396,8 +397,8 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $this->executor->addSocket($mock, $operation);
         $this->executor->addHandler(
             [
-                EventType::WRITE => function (IoEvent $event) {
-                    $event->getSocket()->write('I will pass the test');
+                EventType::WRITE => function (WriteEvent $event) {
+                    $event->setData('I will pass the test');
                 },
                 EventType::EXCEPTION => function (SocketExceptionEvent $event) use ($code, $mock) {
                     $socketException = $event->getException();
