@@ -41,7 +41,7 @@ class ChunkSocketResponse extends SocketResponse
         $currentChunk = $this;
         do {
             $chunks[]     = $currentChunk;
-            $currentChunk = $currentChunk->previousChunk;
+            $currentChunk = $currentChunk->getPreviousChunk();
         } while ($currentChunk);
 
         $result = '';
@@ -50,6 +50,16 @@ class ChunkSocketResponse extends SocketResponse
         }
 
         return $result;
+    }
+
+    /**
+     * Return PreviousChunk
+     *
+     * @return ChunkSocketResponse
+     */
+    public function getPreviousChunk()
+    {
+        return $this->previousChunk;
     }
 
     /**

@@ -1,10 +1,11 @@
 Async sockets library
 =====================
 
-[![Build Status][master-travis-image]][master-travis-url] 
-[![Coverage Status][master-coverall-image]][master-coverall-url]
-[![SensioLabsInsight][master-sensiolabs-image]][master-sensiolabs-url]
-[![Dependency Status][master-versioneye-image]][master-versioneye-url]
+[![Build Status](https://img.shields.io/travis/edefimov/async-sockets/master.svg?style=flat)](https://travis-ci.org/edefimov/async-sockets)
+[![Coverage Status](https://img.shields.io/coveralls/edefimov/async-sockets/master.svg?style=flat)](https://coveralls.io/r/edefimov/async-sockets)
+[![SensioLabsInsight](https://img.shields.io/sensiolabs/i/c816a980-e97a-46ae-b334-16c6bfd1ec4a.svg?style=flat)](https://insight.sensiolabs.com/projects/c816a980-e97a-46ae-b334-16c6bfd1ec4a)
+[![GitHub release](https://img.shields.io/github/release/edefimov/async-sockets.svg?style=flat)](https://github.com/edefimov/async-sockets/releases/latest)
+[![Dependency Status](https://www.versioneye.com/user/projects/55525b5706c318305500014b/badge.png?style=flat)](https://www.versioneye.com/user/projects/55525b5706c318305500014b)
 [![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%205.4-777bb4.svg)](https://php.net/)
 
 Async sockets is the library for asynchronous work with sockets based on php streams. 
@@ -85,13 +86,4 @@ $executor->executeRequest();
 ```
 
 See full example [here](https://github.com/edefimov/async-sockets/blob/master/demos/Demo/RequestExecutorClient.php)
-
-[master-travis-image]: https://img.shields.io/travis/edefimov/async-sockets/master.svg?style=flat
-[master-travis-url]: https://travis-ci.org/edefimov/async-sockets
-[master-coverall-image]: https://img.shields.io/coveralls/edefimov/async-sockets/master.svg?style=flat
-[master-coverall-url]: https://coveralls.io/r/edefimov/async-sockets
-[master-sensiolabs-image]: https://img.shields.io/sensiolabs/i/c816a980-e97a-46ae-b334-16c6bfd1ec4a.svg?style=flat
-[master-sensiolabs-url]: https://insight.sensiolabs.com/projects/c816a980-e97a-46ae-b334-16c6bfd1ec4a
-[master-versioneye-image]: https://www.versioneye.com/user/projects/55525b5706c318305500014b/badge.png?style=flat
-[master-versioneye-url]: https://www.versioneye.com/user/projects/55525b5706c318305500014b
 
