@@ -579,7 +579,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $this->executor->addHandler(
             [
                 EventType::CONNECTED => function (Event $event) {
-                    $event->getExecutor()->cancelSocketRequest($event->getSocket());
+                    $event->cancelOperation(true);
                 },
                 $eventType              => $failHandler,
                 EventType::DISCONNECTED => [$mock, 'count'],
@@ -651,17 +651,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     public function testStopRequestNonExecuting()
     {
         $this->executor->stopRequest();
-    }
-
-    /**
-     * testCancelSocketRequestNonExecuting
-     *
-     * @return void
-     * @expectedException \BadMethodCallException
-     */
-    public function testCancelSocketRequestNonExecuting()
-    {
-        $this->executor->cancelSocketRequest($this->socket);
     }
 
     /**

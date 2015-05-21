@@ -40,7 +40,6 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         self::assertSame($this->socket, $this->operationMetadata->getSocket(), 'Unknown socket returned');
-        self::assertFalse($this->operationMetadata->isOperationCancelled(), 'Invalid initial cancelled flag');
         self::assertFalse($this->operationMetadata->isRunning(), 'Invalid initial running flag');
         self::assertNull($this->operationMetadata->getPreviousResponse(), 'Invalid initial previous response');
         self::assertInstanceOf(
@@ -61,10 +60,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     public function testGetters($flag)
     {
         $this->operationMetadata->setRunning($flag);
-        $this->operationMetadata->setOperationCancelled($flag);
-
         self::assertEquals($flag, $this->operationMetadata->isRunning(), 'Invalid running flag');
-        self::assertEquals($flag, $this->operationMetadata->isOperationCancelled(), 'Invalid cancelled flag');
     }
 
     /**

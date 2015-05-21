@@ -253,17 +253,6 @@ class RequestExecutor implements RequestExecutorInterface
         $this->isRequestStopped = true;
     }
 
-    /** {@inheritdoc} */
-    public function cancelSocketRequest(SocketInterface $socket)
-    {
-        if (!$this->isExecuting()) {
-            throw new \BadMethodCallException('Can not stop inactive request');
-        }
-
-        $this->requireOperation($socket)->setOperationCancelled(true);
-    }
-
-
     /**
      * Verifies that socket was added and return its key in storage
      *
@@ -505,9 +494,7 @@ class RequestExecutor implements RequestExecutorInterface
             throw new StopRequestExecuteException();
         }
 
-        $item = $this->requireOperation($socket);
-        if ($item->isOperationCancelled()) {
-            $item->setOperationCancelled(false);
+        if ($event->isOperationCancelled()) {
             throw new StopSocketOperationException();
         }
     }

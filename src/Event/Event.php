@@ -49,6 +49,13 @@ class Event extends AbstractEvent
     private $type;
 
     /**
+     * Flag to stop this socket request
+     *
+     * @var bool
+     */
+    private $isCancelled;
+
+    /**
      * Constructor
      *
      * @param RequestExecutorInterface $executor Request executor object
@@ -58,10 +65,11 @@ class Event extends AbstractEvent
      */
     public function __construct(RequestExecutorInterface $executor, SocketInterface $socket, $context, $type)
     {
-        $this->executor = $executor;
-        $this->socket   = $socket;
-        $this->context  = $context;
-        $this->type     = $type;
+        $this->executor    = $executor;
+        $this->socket      = $socket;
+        $this->context     = $context;
+        $this->type        = $type;
+        $this->isCancelled = false;
     }
 
     /**
@@ -102,5 +110,27 @@ class Event extends AbstractEvent
     public function getType()
     {
         return $this->type;
+    }
+
+    /**
+     * Return flag whether this socket operation is cancelled
+     *
+     * @return boolean
+     */
+    public function isOperationCancelled()
+    {
+        return $this->isCancelled;
+    }
+
+    /**
+     * Sets cancel this operation flag
+     *
+     * @param boolean $isCancelled Cancel flag
+     *
+     * @return void
+     */
+    public function cancelOperation($isCancelled)
+    {
+        $this->isCancelled = $isCancelled;
     }
 }

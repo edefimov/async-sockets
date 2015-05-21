@@ -39,13 +39,6 @@ class OperationMetadata
     private $subscribers;
 
     /**
-     * Flag whether to stop this operation
-     *
-     * @var bool
-     */
-    private $isOperationCancelled;
-
-    /**
      * Flag whether this socket request is running
      *
      * @var bool
@@ -80,9 +73,8 @@ class OperationMetadata
      */
     public function initialize()
     {
-        $this->isOperationCancelled = false;
-        $this->isRunning            = false;
-        $this->previousResponse     = null;
+        $this->isRunning        = false;
+        $this->previousResponse = null;
     }
 
     /**
@@ -127,28 +119,6 @@ class OperationMetadata
     public function setRunning($isRunning)
     {
         $this->isRunning = $isRunning;
-    }
-
-    /**
-     * Return isOperationCancelled
-     *
-     * @return boolean
-     */
-    public function isOperationCancelled()
-    {
-        return $this->isOperationCancelled;
-    }
-
-    /**
-     * Sets IsOperationCancelled
-     *
-     * @param boolean $isOperationCancelled New value for IsOperationCancelled
-     *
-     * @return void
-     */
-    public function setOperationCancelled($isOperationCancelled)
-    {
-        $this->isOperationCancelled = $isOperationCancelled;
     }
 
     /**

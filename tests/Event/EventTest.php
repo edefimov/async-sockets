@@ -75,7 +75,24 @@ class EventTest extends \PHPUnit_Framework_TestCase
         self::assertSame($this->socket, $event->getSocket());
         self::assertSame($this->context, $event->getContext());
         self::assertEquals($type, $event->getType());
+        self::assertFalse($event->isOperationCancelled(), 'Initial state of cancelled flag must be false');
 
+        return $event;
+    }
+
+    /**
+     * testSetters
+     *
+     * @return Event
+     * @depends testGetters
+     */
+    public function testSetters()
+    {
+        $type  = $this->getEventType();
+        $event = $this->createEvent($type);
+
+        $event->cancelOperation(true);
+        self::assertTrue($event->isOperationCancelled(), 'Failed to change cancel flag of request');
         return $event;
     }
 
