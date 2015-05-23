@@ -25,11 +25,11 @@ class ClientSocket extends AbstractSocket
             $errno,
             $errstr,
             null,
-            STREAM_CLIENT_ASYNC_CONNECT,
+            STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
             $context
         );
 
-        if ($errno) {
+        if ($errno || $resource === false) {
             throw new NetworkSocketException($this, $errstr, $errno);
         }
 

@@ -116,6 +116,11 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
             return 0;
         });
 
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto');
+        $mocker->setCallable(function ($handle, $data) {
+            return strlen($data);
+        });
+
         $this->socket->open('it has no meaning here');
         $this->socket->write($testString);
         self::assertEquals($testString, $retString, 'Unexpected result was read');
@@ -282,15 +287,21 @@ class ClientSocketTest extends \PHPUnit_Framework_TestCase
         $mocker->setCallable(function () {
             return fopen('php://temp', 'rw');
         });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(function() {
+            return 'php://temp';
+        });
     }
 
     /** {@inheritdoc} */
     protected function tearDown()
     {
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fread')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fwrite')->restoreNativeHandler();
     }
