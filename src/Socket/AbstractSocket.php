@@ -230,12 +230,12 @@ abstract class AbstractSocket implements SocketInterface
     {
         $test = stream_socket_sendto($this->resource, '');
         if ($test !== 0) {
-            $this->throwNetworkSocketException('Socket write failed.');
+            $this->throwNetworkSocketException('Failed to send data.');
         }
 
         $written = fwrite($this->resource, $data, strlen($data));
         if ($written === false) {
-            $this->throwNetworkSocketException('Socket write failed.');
+            $this->throwNetworkSocketException('Failed to send data.');
         }
 
         if ($written === 0) {

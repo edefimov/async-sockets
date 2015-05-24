@@ -273,7 +273,7 @@ MAGIC
     }
 
     /**
-     * Conver parameter value to string
+     * Convert parameter value to string
      *
      * @param mixed $value Value
      *
