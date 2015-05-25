@@ -10,9 +10,11 @@
 
 namespace Tests\AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\ConstantLimitationDecider;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
+use AsyncSockets\RequestExecutor\RequestExecutor;
 
 /**
  * Class ConstantLimitationDeciderTest
@@ -45,13 +47,15 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
      */
     public function testExcessCount()
     {
-        $mock   = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutor');
+        $mock   = new RequestExecutor();
         $socket = $this->getMock('AsyncSockets\Socket\SocketInterface');
         $this->decider->initialize($mock);
 
         for ($i = 0; $i <= self::TEST_LIMIT; $i++) {
             $decision = $this->decider->decide($mock, $socket, self::TEST_LIMIT + 1);
-            $this->decider->onSocketRequestInitialize();
+            $this->decider->invokeEvent(
+                new Event($mock, $socket, null, EventType::INITIALIZE)
+            );
             if ($i < self::TEST_LIMIT) {
                 self::assertEquals(
                     LimitationDeciderInterface::DECISION_OK,
@@ -76,55 +80,26 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
      */
     public function testWithRequestComplete()
     {
-        $mock    = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutor');
+        $mock    = new RequestExecutor();
         $socket  = $this->getMock('AsyncSockets\Socket\SocketInterface');
         $decider = new ConstantLimitationDecider(2);
 
         $decider->initialize($mock);
         for ($i = 0; $i < self::TEST_LIMIT; $i++) {
             $decision = $decider->decide($mock, $socket, self::TEST_LIMIT);
-            $this->decider->onSocketRequestInitialize();
+            $this->decider->invokeEvent(
+                new Event($mock, $socket, null, EventType::INITIALIZE)
+            );
             self::assertEquals(
                 LimitationDeciderInterface::DECISION_OK,
                 $decision,
                 'Invalid decision in normal case'
             );
-            $this->decider->onSocketRequestFinalize();
+            $this->decider->invokeEvent(
+                new Event($mock, $socket, null, EventType::FINALIZE)
+            );
         }
 
         $decider->finalize($mock);
-    }
-
-    /**
-     * testEventSubscribersAreSet
-     *
-     * @return void
-     */
-    public function testEventSubscribersAreSet()
-    {
-        $mock = $this->getMock(
-            'AsyncSockets\RequestExecutor\RequestExecutor',
-            ['addHandler', 'removeHandler']
-        );
-        $mock->expects(self::once())
-            ->method('addHandler')
-            ->with(
-                [
-                    EventType::INITIALIZE => [$this->decider, 'onSocketRequestInitialize'],
-                    EventType::FINALIZE   => [$this->decider, 'onSocketRequestFinalize'],
-                ]
-            );
-
-        $mock->expects(self::once())
-            ->method('removeHandler')
-            ->with(
-                [
-                    EventType::INITIALIZE => [$this->decider, 'onSocketRequestInitialize'],
-                    EventType::FINALIZE   => [$this->decider, 'onSocketRequestFinalize'],
-                ]
-            );
-
-        $this->decider->initialize($mock);
-        $this->decider->finalize($mock);
     }
 }

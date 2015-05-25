@@ -129,7 +129,7 @@ class Event extends AbstractEvent
      *
      * @return void
      */
-    public function cancelOperation($isCancelled)
+    public function cancelThisOperation($isCancelled = true)
     {
         $this->isCancelled = $isCancelled;
     }

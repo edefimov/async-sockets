@@ -9,13 +9,14 @@
  */
 namespace AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class ConstantLimitationDecider
  */
-class ConstantLimitationDecider implements LimitationDeciderInterface
+class ConstantLimitationDecider implements LimitationDeciderInterface, EventInvocationHandlerInterface
 {
     /**
      * Limit of running requests
@@ -45,23 +46,12 @@ class ConstantLimitationDecider implements LimitationDeciderInterface
     public function initialize(RequestExecutorInterface $executor)
     {
         $this->activeRequests = 0;
-        $executor->addHandler(
-            [
-                EventType::INITIALIZE => [$this, 'onSocketRequestInitialize'],
-                EventType::FINALIZE   => [$this, 'onSocketRequestFinalize'],
-            ]
-        );
     }
 
     /** {@inheritdoc} */
     public function finalize(RequestExecutorInterface $executor)
     {
-        $executor->removeHandler(
-            [
-                EventType::INITIALIZE => [$this, 'onSocketRequestInitialize'],
-                EventType::FINALIZE   => [$this, 'onSocketRequestFinalize'],
-            ]
-        );
+        // empty body
     }
 
     /** {@inheritdoc} */
@@ -74,12 +64,26 @@ class ConstantLimitationDecider implements LimitationDeciderInterface
         }
     }
 
+    /** {@inheritdoc} */
+    public function invokeEvent(Event $event)
+    {
+        switch ($event->getType()) {
+            case EventType::INITIALIZE:
+                $this->onSocketRequestInitialize();
+                break;
+            case EventType::FINALIZE:
+                $this->onSocketRequestFinalize();
+                break;
+        }
+    }
+
+
     /**
      * Process socket initialize event
      *
      * @return void
      */
-    public function onSocketRequestInitialize()
+    private function onSocketRequestInitialize()
     {
         $this->activeRequests += 1;
     }
@@ -89,7 +93,7 @@ class ConstantLimitationDecider implements LimitationDeciderInterface
      *
      * @return void
      */
-    public function onSocketRequestFinalize()
+    private function onSocketRequestFinalize()
     {
         $this->activeRequests -= 1;
     }

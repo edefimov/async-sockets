@@ -57,7 +57,8 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
         $this->executor->setEventDispatcher($dispatcher);
 
         $meta = [
-            RequestExecutorInterface::META_ADDRESS => 'php://temp',
+            RequestExecutorInterface::META_ADDRESS   => 'php://temp',
+            RequestExecutorInterface::META_OPERATION => $operation,
         ];
 
         if ($eventType === EventType::TIMEOUT || $eventType === EventType::EXCEPTION) {
@@ -79,7 +80,7 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
             $meta[RequestExecutorInterface::META_CONNECTION_TIMEOUT] = 1;
         }
 
-        $this->executor->addSocket($this->socket, $operation, $meta);
+        $this->executor->getSocketBag()->addSocket($this->socket, $meta);
 
         $handler = function (Event $event) use ($eventType) {
             $readWriteTypes = [EventType::READ, EventType::WRITE];

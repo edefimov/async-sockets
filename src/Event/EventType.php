@@ -26,7 +26,7 @@ final class EventType
      *
      * @see Event
      * @see RequestExecutorInterface::META_ADDRESS
-     * @see RequestExecutorInterface::setSocketMetaData
+     * @see SocketBag::setSocketMetaData
      * @see SocketInterface::open
      *
      * @see Event

@@ -42,10 +42,9 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
         self::assertSame($this->socket, $this->operationMetadata->getSocket(), 'Unknown socket returned');
         self::assertFalse($this->operationMetadata->isRunning(), 'Invalid initial running flag');
         self::assertNull($this->operationMetadata->getPreviousResponse(), 'Invalid initial previous response');
-        self::assertInstanceOf(
-            'AsyncSockets\RequestExecutor\Metadata\HandlerBag',
-            $this->operationMetadata->getSubscribers(),
-            'Invalid subscribers object'
+        self::assertNull(
+            $this->operationMetadata->getEventInvocationHandler(),
+            'Invalid handlers object'
         );
     }
 

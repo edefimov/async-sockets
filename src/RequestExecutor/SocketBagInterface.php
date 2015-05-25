@@ -1,0 +1,87 @@
+<?php
+/**
+ * Async sockets
+ *
+ * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+namespace AsyncSockets\RequestExecutor;
+
+use AsyncSockets\Socket\SocketInterface;
+
+/**
+ * Interface SocketBagInterface
+ */
+interface SocketBagInterface
+{
+    /**
+     * Add socket into this bag
+     *
+     * @param SocketInterface                 $socket Socket to add
+     * @param array                           $metadata Socket metadata information, which will be passed
+     *                                   to setSocketMetaData during this call
+     * @param EventInvocationHandlerInterface $eventHandlers Optional handlers for this socket
+     *
+     * @return void
+     * @throws \LogicException If socket has been already added
+     * @see SocketBag::setSocketMetaData
+     *
+     * @api
+     */
+    public function addSocket(
+        SocketInterface $socket,
+        array $metadata = null,
+        EventInvocationHandlerInterface $eventHandlers = null
+    );
+
+    /**
+     * Checks whether given socket was added to this executor
+     *
+     * @param SocketInterface $socket Socket object
+     *
+     * @return bool
+     */
+    public function hasSocket(SocketInterface $socket);
+
+    /**
+     * Remove socket from list
+     *
+     * @param SocketInterface $socket Socket to remove
+     *
+     * @return void
+     * @throws \LogicException If you try to call this method when request is active and given socket hasn't been yet
+     *                         processed
+     *
+     * @api
+     */
+    public function removeSocket(SocketInterface $socket);
+
+    /**
+     * Return array with meta information about socket
+     *
+     * @param SocketInterface $socket Added socket
+     *
+     * @return array Key-value array where key is one of META_* consts
+     * @throws \OutOfBoundsException If given socket is not added to this bag
+     *
+     * @api
+     */
+    public function getSocketMetaData(SocketInterface $socket);
+
+    /**
+     * Set metadata for given socket
+     *
+     * @param SocketInterface $socket Added socket
+     * @param string|array    $key Either string or key-value array of metadata. If string, then value must be
+     *                             passed in third argument, if array, then third argument will be ignored
+     * @param mixed           $value Value for key
+     *
+     * @return void
+     * @throws \OutOfBoundsException If given socket is not added to this executor
+     *
+     * @api
+     */
+    public function setSocketMetaData(SocketInterface $socket, $key, $value = null);
+}

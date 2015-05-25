@@ -15,6 +15,7 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
@@ -39,31 +40,36 @@ class RequestExecutorClient
         $executor = $factory->createRequestExecutor();
         $this->registerPackagistSocket($executor, $client, 60, 0.001, 2);
 
-        $executor->addSocket($anotherClient, RequestExecutorInterface::OPERATION_WRITE, [
-            RequestExecutorInterface::META_ADDRESS => 'tls://github.com:443',
+        $executor->getSocketBag()->addSocket($anotherClient, RequestExecutorInterface::OPERATION_WRITE, [
+            RequestExecutorInterface::META_ADDRESS      => 'tls://github.com:443',
+            RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
             RequestExecutorInterface::META_USER_CONTEXT => [
                 'data' => "GET / HTTP/1.1\nHost: github.com\n\n",
-            ]
+            ],
         ]);
 
-        $executor->addHandler([
+        $executor->getEventHandlerBag($anotherClient)->addHandler([
             EventType::DISCONNECTED => [$this, 'onGitHubDisconnect'],
             EventType::CONNECTED    => [$this, 'onGitHubConnected'],
-        ], $anotherClient);
-
-        $executor->addHandler([
-            EventType::CONNECTED => function () {
-                echo "Some socket connected\n";
-            },
-            EventType::DISCONNECTED => function () {
-                echo "Some socket disconnected\n";
-            },
-            EventType::INITIALIZE => [$this, 'logEvent'],
-            EventType::WRITE      => [ [$this, 'logEvent'], [$this, 'onWrite'] ],
-            EventType::READ       => [ [$this, 'logEvent'], [$this, 'onRead'] ],
-            EventType::EXCEPTION  => [$this, 'onException'],
-            EventType::TIMEOUT    => [$this, 'onTimeout'],
         ]);
+
+        $executor->setEventInvocationHandler(
+            new EventInvocationHandlerBag(
+                [
+                    EventType::CONNECTED => function () {
+                        echo "Some socket connected\n";
+                    },
+                    EventType::DISCONNECTED => function () {
+                        echo "Some socket disconnected\n";
+                    },
+                    EventType::INITIALIZE => [$this, 'logEvent'],
+                    EventType::WRITE      => [ [$this, 'logEvent'], [$this, 'onWrite'] ],
+                    EventType::READ       => [ [$this, 'logEvent'], [$this, 'onRead'] ],
+                    EventType::EXCEPTION  => [$this, 'onException'],
+                    EventType::TIMEOUT    => [$this, 'onTimeout'],
+                ]
+            )
+        );
 
         $executor->executeRequest();
     }
@@ -78,7 +84,7 @@ class RequestExecutorClient
     public function logEvent(Event $event)
     {
         $now  = new \DateTime();
-        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
         echo '[' . $now->format('Y-m-d H:i:s') . '] ' . $event->getType() . ' on socket ' .
              $meta[RequestExecutorInterface::META_ADDRESS] . "\n";
     }
@@ -109,14 +115,18 @@ class RequestExecutorClient
     {
         $context = $event->getContext();
         $socket  = $event->getSocket();
-        $meta    = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        $meta    = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
 
         $context['response'] = $event->getResponse()->getData();
 
         echo $meta[RequestExecutorInterface::META_ADDRESS] . ' read ' .
              number_format(strlen($context['response']), 0, ',', ' ') . " bytes \n";
 
-        $event->getExecutor()->setSocketMetaData($socket, RequestExecutorInterface::META_USER_CONTEXT, $context);
+        $event->getExecutor()->getSocketBag()->setSocketMetaData(
+            $socket,
+            RequestExecutorInterface::META_USER_CONTEXT,
+            $context
+        );
         $event->nextOperationNotRequired();
     }
 
@@ -132,7 +142,7 @@ class RequestExecutorClient
         $context  = $event->getContext();
         $socket   = $event->getSocket();
         $executor = $event->getExecutor();
-        $meta     = $executor->getSocketMetaData($socket);
+        $meta     = $executor->getSocketBag()->getSocketMetaData($socket);
 
         $isTryingOneMoreTime = isset($context[ 'attempts' ]) &&
             $context[ 'attempts' ] - 1 > 0 &&
@@ -144,7 +154,7 @@ class RequestExecutorClient
             $context['attempts'] -= 1;
 
             // automatically try one more time
-            $executor->removeSocket($socket);
+            $executor->getSocketBag()->removeSocket($socket);
             $this->registerPackagistSocket($executor, $socket, 30, 30, 1);
         }
     }
@@ -168,7 +178,7 @@ class RequestExecutorClient
      */
     public function onPackagistConnected(Event $event)
     {
-        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
         echo "Connected to Packagist: {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
     }
 
@@ -181,7 +191,7 @@ class RequestExecutorClient
      */
     public function onGitHubConnected(Event $event)
     {
-        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
         echo "Connected to GitHub: {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
     }
 
@@ -207,7 +217,7 @@ class RequestExecutorClient
      */
     public function onTimeout(Event $event)
     {
-        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
         echo "Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
     }
 
@@ -229,23 +239,24 @@ class RequestExecutorClient
         $ioTimeout,
         $attempts
     ) {
-        $executor->addSocket(
+        $executor->getSocketBag()->addSocket(
             $client,
-            RequestExecutorInterface::OPERATION_WRITE,
-            [ RequestExecutorInterface::META_ADDRESS => 'tls://packagist.org:443',
-              RequestExecutorInterface::META_USER_CONTEXT => [
-                  'data'     => "GET / HTTP/1.1\nHost: packagist.org\n\n",
-                  'attempts' => $attempts
-              ],
-
+            [
+                RequestExecutorInterface::META_ADDRESS            => 'tls://packagist.org:443',
+                RequestExecutorInterface::META_OPERATION          => RequestExecutorInterface::OPERATION_WRITE,
+                RequestExecutorInterface::META_USER_CONTEXT       => [
+                    'data'     => "GET / HTTP/1.1\nHost: packagist.org\n\n",
+                    'attempts' => $attempts,
+                ],
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT => $connectionTimeout,
-                RequestExecutorInterface::META_IO_TIMEOUT         => $ioTimeout
-            ]
+                RequestExecutorInterface::META_IO_TIMEOUT         => $ioTimeout,
+            ],
+            new EventInvocationHandlerBag(
+                [
+                    EventType::DISCONNECTED => [$this, 'onPackagistDisconnect'],
+                    EventType::CONNECTED    => [$this, 'onPackagistConnected'],
+                ]
+            )
         );
-
-        $executor->addHandler([
-            EventType::DISCONNECTED => [$this, 'onPackagistDisconnect'],
-            EventType::CONNECTED    => [$this, 'onPackagistConnected'],
-        ], $client);
     }
 }

@@ -96,103 +96,35 @@ interface RequestExecutorInterface
     const META_IO_TIMEOUT = 'ioTimeout';
 
     /**
-     * Add socket into this object
+     * Return socket bag, associated with this executor
      *
-     * @param SocketInterface $socket    Socket to add
-     * @param string          $operation One of OPERATION_* consts
-     * @param array           $metadata  Socket metadata information, which will be passed to setSocketMetaData
-     *                                   during this call
+     * @return SocketBagInterface
+     */
+    public function getSocketBag();
+
+    /**
+     * Set event invocation handler for all events
+     *
+     * @param EventInvocationHandlerInterface $handler Event invocation handler
      *
      * @return void
-     * @throws \LogicException If socket has been already added
-     * @see RequestExecutorInterface::setSocketMetaData
-     *
-     * @api
      */
-    public function addSocket(SocketInterface $socket, $operation, array $metadata = null);
+    public function setEventInvocationHandler(EventInvocationHandlerInterface $handler = null);
 
     /**
-     * Checks whether given socket was added to this executor
+     * Set decider for limiting running at once requests. You can additionally implement EventInvocationHandlerInterface
+     * on your LimitationDecider to receive events from request executor
      *
-     * @param SocketInterface $socket Socket object
-     *
-     * @return bool
-     */
-    public function hasSocket(SocketInterface $socket);
-
-    /**
-     * Remove socket from list
-     *
-     * @param SocketInterface $socket Socket to remove
+     * @param LimitationDeciderInterface $decider New decider. If null, then NoLimitationDecider will be used
      *
      * @return void
-     * @throws \LogicException If you try to call this method when request is active and given socket hasn't been yet
-     *                         processed
+     * @throws \BadMethodCallException When called on executing request
+     * @see NoLimitationDecider
+     * @see EventInvocationHandlerInterface
      *
      * @api
      */
-    public function removeSocket(SocketInterface $socket);
-
-    /**
-     * Return array with meta information about socket
-     *
-     * @param SocketInterface $socket Added socket
-     *
-     * @return array Key-value array where key is one of META_* consts
-     * @throws \OutOfBoundsException If given socket is not added to this executor
-     *
-     * @api
-     */
-    public function getSocketMetaData(SocketInterface $socket);
-
-    /**
-     * Set metadata for given socket
-     *
-     * @param SocketInterface $socket Added socket
-     * @param string|array    $key Either string or key-value array of metadata. If string, then value must be
-     *                             passed in third argument, if array, then third argument will be ignored
-     * @param mixed           $value Value for key
-     *
-     * @return void
-     * @throws \OutOfBoundsException If given socket is not added to this executor
-     *
-     * @api
-     */
-    public function setSocketMetaData(SocketInterface $socket, $key, $value = null);
-
-    /**
-     * Subscribe on socket processing event
-     *
-     * @param array           $events Events to handle. Key is one of EventType::* consts, value
-     *          is the list of callable. Callable will receive any subclass of Event as the only argument
-     * @param SocketInterface $socket Socket for subscribing. If not provided, than subscriber will be called for
-     *          each socket in this executor, which doesn't have own subscriber. Socket
-     *          must be added to this executor or \OutOfBoundsException will be thrown
-     *
-     * @return void
-     *
-     * @throws \OutOfBoundsException If given socket is not added to this executor
-     * @see AsyncSockets\Event\EventType
-     * @see AsyncSockets\Event\Event
-     *
-     * @api
-     */
-    public function addHandler(array $events, SocketInterface $socket = null);
-
-    /**
-     * Remove previously registered handlers
-     *
-     * @param array           $events Events to unsubscribe. Key is one of EventType::* consts, value
-     *          is the list of callable
-     * @param SocketInterface $socket Socket to unsubscribe. If not provided, than subscriber will be removed
-     *          from the list of all socket subscribers.
-     *
-     * @return void
-     * @see AsyncSockets\Event\EventType
-     *
-     * @api
-     */
-    public function removeHandler(array $events, SocketInterface $socket = null);
+    public function setLimitationDecider(LimitationDeciderInterface $decider = null);
 
     /**
      * Execute this request
@@ -222,17 +154,4 @@ interface RequestExecutorInterface
      * @api
      */
     public function isExecuting();
-
-    /**
-     * Set decider for limiting running at once requests
-     *
-     * @param LimitationDeciderInterface $decider New decider. If null, then NoLimitationDecider will be used
-     *
-     * @return void
-     * @throws \BadMethodCallException When called on executing request
-     * @see NoLimitationDecider
-     *
-     * @api
-     */
-    public function setLimitationDecider(LimitationDeciderInterface $decider = null);
 }

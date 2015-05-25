@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\RequestExecutor\EventInvocationHandlerInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -34,9 +35,9 @@ class OperationMetadata
     /**
      * Array of callables for this socket indexed by event name
      *
-     * @var HandlerBag
+     * @var EventInvocationHandlerInterface
      */
-    private $subscribers;
+    private $handlers;
 
     /**
      * Flag whether this socket request is running
@@ -55,14 +56,18 @@ class OperationMetadata
     /**
      * OperationMetadata constructor.
      *
-     * @param SocketInterface $socket Socket object
-     * @param array           $metadata Metadata
+     * @param SocketInterface                 $socket Socket object
+     * @param array                           $metadata Metadata
+     * @param EventInvocationHandlerInterface $handlers Handlers for this socket
      */
-    public function __construct(SocketInterface $socket, array $metadata)
-    {
+    public function __construct(
+        SocketInterface $socket,
+        array $metadata,
+        EventInvocationHandlerInterface $handlers = null
+    ) {
         $this->socket      = $socket;
         $this->metadata    = $metadata;
-        $this->subscribers = new HandlerBag();
+        $this->handlers = $handlers;
         $this->initialize();
     }
 
@@ -165,10 +170,10 @@ class OperationMetadata
     /**
      * Return Subscribers
      *
-     * @return HandlerBag
+     * @return EventInvocationHandlerInterface|null
      */
-    public function getSubscribers()
+    public function getEventInvocationHandler()
     {
-        return $this->subscribers;
+        return $this->handlers;
     }
 }

@@ -91,7 +91,7 @@ class EventTest extends \PHPUnit_Framework_TestCase
         $type  = $this->getEventType();
         $event = $this->createEvent($type);
 
-        $event->cancelOperation(true);
+        $event->cancelThisOperation(true);
         self::assertTrue($event->isOperationCancelled(), 'Failed to change cancel flag of request');
         return $event;
     }

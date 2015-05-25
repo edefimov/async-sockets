@@ -17,9 +17,11 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
 use AsyncSockets\RequestExecutor\NoLimitationDecider;
 use AsyncSockets\RequestExecutor\RequestExecutor;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\Socket\FileSocket;
@@ -90,35 +92,25 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testCantSetHandlerOnNonAddedSocket
-     *
-     * @return void
-     * @expectedException \OutOfBoundsException
-     */
-    public function testCantSetHandlerOnNonAddedSocket()
-    {
-        $this->executor->addHandler([
-            EventType::CONNECTED => function () {
-            }
-        ], $this->socket);
-    }
-
-    /**
      * testAddSocket
      *
      * @param string $operation Operation to add
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends testCantSetHandlerOnNonAddedSocket
      */
     public function testAddSocket($operation)
     {
-        $this->executor->addSocket($this->socket, $operation, []);
-        $this->executor->addHandler([
-            EventType::CONNECTED => function () {
-            }
-        ], $this->socket);
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
+            [ RequestExecutorInterface::META_OPERATION => $operation ],
+            new EventInvocationHandlerBag(
+                [
+                    EventType::CONNECTED => function () {
+                    },
+                ]
+            )
+        );
     }
 
     /**
@@ -130,8 +122,15 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testCantAddSameSocketTwice()
     {
-        $this->executor->addSocket($this->socket, RequestExecutor::OPERATION_READ, []);
-        $this->executor->addSocket($this->socket, RequestExecutor::OPERATION_WRITE, []);
+        // todo move to separate test
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
+            [ RequestExecutor::META_OPERATION => RequestExecutor::OPERATION_READ ]
+        );
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
+            [ RequestExecutor::META_OPERATION => RequestExecutor::OPERATION_WRITE ]
+        );
     }
 
     /**
@@ -144,14 +143,15 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testHasSocket($operation)
     {
-        $this->executor->addSocket($this->socket, $operation, []);
+        // todo move to separate test
+        $this->executor->getSocketBag()->addSocket($this->socket, [ RequestExecutor::META_OPERATION => $operation ]);
         self::assertTrue(
-            $this->executor->hasSocket($this->socket),
+            $this->executor->getSocketBag()->hasSocket($this->socket),
             'hasSocket returned false for added socket'
         );
 
         self::assertFalse(
-            $this->executor->hasSocket(new FileSocket()),
+            $this->executor->getSocketBag()->hasSocket(new FileSocket()),
             'hasSocket returned true for not added socket'
         );
     }
@@ -163,12 +163,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends testAddSocket
+     * @depends      testAddSocket
      */
     public function testMetadataIsFilled($operation)
     {
-        $this->executor->addSocket($this->socket, $operation, []);
-        $meta = $this->executor->getSocketMetaData($this->socket);
+        $this->executor->getSocketBag()->addSocket($this->socket, [ RequestExecutor::META_OPERATION => $operation ]);
+        $meta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
         $ref  = new \ReflectionClass($this->executor);
         foreach ($ref->getConstants() as $name => $value) {
             if (!preg_match('#META_.*?#', $name)) {
@@ -186,15 +186,15 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends testHasSocket
-     * @depends testMetadataIsFilled
+     * @depends      testHasSocket
+     * @depends      testMetadataIsFilled
      */
     public function testRemoveSocket($operation)
     {
-        $this->executor->addSocket($this->socket, $operation, []);
-        $this->executor->removeSocket($this->socket);
+        $this->executor->getSocketBag()->addSocket($this->socket, [ RequestExecutor::META_OPERATION => $operation ]);
+        $this->executor->getSocketBag()->removeSocket($this->socket);
         self::assertFalse(
-            $this->executor->hasSocket($this->socket),
+            $this->executor->getSocketBag()->hasSocket($this->socket),
             'hasSocket returned true for removed socket'
         );
     }
@@ -206,8 +206,8 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends testHasSocket
-     * @depends testMetadataIsFilled
+     * @depends      testHasSocket
+     * @depends      testMetadataIsFilled
      */
     public function testRemoveHandler($operation)
     {
@@ -215,130 +215,27 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             self::fail('Handler is not removed');
         };
 
-        $this->executor->addSocket($this->socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp'
-        ]);
-        $this->executor->addHandler(
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
             [
-                EventType::INITIALIZE => $handler
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => $operation,
             ]
         );
 
-        $this->executor->removeHandler(
+        $bag = new EventInvocationHandlerBag(
+            [
+                EventType::INITIALIZE => $handler,
+            ]
+        );
+        $bag->removeHandler(
             [
                 EventType::INITIALIZE => $handler,
                 EventType::READ       => $handler,
             ]
         );
 
-        $this->executor->executeRequest();
-    }
-
-    /**
-     * testRemoveHandlerOnNonExistingSocket
-     *
-     * @return void
-     * @depends testHasSocket
-     * @depends testMetadataIsFilled
-     */
-    public function testRemoveHandlerOnNonExistingSocket()
-    {
-        $this->executor->removeHandler(
-            [
-                EventType::INITIALIZE => function () {
-
-                },
-            ],
-            $this->socket
-        );
-    }
-
-    /**
-     * testRemoveHandlerOnSocket
-     *
-     * @param string $operation Operation to test
-     *
-     * @return void
-     * @dataProvider socketOperationDataProvider
-     * @depends testRemoveHandler
-     */
-    public function testRemoveHandlerOnSocket($operation)
-    {
-        $handler = function () {
-            self::fail('Handler for socket is not removed');
-        };
-
-        $this->executor->addSocket($this->socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp'
-        ]);
-        $this->executor->addHandler(
-            [
-                EventType::INITIALIZE => $handler
-            ],
-            $this->socket
-        );
-
-        $this->executor->removeHandler(
-            [
-                EventType::INITIALIZE => $handler,
-                EventType::READ       => $handler,
-            ],
-            $this->socket
-        );
-
-        $this->executor->executeRequest();
-    }
-
-    /**
-     * testRemoveHandlerNotAffectOnOtherSocket
-     *
-     * @param string $operation Operation to test
-     *
-     * @return void
-     * @dataProvider socketOperationDataProvider
-     * @depends testRemoveHandler
-     */
-    public function testRemoveHandlerNotAffectOnOtherSocket($operation)
-    {
-        $fail = function () {
-            self::fail('Handler for socket is not removed');
-        };
-
-        $mock = self::getMockBuilder('Countable')->setMethods(['count'])->getMock();
-        $mock->expects(self::once())->method('count');
-
-        $socket = new FileSocket();
-        $this->executor->addSocket($this->socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp'
-        ]);
-        $this->executor->addSocket($socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp'
-        ]);
-
-        $this->executor->addHandler(
-            [
-                EventType::INITIALIZE => $fail
-            ],
-            $this->socket
-        );
-        $this->executor->addHandler(
-            [
-                EventType::INITIALIZE => function (Event $event) use ($socket, $mock) {
-                    self::assertSame($socket, $event->getSocket());
-                    /** @var \Countable $mock */
-                    return count($mock);
-                }
-            ],
-            $socket
-        );
-
-        $this->executor->removeHandler(
-            [
-                EventType::INITIALIZE => $fail,
-            ],
-            $this->socket
-        );
-
+        $this->executor->setEventInvocationHandler($bag);
         $this->executor->executeRequest();
     }
 
@@ -350,9 +247,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testNonAddedSocketRemove()
     {
-        $this->executor->removeSocket($this->socket);
+        $this->executor->getSocketBag()->removeSocket($this->socket);
         self::assertFalse(
-            $this->executor->hasSocket($this->socket),
+            $this->executor->getSocketBag()->hasSocket($this->socket),
             'hasSocket returned true for removed socket'
         );
     }
@@ -365,19 +262,19 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketMethodDataProvider
-     * @depends testRemoveHandler
+     * @depends      testRemoveHandler
      */
     public function testExceptionOnMethodCall($operation, $method)
     {
         $code = mt_rand(1, PHP_INT_MAX);
         $mock = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\AbstractSocket',
-            [],
+            [ ],
             '',
             true,
             true,
             true,
-            [$method, 'createSocketResource']
+            [ $method, 'createSocketResource' ]
         );
 
         if ($method !== 'close') {
@@ -400,25 +297,29 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         }
 
 
-        $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(function () {
-            return fopen('php://temp', 'rw');
-        });
+        $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
+            function () {
+                return fopen('php://temp', 'rw');
+            }
+        );
 
-        $this->executor->addSocket($mock, $operation);
-        $this->executor->addHandler(
-            [
-                EventType::WRITE => function (WriteEvent $event) {
-                    $event->setData('I will pass the test');
-                },
-                EventType::EXCEPTION => function (SocketExceptionEvent $event) use ($code, $mock) {
-                    $socketException = $event->getException();
-                    self::assertInstanceOf('AsyncSockets\Exception\NetworkSocketException', $socketException);
-                    /** @var NetworkSocketException $socketException */
-                    self::assertEquals('Test', $socketException->getMessage());
-                    self::assertEquals($code, $socketException->getCode());
-                    self::assertSame($mock, $socketException->getSocket());
-                }
-            ]
+        $this->executor->getSocketBag()->addSocket($mock, [ RequestExecutor::META_OPERATION => $operation ]);
+        $this->executor->setEventInvocationHandler(
+            new EventInvocationHandlerBag(
+                [
+                    EventType::WRITE     => function (WriteEvent $event) {
+                        $event->setData('I will pass the test');
+                    },
+                    EventType::EXCEPTION => function (SocketExceptionEvent $event) use ($code, $mock) {
+                        $socketException = $event->getException();
+                        self::assertInstanceOf('AsyncSockets\Exception\NetworkSocketException', $socketException);
+                        /** @var NetworkSocketException $socketException */
+                        self::assertEquals('Test', $socketException->getMessage());
+                        self::assertEquals($code, $socketException->getCode());
+                        self::assertSame($mock, $socketException->getSocket());
+                    },
+                ]
+            )
         );
 
         $this->executor->executeRequest();
@@ -432,41 +333,39 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends testRemoveHandler
+     * @depends      testRemoveHandler
      */
     public function testNextOperationNotRequired($operation, $eventType)
     {
-        $this->executor->addSocket(
-            $this->socket,
-            $operation,
-            [
-                RequestExecutor::META_ADDRESS => 'php://temp'
-            ]
-        );
-
         $oppositeEvent = [
             EventType::READ  => EventType::WRITE,
             EventType::WRITE => EventType::READ,
         ];
 
-        $this->executor->addHandler(
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
             [
-                $eventType => function (IoEvent $event) {
-                    if ($event->getType() === EventType::READ) {
-                        $event->nextIsWrite();
-                    } else {
-                        $event->nextIsRead();
-                    }
-
-                    $event->nextOperationNotRequired();
-                },
-
-                $oppositeEvent[$eventType] => function () {
-                    self::fail('Io operation was not cancelled');
-                }
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => $operation,
             ],
-            $this->socket
+            new EventInvocationHandlerBag(
+                [
+                    $eventType                   => function (IoEvent $event) {
+                        if ($event->getType() === EventType::READ) {
+                            $event->nextIsWrite();
+                        } else {
+                            $event->nextIsRead();
+                        }
+
+                        $event->nextOperationNotRequired();
+                    },
+                    $oppositeEvent[ $eventType ] => function () {
+                        self::fail('Io operation was not cancelled');
+                    },
+                ]
+            )
         );
+
         $this->executor->executeRequest();
     }
 
@@ -482,29 +381,28 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testCantRemoveSocketDuringExecute($operation, $eventType)
     {
-        $this->executor->addSocket(
+        $this->executor->getSocketBag()->addSocket(
             $this->socket,
-            $operation,
             [
-                RequestExecutor::META_ADDRESS => 'php://temp',
-            ]
-        );
-
-        $this->executor->addHandler(
-            [
-                $eventType => function (Event $event) {
-                    self::assertSame($this->socket, $event->getSocket(), 'Unknown socket was passed in event');
-                    self::assertSame(
-                        $this->executor,
-                        $event->getExecutor(),
-                        'Unexpected request executor is given in event'
-                    );
-
-                    $this->executor->removeSocket($event->getSocket());
-                }
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => $operation,
             ],
-            $this->socket
+            new EventInvocationHandlerBag(
+                [
+                    $eventType => function (Event $event) {
+                        self::assertSame($this->socket, $event->getSocket(), 'Unknown socket was passed in event');
+                        self::assertSame(
+                            $this->executor,
+                            $event->getExecutor(),
+                            'Unexpected request executor is given in event'
+                        );
+
+                        $this->executor->getSocketBag()->removeSocket($event->getSocket());
+                    },
+                ]
+            )
         );
+
         $this->executor->executeRequest();
 
         self::fail('Event handler must have been executed');
@@ -521,33 +419,32 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testStopRequest($operation, $eventType)
     {
+        $mock = $this->getMock('Countable', [ 'count' ]);
+        $mock->expects(self::exactly(2))->method('count');
+
         $failHandler = function (Event $event) {
             self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
         };
 
-        $this->executor->addSocket(
+        $this->executor->getSocketBag()->addSocket(
             $this->socket,
-            $operation,
             [
-                RequestExecutor::META_ADDRESS => 'php://temp',
-            ]
-        );
-
-        $mock = $this->getMock('Countable', ['count']);
-        $mock->expects(self::exactly(2))->method('count');
-
-        $this->executor->addHandler(
-            [
-                EventType::CONNECTED => function (Event $event) {
-                    $event->getExecutor()->stopRequest();
-                },
-                $eventType              => $failHandler,
-                EventType::DISCONNECTED => [$mock, 'count'],
-                EventType::FINALIZE     => [$mock, 'count'],
-                EventType::EXCEPTION    => $failHandler,
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => $operation,
             ],
-            $this->socket
+            new EventInvocationHandlerBag(
+                [
+                    EventType::CONNECTED    => function (Event $event) {
+                        $event->getExecutor()->stopRequest();
+                    },
+                    $eventType              => $failHandler,
+                    EventType::DISCONNECTED => [ $mock, 'count' ],
+                    EventType::FINALIZE     => [ $mock, 'count' ],
+                    EventType::EXCEPTION    => $failHandler,
+                ]
+            )
         );
+
         $this->executor->executeRequest();
     }
 
@@ -562,52 +459,48 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testCancelSocketRequest($operation, $eventType)
     {
+        $mock = $this->getMock('Countable', [ 'count' ]);
+        $mock->expects(self::exactly(6))->method('count');
+
         $failHandler = function (Event $event) {
             self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
         };
 
-        $this->executor->addSocket(
+        $this->executor->getSocketBag()->addSocket(
             $this->socket,
-            $operation,
             [
-                RequestExecutor::META_ADDRESS => 'php://temp',
-            ]
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => $operation,
+            ],
+            new EventInvocationHandlerBag(
+                [
+                    EventType::CONNECTED    => function (Event $event) {
+                        $event->cancelThisOperation(true);
+                    },
+                    $eventType              => $failHandler,
+                    EventType::DISCONNECTED => [ $mock, 'count' ],
+                    EventType::FINALIZE     => [ $mock, 'count' ],
+                    EventType::EXCEPTION    => $failHandler,
+                ]
+            )
         );
 
         $clone = clone $this->socket;
-        $this->executor->addSocket(
+        $this->executor->getSocketBag()->addSocket(
             $clone,
-            $operation,
             [
-                RequestExecutor::META_ADDRESS => 'php://temp',
-            ]
-        );
-
-        $mock = $this->getMock('Countable', ['count']);
-        $mock->expects(self::exactly(6))->method('count');
-
-        $this->executor->addHandler(
-            [
-                EventType::CONNECTED => function (Event $event) {
-                    $event->cancelOperation(true);
-                },
-                $eventType              => $failHandler,
-                EventType::DISCONNECTED => [$mock, 'count'],
-                EventType::FINALIZE     => [$mock, 'count'],
-                EventType::EXCEPTION    => $failHandler,
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => $operation,
             ],
-            $this->socket
-        );
-
-        $this->executor->addHandler(
-            [
-                EventType::CONNECTED    => [$mock, 'count'],
-                $eventType              => [$mock, 'count'],
-                EventType::DISCONNECTED => [$mock, 'count'],
-                EventType::FINALIZE     => [$mock, 'count'],
-                EventType::EXCEPTION    => $failHandler,
-            ],
-            $clone
+            new EventInvocationHandlerBag(
+                [
+                    EventType::CONNECTED    => [ $mock, 'count' ],
+                    $eventType              => [ $mock, 'count' ],
+                    EventType::DISCONNECTED => [ $mock, 'count' ],
+                    EventType::FINALIZE     => [ $mock, 'count' ],
+                    EventType::EXCEPTION    => $failHandler,
+                ]
+            )
         );
 
         $this->executor->executeRequest();
@@ -629,24 +522,22 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
         };
 
-        $this->executor->addSocket(
+        $this->executor->getSocketBag()->addSocket(
             $this->socket,
-            $operation,
             [
-                RequestExecutor::META_ADDRESS => 'php://temp',
-            ]
-        );
-
-        $this->executor->addHandler(
-            [
-                EventType::INITIALIZE => function (Event $event) {
-                    $event->getExecutor()->setLimitationDecider(new NoLimitationDecider());
-                },
-                $eventType              => $failHandler,
-                EventType::DISCONNECTED => $failHandler,
-                EventType::FINALIZE     => $failHandler,
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => $operation,
             ],
-            $this->socket
+            new EventInvocationHandlerBag(
+                [
+                    EventType::INITIALIZE   => function (Event $event) {
+                        $event->getExecutor()->setLimitationDecider(new NoLimitationDecider());
+                    },
+                    $eventType              => $failHandler,
+                    EventType::DISCONNECTED => $failHandler,
+                    EventType::FINALIZE     => $failHandler,
+                ]
+            )
         );
 
         $this->executor->executeRequest();
@@ -671,27 +562,26 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends testCantRemoveSocketDuringExecute
+     * @depends      testCantRemoveSocketDuringExecute
      * @expectedException \LogicException
      */
     public function testCantExecuteTwice($operation, $eventType)
     {
-        $this->executor->addSocket(
+        $this->executor->getSocketBag()->addSocket(
             $this->socket,
-            $operation,
             [
-                RequestExecutor::META_ADDRESS => 'php://temp'
-            ]
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => $operation,
+            ],
+            new EventInvocationHandlerBag(
+                [
+                    $eventType => function () {
+                        $this->executor->executeRequest();
+                    },
+                ]
+            )
         );
 
-        $this->executor->addHandler(
-            [
-                $eventType => function () {
-                    $this->executor->executeRequest();
-                }
-            ],
-            $this->socket
-        );
         $this->executor->executeRequest();
     }
 
@@ -702,24 +592,24 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends testStopRequest
+     * @depends      testStopRequest
      * @expectedException \RuntimeException
      * @expectedExceptionMessage Test passed
      * @expectedExceptionCode 354
      */
     public function testPassingStreamContextHandle($operation)
     {
-        $streamContextHandle  = stream_context_create([]);
+        $streamContextHandle  = stream_context_create([ ]);
         $socketStreamResource = fopen('php://temp', 'rw');
 
         $mock = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\AbstractSocket',
-            [],
+            [ ],
             '',
             true,
             true,
             true,
-            ['open']
+            [ 'open' ]
         );
 
         $mock
@@ -729,15 +619,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->willThrowException(new \RuntimeException('Test passed', 354));
 
 
-
-
-
-        $this->executor->addSocket(
+        $this->executor->getSocketBag()->addSocket(
             $mock,
-            $operation,
             [
                 RequestExecutor::META_ADDRESS               => 'php://temp',
-                RequestExecutor::META_SOCKET_STREAM_CONTEXT => $streamContextHandle
+                RequestExecutor::META_SOCKET_STREAM_CONTEXT => $streamContextHandle,
+                RequestExecutor::META_OPERATION             => $operation,
             ]
         );
 
@@ -758,30 +645,32 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testMetadataCanChange($phpName, $key, $isReadOnly, $initialOperation)
     {
-        $this->executor->addSocket($this->socket, $initialOperation, []);
-        $originalMeta = $this->executor->getSocketMetaData($this->socket);
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
+            [ RequestExecutor::META_OPERATION => $initialOperation ]
+        );
+        $originalMeta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
         self::assertEquals(
             $initialOperation,
-            $originalMeta[RequestExecutor::META_OPERATION],
+            $originalMeta[ RequestExecutor::META_OPERATION ],
             'Unexpected initial operation'
         );
 
-        $this->executor->setSocketMetaData($this->socket, $key, mt_rand(1, PHP_INT_MAX));
-        $newMeta = $this->executor->getSocketMetaData($this->socket);
+        $this->executor->getSocketBag()->setSocketMetaData($this->socket, $key, mt_rand(1, PHP_INT_MAX));
+        $newMeta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
         if ($isReadOnly) {
             self::assertSame(
-                $originalMeta[$key],
-                $newMeta[$key],
+                $originalMeta[ $key ],
+                $newMeta[ $key ],
                 'Read-only metadata ' . $phpName . ' has been changed, but mustn\'t'
             );
         } else {
             self::assertNotSame(
-                $originalMeta[$key],
-                $newMeta[$key],
+                $originalMeta[ $key ],
+                $newMeta[ $key ],
                 'Writable value ' . $phpName . ' has not been modified, but must'
             );
         }
-
     }
 
     /**
@@ -791,51 +680,55 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      * @param string $eventType Event type
      *
      * @return void
-     * @depends testMetadataCanChange
+     * @depends      testMetadataCanChange
      * @dataProvider socketOperationDataProvider
      */
     public function testEventFireSequence($operation, $eventType)
     {
-        $this->executor->addSocket($this->socket, $operation, [
-            RequestExecutor::META_ADDRESS               => 'php://temp',
-            RequestExecutor::META_SOCKET_STREAM_CONTEXT => [
-                'options' => [ ],
-                'params' => [ ]
-            ],
-        ]);
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
+            [
+                RequestExecutor::META_ADDRESS               => 'php://temp',
+                RequestExecutor::META_OPERATION             => $operation,
+                RequestExecutor::META_SOCKET_STREAM_CONTEXT => [
+                    'options' => [ ],
+                    'params'  => [ ],
+                ],
+            ]
+        );
 
-        $mock = $this->getMock('Countable', ['count']);
+        $mock = $this->getMock('Countable', [ 'count' ]);
 
         $handlers = [
             EventType::INITIALIZE   => function (Event $event) use ($mock) {
                 $this->verifyEvent($event, $mock, 1);
-                $meta = $this->executor->getSocketMetaData($this->socket);
+                $meta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
                 self::assertNull(
-                    $meta[RequestExecutor::META_CONNECTION_START_TIME],
+                    $meta[ RequestExecutor::META_CONNECTION_START_TIME ],
                     'Connection start time must be null at this point'
                 );
                 self::assertNull(
-                    $meta[RequestExecutor::META_CONNECTION_FINISH_TIME],
+                    $meta[ RequestExecutor::META_CONNECTION_FINISH_TIME ],
                     'Connection finish time must be null at this point'
                 );
                 self::assertNull(
-                    $meta[RequestExecutor::META_LAST_IO_START_TIME],
+                    $meta[ RequestExecutor::META_LAST_IO_START_TIME ],
                     'Last io time must be null at this point'
                 );
             },
             EventType::CONNECTED    => function (Event $event) use ($mock) {
                 $this->verifyEvent($event, $mock, 2);
-                $meta = $this->executor->getSocketMetaData($this->socket);
+                $meta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
                 self::assertNotNull(
-                    $meta[RequestExecutor::META_CONNECTION_START_TIME],
+                    $meta[ RequestExecutor::META_CONNECTION_START_TIME ],
                     'Connection start time must not be null at this point'
                 );
                 self::assertNotNull(
-                    $meta[RequestExecutor::META_CONNECTION_FINISH_TIME],
+                    $meta[ RequestExecutor::META_CONNECTION_FINISH_TIME ],
                     'Connection finish time must not be null at this point'
                 );
                 self::assertNull(
-                    $meta[RequestExecutor::META_LAST_IO_START_TIME],
+                    $meta[ RequestExecutor::META_LAST_IO_START_TIME ],
                     'Last io time must be null at this point'
                 );
             },
@@ -859,7 +752,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->method('count')
             ->willReturnOnConsecutiveCalls(1, 2, 3, 4, 5);
 
-        $this->executor->addHandler($handlers);
+        $this->executor->setEventInvocationHandler(new EventInvocationHandlerBag($handlers));
 
         $this->executor->executeRequest();
     }
@@ -875,17 +768,17 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testLimitationDecider($operation)
     {
-        $this->executor->addSocket($this->socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp',
-        ]);
-        $this->executor->addSocket(clone $this->socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp',
-        ]);
-        $this->executor->addSocket(clone $this->socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp',
-        ]);
+        for ($i = 0; $i < 10; $i++) {
+            $this->executor->getSocketBag()->addSocket(
+                !$i ? $this->socket : clone $this->socket,
+                [
+                    RequestExecutor::META_ADDRESS   => 'php://temp',
+                    RequestExecutor::META_OPERATION => $operation,
+                ]
+            );
+        }
 
-        $decider = $this->getMock('AsyncSockets\RequestExecutor\NoLimitationDecider', ['decide']);
+        $decider = $this->getMock('AsyncSockets\RequestExecutor\NoLimitationDecider', [ 'decide' ]);
         $decider->expects(self::any())
             ->method('decide')
             ->willReturnOnConsecutiveCalls(
@@ -907,13 +800,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      * @param string $eventType Event type
      *
      * @return void
-     * @depends testEventFireSequence
+     * @depends      testEventFireSequence
      * @dataProvider socketOperationDataProvider
      */
     public function testTimeoutOnConnect($operation, $eventType)
     {
         $timeGenerator = function () {
             static $time = 0;
+
             return $time++;
         };
 
@@ -924,30 +818,41 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
         $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-        $streamSelect->setCallable(function (array &$read = null, array &$write = null) {
-            $read  = [];
-            $write = [];
-            return 0;
-        });
+        $streamSelect->setCallable(
+            function (array &$read = null, array &$write = null) {
+                $read  = [ ];
+                $write = [ ];
+
+                return 0;
+            }
+        );
 
 
-        $this->executor->addSocket($this->socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp',
-            RequestExecutor::META_CONNECTION_TIMEOUT => 1
-        ]);
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
+            [
+                RequestExecutor::META_ADDRESS            => 'php://temp',
+                RequestExecutor::META_CONNECTION_TIMEOUT => 1,
+                RequestExecutor::META_OPERATION          => $operation,
+            ]
+        );
 
-        $mock = $this->getMock('Countable', ['count']);
+        $mock = $this->getMock('Countable', [ 'count' ]);
         $mock->expects(self::exactly(3))
             ->method('count');
 
-        $this->executor->addHandler([
-            EventType::INITIALIZE   => [$mock, 'count'],
-            EventType::CONNECTED    => $failHandler,
-            $eventType              => $failHandler,
-            EventType::DISCONNECTED => $failHandler,
-            EventType::FINALIZE     => [$mock, 'count'],
-            EventType::TIMEOUT      => [$mock, 'count'],
-        ]);
+        $this->executor->setEventInvocationHandler(
+            new EventInvocationHandlerBag(
+                [
+                    EventType::INITIALIZE   => [ $mock, 'count' ],
+                    EventType::CONNECTED    => $failHandler,
+                    $eventType              => $failHandler,
+                    EventType::DISCONNECTED => $failHandler,
+                    EventType::FINALIZE     => [ $mock, 'count' ],
+                    EventType::TIMEOUT      => [ $mock, 'count' ],
+                ]
+            )
+        );
         $this->executor->executeRequest();
     }
 
@@ -958,49 +863,61 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      * @param string $eventType Event type
      *
      * @return void
-     * @depends testTimeoutOnConnect
+     * @depends      testTimeoutOnConnect
      * @dataProvider socketOperationDataProvider
      */
     public function testTimeoutOnIo($operation, $eventType)
     {
         $timeGenerator = function () {
             static $time = 0;
+
             return $time++;
         };
 
         PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
 
-        $this->executor->addSocket($this->socket, $operation, [
-            RequestExecutor::META_ADDRESS => 'php://temp',
-            RequestExecutor::META_IO_TIMEOUT => 1
-        ]);
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
+            [
+                RequestExecutor::META_ADDRESS    => 'php://temp',
+                RequestExecutor::META_IO_TIMEOUT => 1,
+                RequestExecutor::META_OPERATION  => $operation,
+            ]
+        );
 
-        $mock = $this->getMock('Countable', ['count']);
+        $mock = $this->getMock('Countable', [ 'count' ]);
         $mock->expects(self::exactly(5))
             ->method('count');
 
-        $this->executor->addHandler([
-            EventType::INITIALIZE   => [$mock, 'count'],
-            EventType::CONNECTED    => [$mock, 'count'],
-            $eventType              => function (IoEvent $event) {
-                $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-                $streamSelect->setCallable(function (array &$read = null, array &$write = null) {
-                    $read  = [];
-                    $write = [];
-                    return 1;
-                });
+        $this->executor->setEventInvocationHandler(
+            new EventInvocationHandlerBag(
+                [
+                    EventType::INITIALIZE   => [ $mock, 'count' ],
+                    EventType::CONNECTED    => [ $mock, 'count' ],
+                    $eventType              => function (IoEvent $event) {
+                        $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
+                        $streamSelect->setCallable(
+                            function (array &$read = null, array &$write = null) {
+                                $read  = [ ];
+                                $write = [ ];
 
-                if ($event->getType() === EventType::READ) {
-                    $event->nextIsWrite();
-                } else {
-                    $event->nextIsRead();
-                }
-            },
-            EventType::DISCONNECTED => [$mock, 'count'],
-            EventType::FINALIZE     => [$mock, 'count'],
-            EventType::TIMEOUT      => [$mock, 'count'],
-        ]);
+                                return 1;
+                            }
+                        );
+
+                        if ($event->getType() === EventType::READ) {
+                            $event->nextIsWrite();
+                        } else {
+                            $event->nextIsRead();
+                        }
+                    },
+                    EventType::DISCONNECTED => [ $mock, 'count' ],
+                    EventType::FINALIZE     => [ $mock, 'count' ],
+                    EventType::TIMEOUT      => [ $mock, 'count' ],
+                ]
+            )
+        );
         $this->executor->executeRequest();
     }
 
@@ -1011,7 +928,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      * @param string $operation Operation to start
      *
      * @return void
-     * @depends testTimeoutOnConnect
+     * @depends      testTimeoutOnConnect
      * @dataProvider eventTypeDataProvider
      * @expectedException \RuntimeException
      * @expectedExceptionMessage Test passed
@@ -1020,12 +937,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     public function testThrowsNonSocketExceptionInEvent($eventType, $operation)
     {
         $meta = [
-            RequestExecutor::META_ADDRESS => 'php://temp',
+            RequestExecutor::META_ADDRESS   => 'php://temp',
+            RequestExecutor::META_OPERATION => $operation,
         ];
 
         if ($eventType === EventType::TIMEOUT || $eventType === EventType::EXCEPTION) {
             $timeGenerator = function () {
                 static $time = 0;
+
                 return $time++;
             };
 
@@ -1033,19 +952,22 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
 
             $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-            $streamSelect->setCallable(function (array &$read = null, array &$write = null) use ($eventType) {
-                $read  = [];
-                $write = [];
-                return $eventType === EventType::EXCEPTION ? false : 0;
-            });
+            $streamSelect->setCallable(
+                function (array &$read = null, array &$write = null) use ($eventType) {
+                    $read  = [ ];
+                    $write = [ ];
 
-            $meta[RequestExecutor::META_CONNECTION_TIMEOUT] = 1;
+                    return $eventType === EventType::EXCEPTION ? false : 0;
+                }
+            );
+
+            $meta[ RequestExecutor::META_CONNECTION_TIMEOUT ] = 1;
         }
 
-        $this->executor->addSocket($this->socket, $operation, $meta);
+        $this->executor->getSocketBag()->addSocket($this->socket, $meta);
 
         $handler = function (Event $event) use ($eventType) {
-            $readWriteTypes = [EventType::READ, EventType::WRITE];
+            $readWriteTypes = [ EventType::READ, EventType::WRITE ];
             $throwException = $event->getType() === $eventType ||
                               (in_array($eventType, $readWriteTypes, true) &&
                                in_array($event->getType(), $readWriteTypes, true));
@@ -1054,17 +976,19 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             }
         };
 
-        $this->executor->addHandler(
-            [
-                EventType::INITIALIZE   => $handler,
-                EventType::CONNECTED    => $handler,
-                EventType::READ         => $handler,
-                EventType::WRITE        => $handler,
-                EventType::DISCONNECTED => $handler,
-                EventType::FINALIZE     => $handler,
-                EventType::TIMEOUT      => $handler,
-                EventType::EXCEPTION    => $handler,
-            ]
+        $this->executor->setEventInvocationHandler(
+            new EventInvocationHandlerBag(
+                [
+                    EventType::INITIALIZE   => $handler,
+                    EventType::CONNECTED    => $handler,
+                    EventType::READ         => $handler,
+                    EventType::WRITE        => $handler,
+                    EventType::DISCONNECTED => $handler,
+                    EventType::FINALIZE     => $handler,
+                    EventType::TIMEOUT      => $handler,
+                    EventType::EXCEPTION    => $handler,
+                ]
+            )
         );
         $this->executor->executeRequest();
     }
@@ -1076,18 +1000,20 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      * @param string $operation Operation to start
      *
      * @return void
-     * @depends testTimeoutOnConnect
+     * @depends      testTimeoutOnConnect
      * @dataProvider eventTypeDataProvider
      */
     public function testThrowingSocketExceptionsInEvent($eventType, $operation)
     {
         $meta = [
-            RequestExecutor::META_ADDRESS => 'php://temp',
+            RequestExecutor::META_ADDRESS   => 'php://temp',
+            RequestExecutor::META_OPERATION => $operation,
         ];
 
         if ($eventType === EventType::TIMEOUT || $eventType === EventType::EXCEPTION) {
             $timeGenerator = function () {
                 static $time = 0;
+
                 return $time++;
             };
 
@@ -1095,19 +1021,22 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
 
             $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-            $streamSelect->setCallable(function (array &$read = null, array &$write = null) use ($eventType) {
-                $read  = [];
-                $write = [];
-                return $eventType === EventType::EXCEPTION ? false : 0;
-            });
+            $streamSelect->setCallable(
+                function (array &$read = null, array &$write = null) use ($eventType) {
+                    $read  = [ ];
+                    $write = [ ];
 
-            $meta[RequestExecutor::META_CONNECTION_TIMEOUT] = 1;
+                    return $eventType === EventType::EXCEPTION ? false : 0;
+                }
+            );
+
+            $meta[ RequestExecutor::META_CONNECTION_TIMEOUT ] = 1;
         }
 
-        $this->executor->addSocket($this->socket, $operation, $meta);
+        $this->executor->getSocketBag()->addSocket($this->socket, $meta);
 
         $handler = function (Event $event) use ($eventType) {
-            $readWriteTypes = [EventType::READ, EventType::WRITE];
+            $readWriteTypes = [ EventType::READ, EventType::WRITE ];
             $throwException = $event->getType() === $eventType ||
                               (in_array($eventType, $readWriteTypes, true) &&
                                in_array($event->getType(), $readWriteTypes, true));
@@ -1116,20 +1045,51 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             }
         };
 
-        $mock = $this->getMockBuilder('Countable')->setMethods(['count'])->getMock();
+        $mock = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMock();
         $mock->expects(self::once())
-             ->method('count');
+            ->method('count');
 
-        $this->executor->addHandler(
+        $this->executor->setEventInvocationHandler(
+            new EventInvocationHandlerBag(
+                [
+                    EventType::INITIALIZE   => $handler,
+                    EventType::CONNECTED    => $handler,
+                    EventType::READ         => $handler,
+                    EventType::WRITE        => $handler,
+                    EventType::DISCONNECTED => $handler,
+                    EventType::FINALIZE     => $handler,
+                    EventType::TIMEOUT      => $handler,
+                    EventType::EXCEPTION    => [ $mock, 'count' ],
+                ]
+            )
+        );
+        $this->executor->executeRequest();
+    }
+
+    /**
+     * testEventSubscribersAreSet
+     *
+     * @return void
+     */
+    public function testLimitationDeciderEventsAreInvoked()
+    {
+        $mock = $this->getMock(
+            'AsyncSockets\RequestExecutor\ConstantLimitationDecider',
+            [ 'decide', 'invokeEvent'],
+            [ mt_rand(1, PHP_INT_MAX) ]
+        );
+
+
+        $mock->expects(self::exactly(5)) // init, connected, operation, disconnect, finalize
+            ->method('invokeEvent');
+        $mock->expects(self::any())->method('decide')->willReturn(LimitationDeciderInterface::DECISION_OK);
+
+        $this->executor->setLimitationDecider($mock);
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
             [
-                EventType::INITIALIZE   => $handler,
-                EventType::CONNECTED    => $handler,
-                EventType::READ         => $handler,
-                EventType::WRITE        => $handler,
-                EventType::DISCONNECTED => $handler,
-                EventType::FINALIZE     => $handler,
-                EventType::TIMEOUT      => $handler,
-                EventType::EXCEPTION    => [$mock, 'count'],
+                RequestExecutor::META_ADDRESS   => 'php://temp',
+                RequestExecutor::META_OPERATION => RequestExecutor::OPERATION_READ,
             ]
         );
         $this->executor->executeRequest();
@@ -1144,8 +1104,8 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     {
         // form: operation, event
         return [
-            [RequestExecutor::OPERATION_READ, EventType::READ],
-            [RequestExecutor::OPERATION_WRITE, EventType::WRITE],
+            [ RequestExecutor::OPERATION_READ, EventType::READ ],
+            [ RequestExecutor::OPERATION_WRITE, EventType::WRITE ],
         ];
     }
 
@@ -1157,12 +1117,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     public function socketMethodDataProvider()
     {
         return [
-            [RequestExecutor::OPERATION_READ, 'open'],
-            [RequestExecutor::OPERATION_READ, 'read'],
-            [RequestExecutor::OPERATION_READ, 'close'],
-            [RequestExecutor::OPERATION_WRITE, 'open'],
-            [RequestExecutor::OPERATION_WRITE, 'write'],
-            [RequestExecutor::OPERATION_WRITE, 'close'],
+            [ RequestExecutor::OPERATION_READ, 'open' ],
+            [ RequestExecutor::OPERATION_READ, 'read' ],
+            [ RequestExecutor::OPERATION_READ, 'close' ],
+            [ RequestExecutor::OPERATION_WRITE, 'open' ],
+            [ RequestExecutor::OPERATION_WRITE, 'write' ],
+            [ RequestExecutor::OPERATION_WRITE, 'close' ],
         ];
     }
 
@@ -1182,15 +1142,15 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 RequestExecutor::META_LAST_IO_START_TIME     => 1,
             ];
 
-            $metadata = [];
-            $ref = new \ReflectionClass('AsyncSockets\RequestExecutor\RequestExecutor');
+            $metadata = [ ];
+            $ref      = new \ReflectionClass('AsyncSockets\RequestExecutor\RequestExecutor');
             foreach ($ref->getConstants() as $name => $value) {
                 if (!preg_match('#META_.*?#', $name)) {
                     continue;
                 }
 
-                $metadata[] = [$name, $value, isset($readOnlyKeys[$value]), RequestExecutor::OPERATION_READ ];
-                $metadata[] = [$name, $value, isset($readOnlyKeys[$value]), RequestExecutor::OPERATION_WRITE ];
+                $metadata[] = [ $name, $value, isset($readOnlyKeys[ $value ]), RequestExecutor::OPERATION_READ ];
+                $metadata[] = [ $name, $value, isset($readOnlyKeys[ $value ]), RequestExecutor::OPERATION_WRITE ];
             }
         }
 
@@ -1208,12 +1168,13 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         if (!$result) {
             $ref    = new \ReflectionClass('AsyncSockets\Event\EventType');
-            $result = [];
+            $result = [ ];
             foreach ($ref->getConstants() as $value) {
                 $result[] = [ $value, RequestExecutor::OPERATION_READ ];
                 $result[] = [ $value, RequestExecutor::OPERATION_WRITE ];
             }
         }
+
         return $result;
     }
 

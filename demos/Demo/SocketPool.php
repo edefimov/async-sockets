@@ -15,6 +15,7 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\ConstantLimitationDecider;
+use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
 
@@ -38,11 +39,11 @@ class SocketPool
         $executor = $factory->createRequestExecutor();
         for ($i = 0; $i < $countSockets; $i++) {
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
-            $executor->addSocket(
+            $executor->getSocketBag()->addSocket(
                 $client,
-                RequestExecutorInterface::OPERATION_WRITE,
                 [
                     RequestExecutorInterface::META_ADDRESS      => $destination,
+                    RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
                     RequestExecutorInterface::META_USER_CONTEXT => [
                         'data'  => "GET / HTTP/1.1\nHost: packagist.org\n\n",
                         'index' => $i + 1
@@ -52,31 +53,33 @@ class SocketPool
         }
 
         $executor->setLimitationDecider(new ConstantLimitationDecider($limitSockets));
-        $executor->addHandler(
-            [
-                EventType::DISCONNECTED => [
-                    [ $this, 'logEvent' ],
-                ],
-                EventType::CONNECTED    => [
-                    [ $this, 'logEvent' ],
-                ],
-                EventType::WRITE        => [
-                    [ $this, 'logEvent' ],
-                    [ $this, 'onWrite' ],
-                ],
-                EventType::READ         => [
-                    [ $this, 'logEvent' ],
-                    [ $this, 'onRead' ],
-                ],
-                EventType::EXCEPTION    => [
-                    [ $this, 'logEvent' ],
-                    [ $this, 'onException' ],
-                ],
-                EventType::TIMEOUT      => [
-                    [ $this, 'logEvent' ],
-                    [ $this, 'onTimeout' ],
-                ],
-            ]
+        $executor->setEventInvocationHandler(
+            new EventInvocationHandlerBag(
+                [
+                    EventType::DISCONNECTED => [
+                        [ $this, 'logEvent' ],
+                    ],
+                    EventType::CONNECTED    => [
+                        [ $this, 'logEvent' ],
+                    ],
+                    EventType::WRITE        => [
+                        [ $this, 'logEvent' ],
+                        [ $this, 'onWrite' ],
+                    ],
+                    EventType::READ         => [
+                        [ $this, 'logEvent' ],
+                        [ $this, 'onRead' ],
+                    ],
+                    EventType::EXCEPTION    => [
+                        [ $this, 'logEvent' ],
+                        [ $this, 'onException' ],
+                    ],
+                    EventType::TIMEOUT      => [
+                        [ $this, 'logEvent' ],
+                        [ $this, 'onTimeout' ],
+                    ],
+                ]
+            )
         );
 
         $executor->executeRequest();
@@ -145,7 +148,7 @@ class SocketPool
      */
     public function onTimeout(Event $event)
     {
-        $meta = $event->getExecutor()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
         echo "Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
     }
 }
