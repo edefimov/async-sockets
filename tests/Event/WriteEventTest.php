@@ -11,10 +11,7 @@
 namespace Tests\AsyncSockets\Event;
 
 use AsyncSockets\Event\EventType;
-use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
-use AsyncSockets\Socket\ChunkSocketResponse;
-use AsyncSockets\Socket\SocketResponse;
 
 /**
  * Class ReadEventTest

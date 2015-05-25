@@ -23,11 +23,38 @@ abstract class AbstractSocket implements SocketInterface
     const SOCKET_BUFFER_SIZE = 8192;
 
     /**
+     * Amount of attempts to set data
+     */
+    const SEND_ATTEMPTS = 10;
+
+    /**
+     * Delay for select operation, microseconds
+     */
+    const SELECT_DELAY = 25000;
+
+    /**
+     * Disconnected state
+     */
+    const STATE_DISCONNECTED = 0;
+
+    /**
+     * Connected state
+     */
+    const STATE_CONNECTED = 1;
+
+    /**
      * This socket resource
      *
      * @var resource
      */
     private $resource;
+
+    /**
+     * Socket state
+     *
+     * @var int
+     */
+    private $state;
 
     /**
      * Destructor
@@ -60,6 +87,7 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function close()
     {
+        $this->state = self::STATE_DISCONNECTED;
         if ($this->resource) {
             stream_socket_shutdown($this->resource, STREAM_SHUT_RDWR);
             fclose($this->resource);
@@ -70,15 +98,17 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function read(ChunkSocketResponse $previousResponse = null)
     {
+        $this->setConnectedState();
+
         $result        = '';
-        $microseconds  = 25000;
+        $microseconds  = self::SELECT_DELAY;
         $isDataChanged = false;
         do {
             $read     = [ $this->resource ];
             $nomatter = null;
             $select   = stream_select($read, $nomatter, $nomatter, 0, $microseconds);
             if ($select === false) {
-                $this->throwNetworkSocketException('Failed to read data');
+                $this->throwNetworkSocketException('Failed to read data.');
             }
 
             if ($select === 0) {
@@ -109,16 +139,30 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function write($data)
     {
-        $result     = 0;
-        $dataLength = strlen($data);
+        $this->setConnectedState();
+
+        $result       = 0;
+        $dataLength   = strlen($data);
+        $microseconds = self::SELECT_DELAY;
+        $attempts     = self::SEND_ATTEMPTS;
+
         do {
-            $written = fwrite($this->resource, $data, strlen($data));
-            if ($written === false) {
-                $this->throwNetworkSocketException('Socket write failed');
+            $write    = [ $this->resource ];
+            $nomatter = null;
+            $select   = stream_select($nomatter, $write, $nomatter, 0, $microseconds);
+            if ($select === false) {
+                $this->throwNetworkSocketException('Failed to send data.');
             }
 
-            $data    = substr($data, $written);
-            $result += $written;
+            $bytesWritten  = $write ? $this->writeActualData($data) : 0;
+            $attempts      = $bytesWritten === 0 ? $attempts - 1 : self::SEND_ATTEMPTS;
+
+            if (!$attempts && $result !== $dataLength) {
+                $this->throwNetworkSocketException('Failed to send data.');
+            }
+
+            $data    = substr($data, $bytesWritten);
+            $result += $bytesWritten;
         } while ($result < $dataLength && $data !== false);
 
         return $result;
@@ -130,7 +174,7 @@ abstract class AbstractSocket implements SocketInterface
         $result = stream_set_blocking($this->resource, $isBlocking ? 1 : 0);
         if ($result === false) {
             $this->throwNetworkSocketException(
-                'Failed to switch ' . ($isBlocking ? '': 'non-') . 'blocking mode'
+                'Failed to switch ' . ($isBlocking ? '': 'non-') . 'blocking mode.'
             );
         }
 
@@ -165,9 +209,75 @@ abstract class AbstractSocket implements SocketInterface
     {
         $data = fread($this->resource, self::SOCKET_BUFFER_SIZE);
         if ($data === false) {
-            $this->throwNetworkSocketException('Failed to read data');
+            $this->throwNetworkSocketException('Failed to read data.');
+        }
+
+        if ($data === 0) {
+            $this->throwExceptionIfNotConnected('Remote connection has been lost.');
         }
 
         return $data;
+    }
+
+    /**
+     * Writes given data to socket
+     *
+     * @param string $data Data to write
+     *
+     * @return int Amount of written bytes
+     */
+    private function writeActualData($data)
+    {
+        $test = stream_socket_sendto($this->resource, '');
+        if ($test !== 0) {
+            $this->throwNetworkSocketException('Failed to send data.');
+        }
+
+        $written = fwrite($this->resource, $data, strlen($data));
+        if ($written === false) {
+            $this->throwNetworkSocketException('Failed to send data.');
+        }
+
+        if ($written === 0) {
+            $this->throwExceptionIfNotConnected('Remote connection has been lost.');
+        }
+
+        return $written;
+    }
+
+    /**
+     * Verify, that we are in connected state
+     *
+     * @return void
+     */
+    private function setConnectedState()
+    {
+        if (!is_resource($this->resource)) {
+            $message = $this->state === self::STATE_CONNECTED ?
+                'Connection was unexpectedly closed.' :
+                'Can not start io operation on uninitialized socket.';
+            $this->throwNetworkSocketException($message);
+        }
+
+        if ($this->state !== self::STATE_CONNECTED) {
+            $this->throwExceptionIfNotConnected('Connection refused.');
+
+            $this->state = self::STATE_CONNECTED;
+        }
+    }
+
+    /**
+     * Checks that we are in connected state
+     *
+     * @param string $message Message to pass in exception
+     *
+     * @return void
+     */
+    private function throwExceptionIfNotConnected($message)
+    {
+        $name = stream_socket_get_name($this->resource, true);
+        if ($name === false) {
+            $this->throwNetworkSocketException($message);
+        }
     }
 }

@@ -67,6 +67,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(function () {
             return '';
         });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable(function ($handle, $data) {
+            return strlen($data);
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(function() {
+            return 'php://temp';
+        });
     }
 
     /** {@inheritdoc} */
@@ -77,6 +85,8 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
     }
 
     /**
