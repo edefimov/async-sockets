@@ -172,11 +172,11 @@ class RequestExecutor implements RequestExecutorInterface
             try {
                 $this->callSocketSubscribers($socket, $event);
                 $this->setSocketOperationTime($item, self::META_CONNECTION_START_TIME);
+                $socket->setBlocking(false);
                 if (!$socket->getStreamResource()) {
                     $streamContext = $this->getStreamContextFromMetaData($meta);
                     $socket->open($meta[self::META_ADDRESS], $streamContext);
                 }
-                $socket->setBlocking(false);
                 $item->setRunning(true);
             } catch (SocketException $e) {
                 $item->setMetadata(self::META_REQUEST_COMPLETE, true);

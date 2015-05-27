@@ -57,6 +57,13 @@ abstract class AbstractSocket implements SocketInterface
     private $state;
 
     /**
+     * Flag whether this socket is blocking
+     *
+     * @var bool
+     */
+    private $isBlocking = true;
+
+    /**
      * Destructor
      */
     public function __destruct()
@@ -81,7 +88,16 @@ abstract class AbstractSocket implements SocketInterface
 
         $this->resource = $this->createSocketResource($address, $context ?: stream_context_get_default());
 
-        return is_resource($this->resource);
+        $result = false;
+        if (is_resource($this->resource)) {
+            $result = true;
+            $meta   = stream_get_meta_data($this->resource);
+            if (isset($meta['blocked']) && $meta['blocked'] != $this->isBlocking) {
+                $this->setBlocking($this->isBlocking);
+            }
+        }
+
+        return $result;
     }
 
     /** {@inheritdoc} */
@@ -171,13 +187,18 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function setBlocking($isBlocking)
     {
-        $result = stream_set_blocking($this->resource, $isBlocking ? 1 : 0);
-        if ($result === false) {
-            $this->throwNetworkSocketException(
-                'Failed to switch ' . ($isBlocking ? '': 'non-') . 'blocking mode.'
-            );
+        if (is_resource($this->resource)) {
+            $result = stream_set_blocking($this->resource, $isBlocking ? 1 : 0);
+            if ($result === false) {
+                $this->throwNetworkSocketException(
+                    'Failed to switch ' . ($isBlocking ? '': 'non-') . 'blocking mode.'
+                );
+            }
+        } else {
+            $result = true;
         }
 
+        $this->isBlocking = (bool) $isBlocking;
         return $result;
     }
 

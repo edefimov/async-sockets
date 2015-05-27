@@ -38,13 +38,38 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
     public function testExceptionWillBeThrowsOnSetBlockingFail()
     {
         $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking');
+        $this->socket->open('php://temp');
+
         $mocker->setCallable(function ($resource, $isBlocking) {
             self::assertEquals(false, $isBlocking, 'Unexpected value passed');
             return false;
         });
 
-        $this->socket->open('it has no meaning here');
         $this->socket->setBlocking(false);
+    }
+
+    /**
+     * testBlockingModeWillChange
+     *
+     * @return void
+     */
+    public function testBlockingModeWillChange()
+    {
+        PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->setCallable(
+            function ($resource) {
+                return \stream_get_meta_data($resource) + [ 'blocked' => true ];
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking')->setCallable(
+            function ($resource, $isBlocking) {
+                self::assertEquals(false, $isBlocking, 'Unexpected value passed');
+                return \stream_set_blocking($resource, $isBlocking);
+            }
+        );
+
+        $this->socket->setBlocking(false);
+        $this->socket->open('php://temp');
     }
 
     /**
@@ -483,6 +508,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
     protected function tearDown()
     {
         parent::tearDown();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fread')->restoreNativeHandler();
