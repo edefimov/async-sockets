@@ -123,9 +123,7 @@ abstract class AbstractSocket implements SocketInterface
             $read     = [ $this->resource ];
             $nomatter = null;
             $select   = stream_select($read, $nomatter, $nomatter, 0, $microseconds);
-            if ($select === false) {
-                $this->throwNetworkSocketException('Failed to read data.');
-            }
+            $this->throwNetworkSocketExceptionIf($select === false, 'Failed to read data.');
 
             if ($select === 0) {
                 break;
@@ -166,16 +164,15 @@ abstract class AbstractSocket implements SocketInterface
             $write    = [ $this->resource ];
             $nomatter = null;
             $select   = stream_select($nomatter, $write, $nomatter, 0, $microseconds);
-            if ($select === false) {
-                $this->throwNetworkSocketException('Failed to send data.');
-            }
+            $this->throwNetworkSocketExceptionIf($select === false, 'Failed to send data.');
 
             $bytesWritten  = $write ? $this->writeActualData($data) : 0;
             $attempts      = $bytesWritten === 0 ? $attempts - 1 : self::SEND_ATTEMPTS;
 
-            if (!$attempts && $result !== $dataLength) {
-                $this->throwNetworkSocketException('Failed to send data.');
-            }
+            $this->throwNetworkSocketExceptionIf(
+                !$attempts && $result !== $dataLength,
+                'Failed to send data.'
+            );
 
             $data    = substr($data, $bytesWritten);
             $result += $bytesWritten;
@@ -189,11 +186,10 @@ abstract class AbstractSocket implements SocketInterface
     {
         if (is_resource($this->resource)) {
             $result = stream_set_blocking($this->resource, $isBlocking ? 1 : 0);
-            if ($result === false) {
-                $this->throwNetworkSocketException(
-                    'Failed to switch ' . ($isBlocking ? '': 'non-') . 'blocking mode.'
-                );
-            }
+            $this->throwNetworkSocketExceptionIf(
+                $result === false,
+                'Failed to switch ' . ($isBlocking ? '': 'non-') . 'blocking mode.'
+            );
         } else {
             $result = true;
         }
@@ -211,14 +207,17 @@ abstract class AbstractSocket implements SocketInterface
     /**
      * Throw network operation exception
      *
+     * @param bool   $condition Condition, which must evaluates to true for throwing exception
      * @param string $message Exception message
      *
      * @return void
      * @throws NetworkSocketException
      */
-    protected function throwNetworkSocketException($message)
+    protected function throwNetworkSocketExceptionIf($condition, $message)
     {
-        throw new NetworkSocketException($this, $message);
+        if ($condition) {
+            throw new NetworkSocketException($this, $message);
+        }
     }
 
     /**
@@ -229,9 +228,7 @@ abstract class AbstractSocket implements SocketInterface
     private function readActualData()
     {
         $data = fread($this->resource, self::SOCKET_BUFFER_SIZE);
-        if ($data === false) {
-            $this->throwNetworkSocketException('Failed to read data.');
-        }
+        $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
 
         if ($data === 0) {
             $this->throwExceptionIfNotConnected('Remote connection has been lost.');
@@ -250,14 +247,10 @@ abstract class AbstractSocket implements SocketInterface
     private function writeActualData($data)
     {
         $test = stream_socket_sendto($this->resource, '');
-        if ($test !== 0) {
-            $this->throwNetworkSocketException('Failed to send data.');
-        }
+        $this->throwNetworkSocketExceptionIf($test !== 0, 'Failed to send data.');
 
         $written = fwrite($this->resource, $data, strlen($data));
-        if ($written === false) {
-            $this->throwNetworkSocketException('Failed to send data.');
-        }
+        $this->throwNetworkSocketExceptionIf($written === false, 'Failed to send data.');
 
         if ($written === 0) {
             $this->throwExceptionIfNotConnected('Remote connection has been lost.');
@@ -277,7 +270,7 @@ abstract class AbstractSocket implements SocketInterface
             $message = $this->state === self::STATE_CONNECTED ?
                 'Connection was unexpectedly closed.' :
                 'Can not start io operation on uninitialized socket.';
-            $this->throwNetworkSocketException($message);
+            $this->throwNetworkSocketExceptionIf(true, $message);
         }
 
         if ($this->state !== self::STATE_CONNECTED) {
@@ -297,8 +290,6 @@ abstract class AbstractSocket implements SocketInterface
     private function throwExceptionIfNotConnected($message)
     {
         $name = stream_socket_get_name($this->resource, true);
-        if ($name === false) {
-            $this->throwNetworkSocketException($message);
-        }
+        $this->throwNetworkSocketExceptionIf($name === false, $message);
     }
 }
