@@ -40,18 +40,22 @@ class RequestExecutorClient
         $executor = $factory->createRequestExecutor();
         $this->registerPackagistSocket($executor, $client, 60, 0.001, 2);
 
-        $executor->getSocketBag()->addSocket($anotherClient, RequestExecutorInterface::OPERATION_WRITE, [
-            RequestExecutorInterface::META_ADDRESS      => 'tls://github.com:443',
-            RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
-            RequestExecutorInterface::META_USER_CONTEXT => [
-                'data' => "GET / HTTP/1.1\nHost: github.com\n\n",
+        $executor->getSocketBag()->addSocket(
+            $anotherClient,
+            [
+                RequestExecutorInterface::META_ADDRESS      => 'tls://github.com:443',
+                RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
+                RequestExecutorInterface::META_USER_CONTEXT => [
+                    'data' => "GET / HTTP/1.1\nHost: github.com\n\n",
+                ],
             ],
-        ]);
-
-        $executor->getEventHandlerBag($anotherClient)->addHandler([
-            EventType::DISCONNECTED => [$this, 'onGitHubDisconnect'],
-            EventType::CONNECTED    => [$this, 'onGitHubConnected'],
-        ]);
+            new EventInvocationHandlerBag(
+                [
+                    EventType::DISCONNECTED => [ $this, 'onGitHubDisconnect' ],
+                    EventType::CONNECTED    => [ $this, 'onGitHubConnected' ],
+                ]
+            )
+        );
 
         $executor->setEventInvocationHandler(
             new EventInvocationHandlerBag(

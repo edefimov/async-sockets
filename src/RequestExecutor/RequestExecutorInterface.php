@@ -10,8 +10,6 @@
 
 namespace AsyncSockets\RequestExecutor;
 
-use AsyncSockets\Socket\SocketInterface;
-
 /**
  * Interface RequestExecutorInterface
  *

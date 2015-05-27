@@ -21,7 +21,6 @@ use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
 use AsyncSockets\RequestExecutor\NoLimitationDecider;
 use AsyncSockets\RequestExecutor\RequestExecutor;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\Socket\FileSocket;
@@ -31,11 +30,6 @@ use Tests\AsyncSockets\Socket\FileSocket;
  */
 class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 {
-    /**
-     * Amount of sockets to test
-     */
-    const COUNT_TEST_SOCKETS = 10;
-
     /**
      * List of test objects
      *
@@ -74,7 +68,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             return strlen($data);
         });
 
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(function() {
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(function () {
             return 'php://temp';
         });
     }
@@ -91,113 +85,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
     }
 
-    /**
-     * testAddSocket
-     *
-     * @param string $operation Operation to add
-     *
-     * @return void
-     * @dataProvider socketOperationDataProvider
-     */
-    public function testAddSocket($operation)
-    {
-        $this->executor->getSocketBag()->addSocket(
-            $this->socket,
-            [ RequestExecutorInterface::META_OPERATION => $operation ],
-            new EventInvocationHandlerBag(
-                [
-                    EventType::CONNECTED => function () {
-                    },
-                ]
-            )
-        );
-    }
 
-    /**
-     * testCantAddSameSocketTwice
-     *
-     * @return void
-     * @depends testAddSocket
-     * @expectedException \LogicException
-     */
-    public function testCantAddSameSocketTwice()
-    {
-        // todo move to separate test
-        $this->executor->getSocketBag()->addSocket(
-            $this->socket,
-            [ RequestExecutor::META_OPERATION => RequestExecutor::OPERATION_READ ]
-        );
-        $this->executor->getSocketBag()->addSocket(
-            $this->socket,
-            [ RequestExecutor::META_OPERATION => RequestExecutor::OPERATION_WRITE ]
-        );
-    }
-
-    /**
-     * testHasSocket
-     *
-     * @param string $operation Operation to test
-     *
-     * @return void
-     * @dataProvider socketOperationDataProvider
-     */
-    public function testHasSocket($operation)
-    {
-        // todo move to separate test
-        $this->executor->getSocketBag()->addSocket($this->socket, [ RequestExecutor::META_OPERATION => $operation ]);
-        self::assertTrue(
-            $this->executor->getSocketBag()->hasSocket($this->socket),
-            'hasSocket returned false for added socket'
-        );
-
-        self::assertFalse(
-            $this->executor->getSocketBag()->hasSocket(new FileSocket()),
-            'hasSocket returned true for not added socket'
-        );
-    }
-
-    /**
-     * testMetadataIsFilled
-     *
-     * @param string $operation Operation to test
-     *
-     * @return void
-     * @dataProvider socketOperationDataProvider
-     * @depends      testAddSocket
-     */
-    public function testMetadataIsFilled($operation)
-    {
-        $this->executor->getSocketBag()->addSocket($this->socket, [ RequestExecutor::META_OPERATION => $operation ]);
-        $meta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
-        $ref  = new \ReflectionClass($this->executor);
-        foreach ($ref->getConstants() as $name => $value) {
-            if (!preg_match('#META_.*?#', $name)) {
-                continue;
-            }
-
-            self::assertArrayHasKey($value, $meta, "Metadata key {$name} is not defined in getSocketMetaData results");
-        }
-    }
-
-    /**
-     * testRemoveSocket
-     *
-     * @param string $operation Operation to test
-     *
-     * @return void
-     * @dataProvider socketOperationDataProvider
-     * @depends      testHasSocket
-     * @depends      testMetadataIsFilled
-     */
-    public function testRemoveSocket($operation)
-    {
-        $this->executor->getSocketBag()->addSocket($this->socket, [ RequestExecutor::META_OPERATION => $operation ]);
-        $this->executor->getSocketBag()->removeSocket($this->socket);
-        self::assertFalse(
-            $this->executor->getSocketBag()->hasSocket($this->socket),
-            'hasSocket returned true for removed socket'
-        );
-    }
 
     /**
      * testRemoveHandler
@@ -206,8 +94,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends      testHasSocket
-     * @depends      testMetadataIsFilled
      */
     public function testRemoveHandler($operation)
     {
@@ -237,21 +123,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->setEventInvocationHandler($bag);
         $this->executor->executeRequest();
-    }
-
-    /**
-     * testNonAddedSocketRemove
-     *
-     * @return void
-     * @depends testRemoveSocket
-     */
-    public function testNonAddedSocketRemove()
-    {
-        $this->executor->getSocketBag()->removeSocket($this->socket);
-        self::assertFalse(
-            $this->executor->getSocketBag()->hasSocket($this->socket),
-            'hasSocket returned true for removed socket'
-        );
     }
 
     /**
@@ -367,45 +238,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->executor->executeRequest();
-    }
-
-    /**
-     * testCantRemoveSocketDuringExecute
-     *
-     * @param string $operation Operation to test
-     * @param string $eventType Event type for operation
-     *
-     * @return void
-     * @dataProvider socketOperationDataProvider
-     * @expectedException \LogicException
-     */
-    public function testCantRemoveSocketDuringExecute($operation, $eventType)
-    {
-        $this->executor->getSocketBag()->addSocket(
-            $this->socket,
-            [
-                RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => $operation,
-            ],
-            new EventInvocationHandlerBag(
-                [
-                    $eventType => function (Event $event) {
-                        self::assertSame($this->socket, $event->getSocket(), 'Unknown socket was passed in event');
-                        self::assertSame(
-                            $this->executor,
-                            $event->getExecutor(),
-                            'Unexpected request executor is given in event'
-                        );
-
-                        $this->executor->getSocketBag()->removeSocket($event->getSocket());
-                    },
-                ]
-            )
-        );
-
-        $this->executor->executeRequest();
-
-        self::fail('Event handler must have been executed');
     }
 
     /**
@@ -562,7 +394,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends      testCantRemoveSocketDuringExecute
      * @expectedException \LogicException
      */
     public function testCantExecuteTwice($operation, $eventType)
@@ -633,54 +464,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testMetadataCanChange
-     *
-     * @param string $phpName Name in php file
-     * @param string $key Key in metadata array
-     * @param bool   $isReadOnly Flag whether it is read only constant
-     * @param string $initialOperation Initial operation
-     *
-     * @return void
-     * @dataProvider metadataKeysDataProvider
-     */
-    public function testMetadataCanChange($phpName, $key, $isReadOnly, $initialOperation)
-    {
-        $this->executor->getSocketBag()->addSocket(
-            $this->socket,
-            [ RequestExecutor::META_OPERATION => $initialOperation ]
-        );
-        $originalMeta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
-        self::assertEquals(
-            $initialOperation,
-            $originalMeta[ RequestExecutor::META_OPERATION ],
-            'Unexpected initial operation'
-        );
-
-        $this->executor->getSocketBag()->setSocketMetaData($this->socket, $key, mt_rand(1, PHP_INT_MAX));
-        $newMeta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
-        if ($isReadOnly) {
-            self::assertSame(
-                $originalMeta[ $key ],
-                $newMeta[ $key ],
-                'Read-only metadata ' . $phpName . ' has been changed, but mustn\'t'
-            );
-        } else {
-            self::assertNotSame(
-                $originalMeta[ $key ],
-                $newMeta[ $key ],
-                'Writable value ' . $phpName . ' has not been modified, but must'
-            );
-        }
-    }
-
-    /**
      * testEventFireSequence
      *
      * @param string $operation Operation to execute
      * @param string $eventType Event type
      *
      * @return void
-     * @depends      testMetadataCanChange
      * @dataProvider socketOperationDataProvider
      */
     public function testEventFireSequence($operation, $eventType)
@@ -1124,37 +913,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             [ RequestExecutor::OPERATION_WRITE, 'write' ],
             [ RequestExecutor::OPERATION_WRITE, 'close' ],
         ];
-    }
-
-    /**
-     * metadataKeysDataProvider
-     *
-     * @return array
-     */
-    public function metadataKeysDataProvider()
-    {
-        static $metadata;
-        if ($metadata === null) {
-            $readOnlyKeys = [
-                RequestExecutor::META_REQUEST_COMPLETE       => 1,
-                RequestExecutor::META_CONNECTION_FINISH_TIME => 1,
-                RequestExecutor::META_CONNECTION_START_TIME  => 1,
-                RequestExecutor::META_LAST_IO_START_TIME     => 1,
-            ];
-
-            $metadata = [ ];
-            $ref      = new \ReflectionClass('AsyncSockets\RequestExecutor\RequestExecutor');
-            foreach ($ref->getConstants() as $name => $value) {
-                if (!preg_match('#META_.*?#', $name)) {
-                    continue;
-                }
-
-                $metadata[] = [ $name, $value, isset($readOnlyKeys[ $value ]), RequestExecutor::OPERATION_READ ];
-                $metadata[] = [ $name, $value, isset($readOnlyKeys[ $value ]), RequestExecutor::OPERATION_WRITE ];
-            }
-        }
-
-        return $metadata;
     }
 
     /**
