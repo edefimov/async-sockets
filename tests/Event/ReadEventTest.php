@@ -12,8 +12,10 @@ namespace Tests\AsyncSockets\Event;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
+use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketResponse;
+use AsyncSockets\Socket\SocketResponseInterface;
 
 /**
  * Class ReadEventTest
@@ -26,6 +28,15 @@ class ReadEventTest extends IoEventTest
      * @var SocketResponse
      */
     protected $response;
+
+    /**
+     * Mocked frame
+     *
+     * @var FrameInterface
+     */
+    protected $frame;
+
+
 
     /** {@inheritdoc} */
     protected function createEvent($type)
@@ -52,13 +63,13 @@ class ReadEventTest extends IoEventTest
     /**
      * testIsPartial
      *
-     * @param SocketResponse $response Response object
-     * @param bool           $isPartial Is response actually partial
+     * @param SocketResponseInterface $response Response object
+     * @param bool                    $isPartial Is response actually partial
      *
      * @return void
      * @dataProvider socketResponseDataProvider
      */
-    public function testIsPartial(SocketResponse $response, $isPartial)
+    public function testIsPartial(SocketResponseInterface $response, $isPartial)
     {
         $event = new ReadEvent($this->executor, $this->socket, $this->context, $response);
         self::assertSame($response, $event->getResponse());
@@ -72,9 +83,14 @@ class ReadEventTest extends IoEventTest
      */
     public function socketResponseDataProvider()
     {
+        static $mock;
+        if (!$mock) {
+            $mock = $this->getMock('AsyncSockets\Frame\FrameInterface');
+        }
+
         return [
-            [ new SocketResponse(''), false ],
-            [ new ChunkSocketResponse(''), true ],
+            [ new SocketResponse($mock, ''), false ],
+            [ new ChunkSocketResponse($mock, ''), true ],
         ];
     }
 
@@ -82,6 +98,7 @@ class ReadEventTest extends IoEventTest
     protected function setUp()
     {
         parent::setUp();
-        $this->response = new SocketResponse('Test data');
+        $this->frame    = $this->getMock('AsyncSockets\Frame\FrameInterface');
+        $this->response = new SocketResponse($this->frame, 'Test data');
     }
 }

@@ -453,7 +453,7 @@ class RequestExecutor implements RequestExecutorInterface
     {
         $meta     = $operationMetadata->getMetadata();
         $socket   = $operationMetadata->getSocket();
-        $response = $socket->read($operationMetadata->getPreviousResponse());
+        $response = $socket->read(null, $operationMetadata->getPreviousResponse());
         if ($response instanceof ChunkSocketResponse) {
             $operationMetadata->setPreviousResponse($response);
             return self::IO_STATE_PARTIAL;

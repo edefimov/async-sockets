@@ -13,6 +13,7 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\SocketResponse;
+use AsyncSockets\Socket\SocketResponseInterface;
 
 /**
  * Class ReadEvent
@@ -22,7 +23,7 @@ class ReadEvent extends IoEvent
     /**
      * Data read from network
      *
-     * @var SocketResponse
+     * @var SocketResponseInterface
      */
     private $response;
 
@@ -32,13 +33,13 @@ class ReadEvent extends IoEvent
      * @param RequestExecutorInterface $executor Request executor object
      * @param SocketInterface          $socket   Socket for this request
      * @param mixed                    $context  Any optional user data for event
-     * @param SocketResponse           $response Network data for read operation
+     * @param SocketResponseInterface  $response Network data for read operation
      */
     public function __construct(
         RequestExecutorInterface $executor,
         SocketInterface $socket,
         $context,
-        SocketResponse $response
+        SocketResponseInterface $response
     ) {
         parent::__construct($executor, $socket, $context, EventType::READ);
         $this->response = $response;
@@ -47,7 +48,7 @@ class ReadEvent extends IoEvent
     /**
      * Return Response
      *
-     * @return SocketResponse
+     * @return SocketResponseInterface
      */
     public function getResponse()
     {

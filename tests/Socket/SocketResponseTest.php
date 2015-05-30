@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
+use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Socket\SocketResponse;
 
 /**
@@ -17,6 +18,13 @@ use AsyncSockets\Socket\SocketResponse;
  */
 class SocketResponseTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * Mocked frame
+     *
+     * @var FrameInterface
+     */
+    protected $frame;
+
     /**
      * Create response object
      *
@@ -26,7 +34,7 @@ class SocketResponseTest extends \PHPUnit_Framework_TestCase
      */
     protected function createResponse($data)
     {
-        return new SocketResponse($data);
+        return new SocketResponse($this->frame, $data);
     }
 
     /**
@@ -40,5 +48,12 @@ class SocketResponseTest extends \PHPUnit_Framework_TestCase
         $response = $this->createResponse($data);
         self::assertEquals($data, $response->getData(), 'Get data failed');
         self::assertEquals($data, (string) $response, 'String casting failed');
+    }
+
+    /** {@inheritdoc} */
+    protected function setUp()
+    {
+        parent::setUp();
+        $this->frame = $this->getMock('AsyncSockets\Frame\FrameInterface');
     }
 }

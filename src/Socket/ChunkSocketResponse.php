@@ -8,11 +8,13 @@
  * with this source code in the file LICENSE.
  */
 namespace AsyncSockets\Socket;
- 
+
+use AsyncSockets\Frame\FrameInterface;
+
 /**
  * Class ChunkSocketResponse
  */
-class ChunkSocketResponse extends SocketResponse
+class ChunkSocketResponse extends AbstractSocketResponse
 {
     /**
      * Previous chunk of this response
@@ -24,12 +26,13 @@ class ChunkSocketResponse extends SocketResponse
     /**
      * Constructor
      *
+     * @param FrameInterface      $frame Frame this data was created from
      * @param string              $data Data for this chunk
      * @param ChunkSocketResponse $previousChunk Previous chunk
      */
-    public function __construct($data, ChunkSocketResponse $previousChunk = null)
+    public function __construct(FrameInterface $frame, $data, ChunkSocketResponse $previousChunk = null)
     {
-        parent::__construct($data);
+        parent::__construct($frame, $data);
         $this->previousChunk = $previousChunk;
     }
 
@@ -46,7 +49,7 @@ class ChunkSocketResponse extends SocketResponse
 
         $result = '';
         for ($i = count($chunks)-1; $i >= 0; --$i) {
-            $result .= $chunks[$i]->getOriginalData();
+            $result .= $chunks[$i]->data;
         }
 
         return $result;
@@ -69,6 +72,6 @@ class ChunkSocketResponse extends SocketResponse
      */
     public function getChunkData()
     {
-        return $this->getOriginalData();
+        return $this->data;
     }
 }

@@ -69,7 +69,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
      */
     public function testSetPreviousResponse()
     {
-        $response = $this->getMock('AsyncSockets\Socket\ChunkSocketResponse', [], ['']);
+        $response = $this->getMock('AsyncSockets\Socket\ChunkSocketResponse', [], [], '', false);
         $this->operationMetadata->setPreviousResponse($response);
         self::assertSame($response, $this->operationMetadata->getPreviousResponse(), 'Invalid response was set');
 

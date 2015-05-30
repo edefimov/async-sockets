@@ -174,7 +174,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
         $response = null;
         $this->socket->open('it has no meaning here');
         do {
-            $response = $this->socket->read($response);
+            $response = $this->socket->read(null, $response);
         } while ($response instanceof ChunkSocketResponse);
 
         self::assertInstanceOf('AsyncSockets\Socket\SocketResponse', $response);

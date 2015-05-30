@@ -11,6 +11,7 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Frame\FrameInterface;
 
 /**
  * Interface SocketInterface
@@ -44,14 +45,16 @@ interface SocketInterface extends StreamResourceInterface
     /**
      * Read data from this socket
      *
-     * @param ChunkSocketResponse $previousResponse Previous response, if there was one
+     * @param FrameInterface      $frame Frame data to read, if null then read data until transfer is not complete
+     * @param ChunkSocketResponse $previousResponse Previous response, if there was one. If is specified, then
+     *      $frame parameter will be ignored and actual frame is extracted from response object
      *
      * @return SocketResponse
      * @throws NetworkSocketException
      *
      * @api
      */
-    public function read(ChunkSocketResponse $previousResponse = null);
+    public function read(FrameInterface $frame = null, ChunkSocketResponse $previousResponse = null);
 
     /**
      * Write data to this socket

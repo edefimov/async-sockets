@@ -20,7 +20,7 @@ class ChunkSocketResponseTest extends SocketResponseTest
     /** {@inheritdoc} */
     protected function createResponse($data)
     {
-        return new ChunkSocketResponse($data);
+        return new ChunkSocketResponse($this->frame, $data);
     }
 
     /**
@@ -36,9 +36,10 @@ class ChunkSocketResponseTest extends SocketResponseTest
             $data .= md5(microtime(true) * ($i + mt_rand(1, 10)));
         }
 
-        $response = null;
+        $response  = null;
+        $frameMock = $this->getMock('AsyncSockets\Frame\FrameInterface');
         for ($i = 0; $i < strlen($data); $i++) {
-            $response = new ChunkSocketResponse($data[$i], $response);
+            $response = new ChunkSocketResponse($frameMock, $data[$i], $response);
             self::assertEquals($data[$i], $response->getChunkData(), 'Incorrect chunk data returned');
         }
 

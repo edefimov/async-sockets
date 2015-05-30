@@ -79,7 +79,7 @@ final class SimpleAsyncClient
                 }
 
                 foreach ($context->getRead() as $socket) {
-                    $response = $socket->read($data[spl_object_hash($socket)]['lastResponse']);
+                    $response = $socket->read(null, $data[spl_object_hash($socket)]['lastResponse']);
                     if (!($response instanceof ChunkSocketResponse)) {
                         $numReadClient += 1;
                         echo $response->getData() . "\n\n\n";

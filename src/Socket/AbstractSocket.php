@@ -11,6 +11,8 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\NullFrame;
 
 /**
  * Class AbstractSocket
@@ -64,6 +66,13 @@ abstract class AbstractSocket implements SocketInterface
     private $isBlocking = true;
 
     /**
+     * Unprocessed data in socket
+     *
+     * @var string
+     */
+    private $unprocessedData;
+
+    /**
      * Destructor
      */
     public function __destruct()
@@ -88,11 +97,12 @@ abstract class AbstractSocket implements SocketInterface
 
         $this->resource = $this->createSocketResource($address, $context ?: stream_context_get_default());
 
-        $result = false;
+        $result                = false;
+        $this->unprocessedData = '';
         if (is_resource($this->resource)) {
             $result = true;
             $meta   = stream_get_meta_data($this->resource);
-            if (isset($meta['blocked']) && $meta['blocked'] != $this->isBlocking) {
+            if (isset($meta[ 'blocked' ]) && $meta[ 'blocked' ] != $this->isBlocking) {
                 $this->setBlocking($this->isBlocking);
             }
         }
@@ -112,13 +122,16 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function read(ChunkSocketResponse $previousResponse = null)
+    public function read(FrameInterface $frame = null, ChunkSocketResponse $previousResponse = null)
     {
         $this->setConnectedState();
+        $frame = $previousResponse ? $previousResponse->getFrame() : $frame;
+        $frame = $frame ?: new NullFrame();
 
-        $result        = '';
-        $microseconds  = self::SELECT_DELAY;
-        $isDataChanged = false;
+        $result                = $this->unprocessedData;
+        $this->unprocessedData = '';
+        $microseconds          = self::SELECT_DELAY;
+        $isDataChanged         = false;
         do {
             $read     = [ $this->resource ];
             $nomatter = null;
@@ -136,18 +149,27 @@ abstract class AbstractSocket implements SocketInterface
                     break;
                 }
 
-                $data = $this->readActualData();
+                $actualData = $this->readActualData();
+                $data       = $this->processReadFrame(
+                    $actualData,
+                    $result . $actualData,
+                    $frame
+                );
 
-                $result       .= $data;
+                $result .= $data;
                 $isDataChanged = true;
+
+                if (!($frame instanceof NullFrame) && $frame->isEof()) {
+                    break;
+                }
             } else {
                 return $isDataChanged || !$previousResponse ?
-                    new ChunkSocketResponse($result, $previousResponse) :
+                    new ChunkSocketResponse($frame, $result, $previousResponse) :
                     $previousResponse;
             }
         } while (true);
 
-        return new SocketResponse((string) $previousResponse  . $result);
+        return new SocketResponse($frame, (string) $previousResponse . $result);
     }
 
     /** {@inheritdoc} */
@@ -166,15 +188,15 @@ abstract class AbstractSocket implements SocketInterface
             $select   = stream_select($nomatter, $write, $nomatter, 0, $microseconds);
             $this->throwNetworkSocketExceptionIf($select === false, 'Failed to send data.');
 
-            $bytesWritten  = $write ? $this->writeActualData($data) : 0;
-            $attempts      = $bytesWritten === 0 ? $attempts - 1 : self::SEND_ATTEMPTS;
+            $bytesWritten = $write ? $this->writeActualData($data) : 0;
+            $attempts     = $bytesWritten === 0 ? $attempts - 1 : self::SEND_ATTEMPTS;
 
             $this->throwNetworkSocketExceptionIf(
                 !$attempts && $result !== $dataLength,
                 'Failed to send data.'
             );
 
-            $data    = substr($data, $bytesWritten);
+            $data = substr($data, $bytesWritten);
             $result += $bytesWritten;
         } while ($result < $dataLength && $data !== false);
 
@@ -188,13 +210,14 @@ abstract class AbstractSocket implements SocketInterface
             $result = stream_set_blocking($this->resource, $isBlocking ? 1 : 0);
             $this->throwNetworkSocketExceptionIf(
                 $result === false,
-                'Failed to switch ' . ($isBlocking ? '': 'non-') . 'blocking mode.'
+                'Failed to switch ' . ($isBlocking ? '' : 'non-') . 'blocking mode.'
             );
         } else {
             $result = true;
         }
 
         $this->isBlocking = (bool) $isBlocking;
+
         return $result;
     }
 
@@ -291,5 +314,37 @@ abstract class AbstractSocket implements SocketInterface
     {
         $name = stream_socket_get_name($this->resource, true);
         $this->throwNetworkSocketExceptionIf($name === false, $message);
+    }
+
+    /**
+     * Process data by frame
+     *
+     * @param string         $chunk Chunk from network
+     * @param string         $data Full data from the beginning of network operation
+     * @param FrameInterface $frame Frame to process data
+     *
+     * @return string Processed chunk
+     */
+    private function processReadFrame($chunk, $data, FrameInterface $frame)
+    {
+        $lenChunk  = strlen($this->unprocessedData . $chunk);
+        $processed = $frame->handleData($this->unprocessedData . $chunk, $lenChunk, $data);
+        if ($processed < 0) {
+            $processed = 0;
+        }
+
+        if ($processed > $lenChunk) {
+            $processed = $lenChunk;
+        }
+
+        if ($processed < $lenChunk) {
+            $result                = substr($chunk, 0, $processed);
+            $this->unprocessedData = substr($chunk, $processed);
+        } else {
+            $this->unprocessedData = '';
+            $result = $chunk;
+        }
+
+        return $result;
     }
 }
