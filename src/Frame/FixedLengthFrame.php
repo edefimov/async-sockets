@@ -59,6 +59,10 @@ class FixedLengthFrame implements FrameInterface
     /** {@inheritdoc} */
     public function handleData($chunk, $lenChunk, $data)
     {
+        if ($this->isEof()) {
+            return 0;
+        }
+        
         $result = $this->processedLength + $lenChunk > $this->length ?
                     $this->processedLength + $lenChunk - $this->length :
                     $lenChunk;

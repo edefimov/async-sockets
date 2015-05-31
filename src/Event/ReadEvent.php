@@ -12,7 +12,6 @@ namespace AsyncSockets\Event;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
-use AsyncSockets\Socket\SocketResponse;
 use AsyncSockets\Socket\SocketResponseInterface;
 
 /**
