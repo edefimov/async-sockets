@@ -10,6 +10,7 @@
 
 namespace AsyncSockets\Socket;
 
+use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\NullFrame;
@@ -132,6 +133,7 @@ abstract class AbstractSocket implements SocketInterface
         $this->unprocessedData = '';
         $microseconds          = self::SELECT_DELAY;
         $isDataChanged         = false;
+        $isEndOfFrame          = false;
         do {
             $read     = [ $this->resource ];
             $nomatter = null;
@@ -139,37 +141,44 @@ abstract class AbstractSocket implements SocketInterface
             $this->throwNetworkSocketExceptionIf($select === false, 'Failed to read data.');
 
             if ($select === 0) {
+                if ($frame instanceof NullFrame || $frame->isEof()) {
+                    $isEndOfFrame = true;
+                } else {
+                    throw new FrameSocketException($frame, $this, 'Failed to receive desired frame.');
+                }
+
                 break;
             }
 
+
             // work-around https://bugs.php.net/bug.php?id=52602
             $rawData = stream_socket_recvfrom($this->resource, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
-            if ($rawData !== false) {
-                if ($rawData === '') {
-                    break;
-                }
+            switch (true) {
+                case $rawData === '':
+                    $isEndOfFrame = $frame instanceof NullFrame || $isEndOfFrame;
+                    break 2;
+                case $rawData === false:
+                    break 2;
+                default:
+                    $actualData = $this->readActualData();
+                    $result     = $this->processReadFrame(
+                        $actualData,
+                        $result,
+                        $frame
+                    );
 
-                $actualData = $this->readActualData();
-                $data       = $this->processReadFrame(
-                    $actualData,
-                    $result . $actualData,
-                    $frame
-                );
-
-                $result .= $data;
-                $isDataChanged = true;
-
-                if (!($frame instanceof NullFrame) && $frame->isEof()) {
-                    break;
-                }
-            } else {
-                return $isDataChanged || !$previousResponse ?
-                    new ChunkSocketResponse($frame, $result, $previousResponse) :
-                    $previousResponse;
+                    $isDataChanged = true;
+                    $isEndOfFrame = !($frame instanceof NullFrame) && $frame->isEof();
             }
-        } while (true);
+        } while (!$isEndOfFrame);
 
-        return new SocketResponse($frame, (string) $previousResponse . $result);
+        if ($isEndOfFrame) {
+            return new SocketResponse($frame, (string) $previousResponse . $result);
+        } else {
+            return $isDataChanged || !$previousResponse ?
+                new ChunkSocketResponse($frame, $result, $previousResponse) :
+                $previousResponse;
+        }
     }
 
     /** {@inheritdoc} */
@@ -320,29 +329,35 @@ abstract class AbstractSocket implements SocketInterface
      * Process data by frame
      *
      * @param string         $chunk Chunk from network
-     * @param string         $data Full data from the beginning of network operation
+     * @param string         $data Full data from the beginning of network operation excluding $chunk
      * @param FrameInterface $frame Frame to process data
      *
      * @return string Processed chunk
      */
     private function processReadFrame($chunk, $data, FrameInterface $frame)
     {
-        $lenChunk  = strlen($this->unprocessedData . $chunk);
-        $processed = $frame->handleData($this->unprocessedData . $chunk, $lenChunk, $data);
-        if ($processed < 0) {
-            $processed = 0;
+        $lenChunk = strlen($chunk);
+        $sof = $frame->findStartOfFrame($chunk, $lenChunk, $data);
+        if ($sof === null) {
+            return $data . $chunk;
         }
 
-        if ($processed > $lenChunk) {
+        $processed = $frame->handleData($chunk, $lenChunk, $data);
+
+        if ($sof < 0) {
+            $result = substr($data, 0, $sof);
+        } else {
+            $result = ($sof === 0) ? $data . $chunk : substr($chunk, $sof);
+        }
+
+        if ($processed < 0) {
+            $result = substr($result, -$processed, $processed);
+        } elseif ($processed > $lenChunk) {
             $processed = $lenChunk;
         }
 
-        if ($processed < $lenChunk) {
-            $result                = substr($chunk, 0, $processed);
-            $this->unprocessedData = substr($chunk, $processed);
-        } else {
-            $this->unprocessedData = '';
-            $result = $chunk;
+        if (0 <= $processed && $processed < $lenChunk) {
+            $result = substr($chunk, 0, $processed);
         }
 
         return $result;

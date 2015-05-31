@@ -32,6 +32,11 @@ class NullFrameTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         self::assertTrue($this->frame->isEof(), 'NullFrame::isEof must always return true');
+        self::assertEquals(
+            0,
+            $this->frame->findStartOfFrame('', 0, ''),
+            'NullFrame::findStartOfFrame must always return 0'
+        );
     }
 
     /**
@@ -45,10 +50,11 @@ class NullFrameTest extends \PHPUnit_Framework_TestCase
     public function testEveryTimeReturnLength($length)
     {
         $data      = str_repeat('x', $length);
-        $processed = $this->frame->handleData($data, $length, $data);
+        $processed = $this->frame->handleData($data, $length, '');
 
         self::assertEquals($length, $processed);
         self::assertTrue($this->frame->isEof(), 'Incorrect eof state');
+        self::assertEquals(0, $this->frame->findStartOfFrame($data, $length, ''), 'Incorrect start of frame');
     }
 
     /**

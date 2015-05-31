@@ -13,6 +13,7 @@ namespace Tests\AsyncSockets\RequestExecutor;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor;
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
@@ -38,8 +39,8 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
     /**
      * testThatAllEventsPassesThroughDispatcher
      *
-     * @param string $eventType Event type
-     * @param string $operation Operation to execute
+     * @param string             $eventType Event type
+     * @param OperationInterface $operation Operation to execute
      *
      * @return void
      * @dataProvider eventTypeDataProvider
@@ -47,7 +48,7 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
      * @expectedExceptionMessage Test passed
      * @expectedExceptionCode 200
      */
-    public function testThatAllEventsPassesThroughDispatcher($eventType, $operation)
+    public function testThatAllEventsPassesThroughDispatcher($eventType, OperationInterface $operation)
     {
         if (!class_exists('Symfony\Component\EventDispatcher\EventDispatcher')) {
             self::markTestSkipped('You must have symfony/event-dispatcher installed to pass this test');
@@ -58,7 +59,6 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
 
         $meta = [
             RequestExecutorInterface::META_ADDRESS   => 'php://temp',
-            RequestExecutorInterface::META_OPERATION => $operation,
         ];
 
         if ($eventType === EventType::TIMEOUT || $eventType === EventType::EXCEPTION) {
@@ -80,7 +80,11 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
             $meta[RequestExecutorInterface::META_CONNECTION_TIMEOUT] = 1;
         }
 
-        $this->executor->getSocketBag()->addSocket($this->socket, $meta);
+        $this->executor->getSocketBag()->addSocket(
+            $this->socket,
+            $operation,
+            $meta
+        );
 
         $handler = function (Event $event) use ($eventType) {
             $readWriteTypes = [EventType::READ, EventType::WRITE];

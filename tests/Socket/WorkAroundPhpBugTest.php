@@ -11,12 +11,13 @@
 namespace Tests\AsyncSockets\Socket;
 
 use AsyncSockets\Event\EventType;
-use AsyncSockets\Event\IoEvent;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\Frame\MarkerFrame;
 use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\ClientSocket;
 
 /**
@@ -51,12 +52,9 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
 
             $this->executor->getSocketBag()->addSocket(
                 $socket,
+                new WriteOperation($request),
                 [
-                    RequestExecutorInterface::META_ADDRESS      => $url,
-                    RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
-                    RequestExecutorInterface::META_USER_CONTEXT => [
-                        'data' => $request,
-                    ],
+                    RequestExecutorInterface::META_ADDRESS => $url
                 ]
             );
         }
@@ -65,8 +63,6 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             new EventInvocationHandlerBag(
                 [
                     EventType::WRITE => function (WriteEvent $event) {
-                        $context = $event->getContext();
-                        $event->setData($context['data']);
                         $event->nextIsRead();
                     },
                     EventType::READ => function (ReadEvent $event) {

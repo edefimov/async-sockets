@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\EventInvocationHandlerInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
@@ -54,21 +55,53 @@ class OperationMetadata
     private $previousResponse;
 
     /**
+     * Operation to perform on socket
+     *
+     * @var OperationInterface
+     */
+    private $operation;
+
+    /**
      * OperationMetadata constructor.
      *
      * @param SocketInterface                 $socket Socket object
+     * @param OperationInterface               $operation Operation to perform on socket
      * @param array                           $metadata Metadata
      * @param EventInvocationHandlerInterface $handlers Handlers for this socket
      */
     public function __construct(
         SocketInterface $socket,
+        OperationInterface $operation,
         array $metadata,
         EventInvocationHandlerInterface $handlers = null
     ) {
-        $this->socket      = $socket;
-        $this->metadata    = $metadata;
-        $this->handlers = $handlers;
+        $this->socket    = $socket;
+        $this->operation = $operation;
+        $this->metadata  = $metadata;
+        $this->handlers  = $handlers;
         $this->initialize();
+    }
+
+    /**
+     * Return Operation
+     *
+     * @return OperationInterface
+     */
+    public function getOperation()
+    {
+        return $this->operation;
+    }
+
+    /**
+     * Sets Operation
+     *
+     * @param OperationInterface $operation New operation
+     *
+     * @return void
+     */
+    public function setOperation(OperationInterface $operation)
+    {
+        $this->operation = $operation;
     }
 
     /**

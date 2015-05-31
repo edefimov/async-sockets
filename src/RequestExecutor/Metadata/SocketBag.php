@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\EventInvocationHandlerInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\SocketBagInterface;
@@ -17,7 +18,7 @@ use AsyncSockets\Socket\SocketInterface;
 /**
  * Class SocketBag
  */
-class SocketBag implements SocketBagInterface, \Countable
+class SocketBag implements SocketBagInterface
 {
     /**
      * RequestExecutorInterface
@@ -62,6 +63,7 @@ class SocketBag implements SocketBagInterface, \Countable
     /** {@inheritdoc} */
     public function addSocket(
         SocketInterface $socket,
+        OperationInterface $operation,
         array $metadata = null,
         EventInvocationHandlerInterface $eventHandlers = null
     ) {
@@ -88,8 +90,21 @@ class SocketBag implements SocketBagInterface, \Countable
             ]
         );
 
-        $this->items[$hash] = new OperationMetadata($socket, $meta, $eventHandlers);
+        $this->items[$hash] = new OperationMetadata($socket, $operation, $meta, $eventHandlers);
     }
+
+    /** {@inheritdoc} */
+    public function getSocketOperation(SocketInterface $socket)
+    {
+        return $this->requireOperation($socket)->getOperation();
+    }
+
+    /** {@inheritdoc} */
+    public function setSocketOperation(SocketInterface $socket, OperationInterface $operation)
+    {
+        $this->requireOperation($socket)->setOperation($operation);
+    }
+
 
     /** {@inheritdoc} */
     public function hasSocket(SocketInterface $socket)

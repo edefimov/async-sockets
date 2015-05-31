@@ -14,12 +14,13 @@ use AsyncSockets\Socket\SocketInterface;
 /**
  * Interface SocketBagInterface
  */
-interface SocketBagInterface
+interface SocketBagInterface extends \Countable
 {
     /**
      * Add socket into this bag
      *
      * @param SocketInterface                 $socket Socket to add
+     * @param OperationInterface              $operation Operation to perform on socket
      * @param array                           $metadata Socket metadata information, which will be passed
      *                                   to setSocketMetaData during this call
      * @param EventInvocationHandlerInterface $eventHandlers Optional handlers for this socket
@@ -32,9 +33,31 @@ interface SocketBagInterface
      */
     public function addSocket(
         SocketInterface $socket,
+        OperationInterface $operation,
         array $metadata = null,
         EventInvocationHandlerInterface $eventHandlers = null
     );
+
+    /**
+     * Return operation, associated with this socket
+     *
+     * @param SocketInterface $socket Socket to get operation for
+     *
+     * @return OperationInterface
+     * @throws \OutOfBoundsException If given socket is not added to this bag
+     */
+    public function getSocketOperation(SocketInterface $socket);
+
+    /**
+     * Set new operation for this socket
+     *
+     * @param SocketInterface    $socket Socket object
+     * @param OperationInterface $operation New operation
+     *
+     * @return void
+     * @throws \OutOfBoundsException If given socket is not added to this bag
+     */
+    public function setSocketOperation(SocketInterface $socket, OperationInterface $operation);
 
     /**
      * Checks whether given socket was added to this executor

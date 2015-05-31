@@ -31,6 +31,7 @@ class FixedLengthFrameTest extends \PHPUnit_Framework_TestCase
 
         self::assertEquals($length, $frame->getLength(), 'Incorrect frame length');
         self::assertFalse($frame->isEof(), 'Incorrect eof state');
+        self::assertEquals(0, $frame->findStartOfFrame('', 0, ''), 'Incorrect start of frame');
     }
 
     /**
@@ -44,10 +45,11 @@ class FixedLengthFrameTest extends \PHPUnit_Framework_TestCase
      */
     public function testProcessingByFullLength($length)
     {
-        $frame     = new FixedLengthFrame($length);
-        $data      = str_repeat('x', $length);
-        $processed = $frame->handleData($data, $length, $data);
+        $frame = new FixedLengthFrame($length);
+        $data  = str_repeat('x', $length);
+        self::assertEquals(0, $frame->findStartOfFrame($data, $length, ''), 'Incorrect start of frame');
 
+        $processed = $frame->handleData($data, $length, '');
         self::assertEquals($length, $processed);
         self::assertTrue($frame->isEof(), 'Incorrect eof state');
     }
@@ -63,9 +65,11 @@ class FixedLengthFrameTest extends \PHPUnit_Framework_TestCase
      */
     public function testProcessMoreThanSize($length)
     {
-        $frame     = new FixedLengthFrame($length);
-        $data      = str_repeat('x', $length) . str_repeat('y', $length);
-        $processed = $frame->handleData($data, $length, $data);
+        $frame = new FixedLengthFrame($length);
+        $chunk = str_repeat('y', $length);
+        $data  = str_repeat('x', $length) ;
+        self::assertEquals(0, $frame->findStartOfFrame($chunk, $length, $data), 'Incorrect start of frame');
+        $processed = $frame->handleData($chunk, $length, $data);
 
         self::assertEquals($length, $processed);
         self::assertTrue($frame->isEof(), 'Incorrect eof state');
@@ -83,12 +87,13 @@ class FixedLengthFrameTest extends \PHPUnit_Framework_TestCase
     public function testOverfill($length)
     {
         $frame = new FixedLengthFrame($length);
-        $data  = str_repeat('x', $length) . str_repeat('y', $length);
+        $chunk = str_repeat('y', $length);
 
-        $fullData = '';
+        $data = '';
         for ($i = 0; $i < 5; $i++) {
-            $fullData .= $data;
-            $processed = $frame->handleData($data, $length, $fullData);
+            self::assertEquals(0, $frame->findStartOfFrame($chunk, $length, $data), 'Incorrect start of frame');
+            $processed = $frame->handleData($data, $length, $data);
+            $data     .= $chunk;
             self::assertEquals($i === 0 ? $length : 0, $processed, 'Processed more than frame size');
         }
 

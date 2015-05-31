@@ -17,6 +17,7 @@ use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\ConstantLimitationDecider;
 use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
 
 /**
@@ -41,11 +42,11 @@ class SocketPool
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
             $executor->getSocketBag()->addSocket(
                 $client,
+                new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
                 [
                     RequestExecutorInterface::META_ADDRESS      => $destination,
                     RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
                     RequestExecutorInterface::META_USER_CONTEXT => [
-                        'data'  => "GET / HTTP/1.1\nHost: packagist.org\n\n",
                         'index' => $i + 1
                     ]
                 ]
@@ -108,8 +109,6 @@ class SocketPool
      */
     public function onWrite(WriteEvent $event)
     {
-        $context = $event->getContext();
-        $event->setData($context['data']);
         $event->nextIsRead();
     }
 

@@ -20,7 +20,10 @@ use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
 use AsyncSockets\RequestExecutor\NoLimitationDecider;
+use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutor;
+use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\Socket\FileSocket;
@@ -90,12 +93,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testRemoveHandler
      *
-     * @param string $operation Operation to test
+     * @param OperationInterface $operation Operation to test
      *
      * @return void
      * @dataProvider socketOperationDataProvider
      */
-    public function testRemoveHandler($operation)
+    public function testRemoveHandler(OperationInterface $operation)
     {
         $handler = function () {
             self::fail('Handler is not removed');
@@ -103,9 +106,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => $operation,
             ]
         );
 
@@ -128,14 +131,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testExceptionOnMethodCall
      *
-     * @param string $operation Operation to test
-     * @param string $method Method to test exception
+     * @param OperationInterface $operation Operation to test
+     * @param string             $method Method to test exception
      *
      * @return void
      * @dataProvider socketMethodDataProvider
      * @depends      testRemoveHandler
      */
-    public function testExceptionOnMethodCall($operation, $method)
+    public function testExceptionOnMethodCall(OperationInterface $operation, $method)
     {
         $code = mt_rand(1, PHP_INT_MAX);
         $mock = $this->getMockForAbstractClass(
@@ -174,12 +177,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             }
         );
 
-        $this->executor->getSocketBag()->addSocket($mock, [ RequestExecutor::META_OPERATION => $operation ]);
+        $this->executor->getSocketBag()->addSocket($mock, $operation);
         $this->executor->setEventInvocationHandler(
             new EventInvocationHandlerBag(
                 [
                     EventType::WRITE     => function (WriteEvent $event) {
-                        $event->setData('I will pass the test');
+                        $event->getOperation()->setData('I will pass the test');
                     },
                     EventType::EXCEPTION => function (SocketExceptionEvent $event) use ($code, $mock) {
                         $socketException = $event->getException();
@@ -199,14 +202,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testNextOperationNotRequired
      *
-     * @param string $operation Operation to test
-     * @param string $eventType Event type for operation
+     * @param OperationInterface $operation Operation to test
+     * @param string             $eventType Event type for operation
      *
      * @return void
      * @dataProvider socketOperationDataProvider
      * @depends      testRemoveHandler
      */
-    public function testNextOperationNotRequired($operation, $eventType)
+    public function testNextOperationNotRequired(OperationInterface $operation, $eventType)
     {
         $oppositeEvent = [
             EventType::READ  => EventType::WRITE,
@@ -215,9 +218,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => $operation,
             ],
             new EventInvocationHandlerBag(
                 [
@@ -243,13 +246,13 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testStopRequest
      *
-     * @param string $operation Operation to test
-     * @param string $eventType Event type for operation
+     * @param OperationInterface $operation Operation to test
+     * @param string             $eventType Event type for operation
      *
      * @return void
      * @dataProvider socketOperationDataProvider
      */
-    public function testStopRequest($operation, $eventType)
+    public function testStopRequest(OperationInterface $operation, $eventType)
     {
         $mock = $this->getMock('Countable', [ 'count' ]);
         $mock->expects(self::exactly(2))->method('count');
@@ -260,9 +263,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => $operation,
             ],
             new EventInvocationHandlerBag(
                 [
@@ -283,13 +286,13 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testCancelSocketRequest
      *
-     * @param string $operation Operation to test
-     * @param string $eventType Event type for operation
+     * @param OperationInterface $operation Operation to test
+     * @param string             $eventType Event type for operation
      *
      * @return void
      * @dataProvider socketOperationDataProvider
      */
-    public function testCancelSocketRequest($operation, $eventType)
+    public function testCancelSocketRequest(OperationInterface $operation, $eventType)
     {
         $mock = $this->getMock('Countable', [ 'count' ]);
         $mock->expects(self::exactly(6))->method('count');
@@ -300,9 +303,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => $operation,
             ],
             new EventInvocationHandlerBag(
                 [
@@ -320,9 +323,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $clone = clone $this->socket;
         $this->executor->getSocketBag()->addSocket(
             $clone,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => $operation,
             ],
             new EventInvocationHandlerBag(
                 [
@@ -341,14 +344,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testSetLimitationDeciderOnExecute
      *
-     * @param string $operation Operation to test
-     * @param string $eventType Event type for operation
+     * @param OperationInterface $operation Operation to test
+     * @param string             $eventType Event type for operation
      *
      * @return void
      * @expectedException \BadMethodCallException
      * @dataProvider socketOperationDataProvider
      */
-    public function testSetLimitationDeciderOnExecute($operation, $eventType)
+    public function testSetLimitationDeciderOnExecute(OperationInterface $operation, $eventType)
     {
         $failHandler = function (Event $event) {
             self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
@@ -356,9 +359,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => $operation,
             ],
             new EventInvocationHandlerBag(
                 [
@@ -389,20 +392,20 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testCantExecuteTwice
      *
-     * @param string $operation Operation to test
-     * @param string $eventType Event type for operation
+     * @param OperationInterface $operation Operation to test
+     * @param string             $eventType Event type for operation
      *
      * @return void
      * @dataProvider socketOperationDataProvider
      * @expectedException \LogicException
      */
-    public function testCantExecuteTwice($operation, $eventType)
+    public function testCantExecuteTwice(OperationInterface$operation, $eventType)
     {
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => $operation,
             ],
             new EventInvocationHandlerBag(
                 [
@@ -419,7 +422,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testPassingStreamContextHandle
      *
-     * @param string $operation Operation to test
+     * @param OperationInterface $operation Operation to test
      *
      * @return void
      * @dataProvider socketOperationDataProvider
@@ -428,7 +431,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      * @expectedExceptionMessage Test passed
      * @expectedExceptionCode 354
      */
-    public function testPassingStreamContextHandle($operation)
+    public function testPassingStreamContextHandle(OperationInterface $operation)
     {
         $streamContextHandle  = stream_context_create([ ]);
         $socketStreamResource = fopen('php://temp', 'rw');
@@ -452,10 +455,10 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket(
             $mock,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS               => 'php://temp',
                 RequestExecutor::META_SOCKET_STREAM_CONTEXT => $streamContextHandle,
-                RequestExecutor::META_OPERATION             => $operation,
             ]
         );
 
@@ -466,19 +469,19 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testEventFireSequence
      *
-     * @param string $operation Operation to execute
-     * @param string $eventType Event type
+     * @param OperationInterface $operation Operation to execute
+     * @param string             $eventType Event type
      *
      * @return void
      * @dataProvider socketOperationDataProvider
      */
-    public function testEventFireSequence($operation, $eventType)
+    public function testEventFireSequence(OperationInterface $operation, $eventType)
     {
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS               => 'php://temp',
-                RequestExecutor::META_OPERATION             => $operation,
                 RequestExecutor::META_SOCKET_STREAM_CONTEXT => [
                     'options' => [ ],
                     'params'  => [ ],
@@ -549,20 +552,20 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testLimitationDecider
      *
-     * @param string $operation Operation to execute
+     * @param OperationInterface $operation Operation to execute
      *
      * @return void
      * @dataProvider socketOperationDataProvider
      * @expectedException \LogicException
      */
-    public function testLimitationDecider($operation)
+    public function testLimitationDecider(OperationInterface$operation)
     {
         for ($i = 0; $i < 10; $i++) {
             $this->executor->getSocketBag()->addSocket(
                 !$i ? $this->socket : clone $this->socket,
+                $operation,
                 [
-                    RequestExecutor::META_ADDRESS   => 'php://temp',
-                    RequestExecutor::META_OPERATION => $operation,
+                    RequestExecutor::META_ADDRESS => 'php://temp',
                 ]
             );
         }
@@ -585,14 +588,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testTimeoutOnConnect
      *
-     * @param string $operation Operation to execute
-     * @param string $eventType Event type
+     * @param OperationInterface $operation Operation to execute
+     * @param string             $eventType Event type
      *
      * @return void
      * @depends      testEventFireSequence
      * @dataProvider socketOperationDataProvider
      */
-    public function testTimeoutOnConnect($operation, $eventType)
+    public function testTimeoutOnConnect(OperationInterface $operation, $eventType)
     {
         $timeGenerator = function () {
             static $time = 0;
@@ -619,10 +622,10 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS            => 'php://temp',
                 RequestExecutor::META_CONNECTION_TIMEOUT => 1,
-                RequestExecutor::META_OPERATION          => $operation,
             ]
         );
 
@@ -648,14 +651,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testTimeoutOnIo
      *
-     * @param string $operation Operation to execute
-     * @param string $eventType Event type
+     * @param OperationInterface $operation Operation to execute
+     * @param string             $eventType Event type
      *
      * @return void
      * @depends      testTimeoutOnConnect
      * @dataProvider socketOperationDataProvider
      */
-    public function testTimeoutOnIo($operation, $eventType)
+    public function testTimeoutOnIo(OperationInterface $operation, $eventType)
     {
         $timeGenerator = function () {
             static $time = 0;
@@ -668,10 +671,10 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
                 RequestExecutor::META_ADDRESS    => 'php://temp',
                 RequestExecutor::META_IO_TIMEOUT => 1,
-                RequestExecutor::META_OPERATION  => $operation,
             ]
         );
 
@@ -713,8 +716,8 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testThrowsNonSocketExceptionInEvent
      *
-     * @param string $eventType Event type to throw exception in
-     * @param string $operation Operation to start
+     * @param string             $eventType Event type to throw exception in
+     * @param OperationInterface $operation Operation to start
      *
      * @return void
      * @depends      testTimeoutOnConnect
@@ -723,11 +726,10 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      * @expectedExceptionMessage Test passed
      * @expectedExceptionCode 200
      */
-    public function testThrowsNonSocketExceptionInEvent($eventType, $operation)
+    public function testThrowsNonSocketExceptionInEvent($eventType, OperationInterface $operation)
     {
         $meta = [
             RequestExecutor::META_ADDRESS   => 'php://temp',
-            RequestExecutor::META_OPERATION => $operation,
         ];
 
         if ($eventType === EventType::TIMEOUT || $eventType === EventType::EXCEPTION) {
@@ -753,7 +755,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $meta[ RequestExecutor::META_CONNECTION_TIMEOUT ] = 1;
         }
 
-        $this->executor->getSocketBag()->addSocket($this->socket, $meta);
+        $this->executor->getSocketBag()->addSocket($this->socket, $operation, $meta);
 
         $handler = function (Event $event) use ($eventType) {
             $readWriteTypes = [ EventType::READ, EventType::WRITE ];
@@ -785,18 +787,17 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testThrowingSocketExceptionsInEvent
      *
-     * @param string $eventType Event type to throw exception in
-     * @param string $operation Operation to start
+     * @param string             $eventType Event type to throw exception in
+     * @param OperationInterface $operation Operation to start
      *
      * @return void
      * @depends      testTimeoutOnConnect
      * @dataProvider eventTypeDataProvider
      */
-    public function testThrowingSocketExceptionsInEvent($eventType, $operation)
+    public function testThrowingSocketExceptionsInEvent($eventType, OperationInterface $operation)
     {
         $meta = [
-            RequestExecutor::META_ADDRESS   => 'php://temp',
-            RequestExecutor::META_OPERATION => $operation,
+            RequestExecutor::META_ADDRESS => 'php://temp',
         ];
 
         if ($eventType === EventType::TIMEOUT || $eventType === EventType::EXCEPTION) {
@@ -822,7 +823,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $meta[ RequestExecutor::META_CONNECTION_TIMEOUT ] = 1;
         }
 
-        $this->executor->getSocketBag()->addSocket($this->socket, $meta);
+        $this->executor->getSocketBag()->addSocket($this->socket, $operation, $meta);
 
         $handler = function (Event $event) use ($eventType) {
             $readWriteTypes = [ EventType::READ, EventType::WRITE ];
@@ -858,9 +859,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * testEventSubscribersAreSet
      *
+     * @param OperationInterface $operation Operation
+     *
      * @return void
+     * @dataProvider socketOperationDataProvider
      */
-    public function testLimitationDeciderEventsAreInvoked()
+    public function testLimitationDeciderEventsAreInvoked(OperationInterface $operation)
     {
         $mock = $this->getMock(
             'AsyncSockets\RequestExecutor\ConstantLimitationDecider',
@@ -876,9 +880,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $this->executor->setLimitationDecider($mock);
         $this->executor->getSocketBag()->addSocket(
             $this->socket,
+            $operation,
             [
-                RequestExecutor::META_ADDRESS   => 'php://temp',
-                RequestExecutor::META_OPERATION => RequestExecutor::OPERATION_READ,
+                RequestExecutor::META_ADDRESS => 'php://temp',
             ]
         );
         $this->executor->executeRequest();
@@ -893,8 +897,8 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     {
         // form: operation, event
         return [
-            [ RequestExecutor::OPERATION_READ, EventType::READ ],
-            [ RequestExecutor::OPERATION_WRITE, EventType::WRITE ],
+            [ new ReadOperation(), EventType::READ ],
+            [ new WriteOperation(), EventType::WRITE ],
         ];
     }
 
@@ -906,12 +910,12 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     public function socketMethodDataProvider()
     {
         return [
-            [ RequestExecutor::OPERATION_READ, 'open' ],
-            [ RequestExecutor::OPERATION_READ, 'read' ],
-            [ RequestExecutor::OPERATION_READ, 'close' ],
-            [ RequestExecutor::OPERATION_WRITE, 'open' ],
-            [ RequestExecutor::OPERATION_WRITE, 'write' ],
-            [ RequestExecutor::OPERATION_WRITE, 'close' ],
+            [ new ReadOperation(), 'open' ],
+            [ new ReadOperation(), 'read' ],
+            [ new ReadOperation(), 'close' ],
+            [ new WriteOperation(), 'open' ],
+            [ new WriteOperation(), 'write' ],
+            [ new WriteOperation(), 'close' ],
         ];
     }
 
@@ -928,8 +932,8 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $ref    = new \ReflectionClass('AsyncSockets\Event\EventType');
             $result = [ ];
             foreach ($ref->getConstants() as $value) {
-                $result[] = [ $value, RequestExecutor::OPERATION_READ ];
-                $result[] = [ $value, RequestExecutor::OPERATION_WRITE ];
+                $result[] = [ $value, new ReadOperation() ];
+                $result[] = [ $value, new WriteOperation() ];
             }
         }
 

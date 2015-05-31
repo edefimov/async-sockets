@@ -10,6 +10,7 @@
 namespace AsyncSockets\Event;
 
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -18,66 +19,37 @@ use AsyncSockets\Socket\SocketInterface;
 class WriteEvent extends IoEvent
 {
     /**
-     * Data to send
+     * Operation to be used in I/O
      *
-     * @var string
+     * @var WriteOperation
      */
-    private $data;
+    private $operation;
 
     /**
      * Constructor
      *
+     * @param WriteOperation           $operation Operation, which will be used in I/O
      * @param RequestExecutorInterface $executor Request executor object
      * @param SocketInterface          $socket   Socket for this request
      * @param mixed                    $context  Any optional user data for event
      */
     public function __construct(
+        WriteOperation $operation,
         RequestExecutorInterface $executor,
         SocketInterface $socket,
         $context
     ) {
         parent::__construct($executor, $socket, $context, EventType::WRITE);
+        $this->operation = $operation;
     }
 
     /**
-     * Return Data
+     * Return operation object
      *
-     * @return string
+     * @return WriteOperation
      */
-    public function getData()
+    public function getOperation()
     {
-        return $this->data;
-    }
-
-    /**
-     * Sets Data
-     *
-     * @param string $data New value for Data
-     *
-     * @return void
-     */
-    public function setData($data)
-    {
-        $this->data = $data;
-    }
-
-    /**
-     * Checks whether request has data
-     *
-     * @return bool
-     */
-    public function hasData()
-    {
-        return $this->data !== null;
-    }
-
-    /**
-     * Clear send data
-     *
-     * @return void
-     */
-    public function clearData()
-    {
-        $this->data = null;
+        return $this->operation;
     }
 }

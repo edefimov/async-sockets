@@ -11,6 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -33,6 +34,13 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     protected $operationMetadata;
 
     /**
+     * OperationInterface
+     *
+     * @var OperationInterface
+     */
+    protected $operation;
+
+    /**
      * testInitialState
      *
      * @return void
@@ -40,6 +48,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         self::assertSame($this->socket, $this->operationMetadata->getSocket(), 'Unknown socket returned');
+        self::assertSame($this->operation, $this->operationMetadata->getOperation(), 'Unknown operation returned');
         self::assertFalse($this->operationMetadata->isRunning(), 'Invalid initial running flag');
         self::assertNull($this->operationMetadata->getPreviousResponse(), 'Invalid initial previous response');
         self::assertNull(
@@ -153,6 +162,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     {
         parent::setUp();
         $this->socket            = $this->getMockForAbstractClass('AsyncSockets\Socket\AbstractSocket');
-        $this->operationMetadata = new OperationMetadata($this->socket, [ ]);
+        $this->operation         = $this->getMock('AsyncSockets\RequestExecutor\OperationInterface');
+        $this->operationMetadata = new OperationMetadata($this->socket, $this->operation, [ ]);
     }
 }

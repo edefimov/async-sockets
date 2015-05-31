@@ -26,4 +26,10 @@ final class NullFrame implements FrameInterface
     {
         return $lenChunk;
     }
+
+    /** {@inheritdoc} */
+    public function findStartOfFrame($chunk, $lenChunk, $data)
+    {
+        return 0;
+    }
 }

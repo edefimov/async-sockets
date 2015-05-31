@@ -22,7 +22,7 @@ class ReadEvent extends IoEvent
     /**
      * Data read from network
      *
-     * @var SocketResponseInterface
+     * @var SocketResponseInterface|null
      */
     private $response;
 
@@ -38,7 +38,7 @@ class ReadEvent extends IoEvent
         RequestExecutorInterface $executor,
         SocketInterface $socket,
         $context,
-        SocketResponseInterface $response
+        SocketResponseInterface $response = null
     ) {
         parent::__construct($executor, $socket, $context, EventType::READ);
         $this->response = $response;
@@ -47,7 +47,7 @@ class ReadEvent extends IoEvent
     /**
      * Return Response
      *
-     * @return SocketResponseInterface
+     * @return SocketResponseInterface|null Null means that response was not received
      */
     public function getResponse()
     {

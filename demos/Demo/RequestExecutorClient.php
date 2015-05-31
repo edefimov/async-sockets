@@ -17,6 +17,7 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -42,12 +43,10 @@ class RequestExecutorClient
 
         $executor->getSocketBag()->addSocket(
             $anotherClient,
+            new WriteOperation("GET / HTTP/1.1\nHost: github.com\n\n"),
             [
                 RequestExecutorInterface::META_ADDRESS      => 'tls://github.com:443',
                 RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
-                RequestExecutorInterface::META_USER_CONTEXT => [
-                    'data' => "GET / HTTP/1.1\nHost: github.com\n\n",
-                ],
             ],
             new EventInvocationHandlerBag(
                 [
@@ -102,9 +101,6 @@ class RequestExecutorClient
      */
     public function onWrite(WriteEvent $event)
     {
-        $context = $event->getContext();
-
-        $event->setData($context['data']);
         $event->nextIsRead();
     }
 
@@ -245,11 +241,11 @@ class RequestExecutorClient
     ) {
         $executor->getSocketBag()->addSocket(
             $client,
+            new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
             [
                 RequestExecutorInterface::META_ADDRESS            => 'tls://packagist.org:443',
                 RequestExecutorInterface::META_OPERATION          => RequestExecutorInterface::OPERATION_WRITE,
                 RequestExecutorInterface::META_USER_CONTEXT       => [
-                    'data'     => "GET / HTTP/1.1\nHost: packagist.org\n\n",
                     'attempts' => $attempts,
                 ],
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT => $connectionTimeout,

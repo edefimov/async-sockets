@@ -232,9 +232,11 @@ class RequestExecutor implements RequestExecutorInterface
             }
 
             foreach ($activeOperations as $activeOperation) {
-                $meta = $activeOperation->getMetadata();
                 $this->setSocketOperationTime($activeOperation, self::META_LAST_IO_START_TIME);
-                $selector->addSocketOperation($activeOperation->getSocket(), $meta[self::META_OPERATION]);
+                $selector->addSocketOperation(
+                    $activeOperation->getSocket(),
+                    $activeOperation->getOperation()->getType()
+                );
             }
 
             try {
@@ -421,9 +423,9 @@ class RequestExecutor implements RequestExecutorInterface
                     if ($nextOperation === null) {
                         $result[$key] = $item;
                     } else {
+                        $item->setOperation($nextOperation);
                         $item->setMetadata(
                             [
-                                self::META_OPERATION          => $nextOperation,
                                 self::META_LAST_IO_START_TIME => null,
                             ]
                         );
@@ -443,29 +445,39 @@ class RequestExecutor implements RequestExecutorInterface
     /**
      * Process reading operation
      *
-     * @param OperationMetadata $operationMetadata Metadata
-     * @param string|null       &$nextOperation Next operation to perform on socket
+     * @param OperationMetadata       $operationMetadata Metadata
+     * @param OperationInterface|null &$nextOperation Next operation to perform on socket
      *
      * @return int One of IO_STATE_* consts
      * @throws StopRequestExecuteException
      */
-    private function processReadIo(OperationMetadata $operationMetadata, &$nextOperation)
+    private function processReadIo(OperationMetadata $operationMetadata, OperationInterface &$nextOperation = null)
     {
-        $meta     = $operationMetadata->getMetadata();
-        $socket   = $operationMetadata->getSocket();
-        $response = $socket->read(null, $operationMetadata->getPreviousResponse());
-        if ($response instanceof ChunkSocketResponse) {
-            $operationMetadata->setPreviousResponse($response);
-            return self::IO_STATE_PARTIAL;
-        }
+        $meta      = $operationMetadata->getMetadata();
+        $socket    = $operationMetadata->getSocket();
+        $operation = $operationMetadata->getOperation();
 
-        $event = new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $response);
+        $event = null;
         try {
+            /** @var ReadOperation $operation */
+            $response = $socket->read($operation->getFrame(), $operationMetadata->getPreviousResponse());
+            if ($response instanceof ChunkSocketResponse) {
+                $operationMetadata->setPreviousResponse($response);
+
+                return self::IO_STATE_PARTIAL;
+            }
+
+            $event = new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $response);
+
             $this->callSocketSubscribers($socket, $event);
             $nextOperation = $event->getNextOperation();
             return self::IO_STATE_DONE;
         } catch (SocketException $e) {
-            $this->callExceptionSubscribers($socket, $e, $event);
+            $this->callExceptionSubscribers(
+                $socket,
+                $e,
+                $event ?: new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ])
+            );
             return self::IO_STATE_EXCEPTION;
         }
     }
@@ -473,20 +485,20 @@ class RequestExecutor implements RequestExecutorInterface
     /**
      * Process write operation
      *
-     * @param OperationMetadata $operationMetadata Metadata
-     * @param string|null       &$nextOperation Next operation to perform on socket
+     * @param OperationMetadata       $operationMetadata Metadata
+     * @param OperationInterface|null &$nextOperation Next operation to perform on socket
      *
      * @return int One of IO_STATE_* consts
      */
-    private function processWriteIo(OperationMetadata $operationMetadata, &$nextOperation)
+    private function processWriteIo(OperationMetadata $operationMetadata, OperationInterface &$nextOperation = null)
     {
         $meta   = $operationMetadata->getMetadata();
         $socket = $operationMetadata->getSocket();
-        $event  = new WriteEvent($this, $socket, $meta[ self::META_USER_CONTEXT ]);
+        $event  = new WriteEvent($operationMetadata->getOperation(), $this, $socket, $meta[ self::META_USER_CONTEXT ]);
         try {
             $this->callSocketSubscribers($socket, $event);
-            if ($event->hasData()) {
-                $socket->write($event->getData());
+            if ($event->getOperation()->hasData()) {
+                $socket->write($event->getOperation()->getData());
             }
             $nextOperation = $event->getNextOperation();
             return self::IO_STATE_DONE;

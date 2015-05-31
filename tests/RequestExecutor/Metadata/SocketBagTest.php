@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
@@ -41,6 +42,13 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     private $executor;
 
     /**
+     * MOcked operation
+     *
+     * @var OperationInterface
+     */
+    private $operation;
+
+    /**
      * testAddSocket
      *
      * @return void
@@ -49,6 +57,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     {
         $this->bag->addSocket(
             $this->socket,
+            $this->operation,
             [ ],
             $this->getMock('AsyncSockets\RequestExecutor\EventInvocationHandlerInterface')
         );
@@ -61,7 +70,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
      */
     public function testHasSocket()
     {
-        $this->bag->addSocket($this->socket, [  ]);
+        $this->bag->addSocket($this->socket, $this->operation, [  ]);
         self::assertTrue(
             $this->bag->hasSocket($this->socket),
             'hasSocket returned false for added socket'
@@ -81,7 +90,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
      */
     public function testMetadataIsFilled()
     {
-        $this->bag->addSocket($this->socket, [ ]);
+        $this->bag->addSocket($this->socket, $this->operation, [ ]);
         $meta = $this->bag->getSocketMetaData($this->socket);
         $ref  = new \ReflectionClass('AsyncSockets\RequestExecutor\RequestExecutorInterface');
         foreach ($ref->getConstants() as $name => $value) {
@@ -102,7 +111,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
      */
     public function testRemoveSocket()
     {
-        $this->bag->addSocket($this->socket, [  ]);
+        $this->bag->addSocket($this->socket, $this->operation, [  ]);
         $this->bag->removeSocket($this->socket);
         self::assertFalse(
             $this->bag->hasSocket($this->socket),
@@ -136,11 +145,13 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     {
         $this->bag->addSocket(
             $this->socket,
+            $this->operation,
             [  ]
         );
 
         $this->bag->addSocket(
             $this->socket,
+            $this->operation,
             [  ]
         );
     }
@@ -153,7 +164,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
      */
     public function testCantRemoveSocketDuringExecute()
     {
-        $this->bag->addSocket($this->socket, []);
+        $this->bag->addSocket($this->socket, $this->operation, []);
         $this->executor->expects(self::once())->method('isExecuting')->willReturn(true);
         $this->bag->removeSocket($this->socket);
     }
@@ -172,6 +183,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     {
         $this->bag->addSocket(
             $this->socket,
+            $this->operation,
             [  ]
         );
         $originalMeta = $this->bag->getSocketMetaData($this->socket);
@@ -238,7 +250,8 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
                 'stopRequest',
             ]
         );
-        $this->socket   = $this->getMock('AsyncSockets\Socket\SocketInterface');
-        $this->bag      = new SocketBag($this->executor);
+        $this->operation = $this->getMock('AsyncSockets\RequestExecutor\OperationInterface');
+        $this->socket    = $this->getMock('AsyncSockets\Socket\SocketInterface');
+        $this->bag       = new SocketBag($this->executor);
     }
 }

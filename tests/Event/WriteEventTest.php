@@ -12,16 +12,24 @@ namespace Tests\AsyncSockets\Event;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\RequestExecutor\WriteOperation;
 
 /**
  * Class ReadEventTest
  */
 class WriteEventTest extends IoEventTest
 {
+    /**
+     * Mock object for event
+     *
+     * @var WriteOperation
+     */
+    private $operation;
+
     /** {@inheritdoc} */
     protected function createEvent($type)
     {
-        return new WriteEvent($this->executor, $this->socket, $this->context);
+        return new WriteEvent($this->operation, $this->executor, $this->socket, $this->context);
     }
 
     /** {@inheritdoc} */
@@ -38,37 +46,13 @@ class WriteEventTest extends IoEventTest
     public function testInitialState()
     {
         $event = $this->createEvent(null);
-        self::assertFalse($event->hasData(), 'Incorrect data initial state');
-        self::assertNull($event->getData(), 'Incorrect data initial state');
+        self::assertSame($this->operation, $event->getOperation(), 'Incorrect data initial state');
     }
 
-    /**
-     * testSetData
-     *
-     * @return void
-     */
-    public function testSetData()
+    /** {@inheritdoc} */
+    protected function setUp()
     {
-        $data  = md5(microtime());
-        $event = $this->createEvent(null);
-        $event->setData($data);
-        self::assertEquals($data, $event->getData(), 'Data are not set');
-        self::assertTrue($event->hasData(), 'Event must have data here');
-    }
-
-    /**
-     * testClearData
-     *
-     * @return void
-     * @depends testSetData
-     */
-    public function testClearData()
-    {
-        $data  = md5(microtime());
-        $event = $this->createEvent(null);
-        $event->setData($data);
-        $event->clearData();
-        self::assertFalse($event->hasData(), 'Write buffer was not cleared');
-        self::assertNull($event->getData(), 'Strange data returned');
+        parent::setUp();
+        $this->operation = $this->getMock('AsyncSockets\RequestExecutor\WriteOperation');
     }
 }

@@ -62,12 +62,18 @@ class FixedLengthFrame implements FrameInterface
         if ($this->isEof()) {
             return 0;
         }
-        
-        $result = $this->processedLength + $lenChunk > $this->length ?
-                    $this->processedLength + $lenChunk - $this->length :
-                    $lenChunk;
+
+        $result = min(
+            [ $this->length - $this->processedLength, $lenChunk ]
+        );
 
         $this->processedLength += $result;
         return $result;
+    }
+
+    /** {@inheritdoc} */
+    public function findStartOfFrame($chunk, $lenChunk, $data)
+    {
+        return 0;
     }
 }

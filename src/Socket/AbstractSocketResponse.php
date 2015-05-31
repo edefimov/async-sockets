@@ -53,6 +53,4 @@ abstract class AbstractSocketResponse implements SocketResponseInterface
     {
         return $this->frame;
     }
-
-
 }

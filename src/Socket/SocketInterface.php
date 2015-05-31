@@ -49,7 +49,7 @@ interface SocketInterface extends StreamResourceInterface
      * @param ChunkSocketResponse $previousResponse Previous response, if there was one. If is specified, then
      *      $frame parameter will be ignored and actual frame is extracted from response object
      *
-     * @return SocketResponse
+     * @return SocketResponseInterface
      * @throws NetworkSocketException
      *
      * @api
