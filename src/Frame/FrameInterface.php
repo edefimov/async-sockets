@@ -35,6 +35,13 @@ interface FrameInterface
     public function isEof();
 
     /**
+     * Return true if this frame is started
+     *
+     * @return bool
+     */
+    public function isStarted();
+
+    /**
      * Process raw network data. Data should be used to determine end of this concrete frame
      *
      * @param string $chunk Part of data, before calling this method
@@ -42,8 +49,9 @@ interface FrameInterface
      * @param string $data Data, collected from socket till this moment, excluding $chunk, and beginning from
      *                      start of this frame
      *
-     * @return int Length of processed data. Unprocessed data will be passed on next call to this function.
+     * @return int Length of processed data starting from value, returned by findStartOfFrame.
      *             If negative value is returned, then frame data will be truncated to returned length
+     * @see findStartOfFrame
      */
     public function handleData($chunk, $lenChunk, $data);
 }

@@ -16,6 +16,12 @@ namespace AsyncSockets\Frame;
 final class NullFrame implements FrameInterface
 {
     /** {@inheritdoc} */
+    public function isStarted()
+    {
+        return true;
+    }
+
+    /** {@inheritdoc} */
     public function isEof()
     {
         return true;

@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
+use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
@@ -465,6 +466,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
             ]
         ];
     }
+
     /**
      * Create SocketInterface implementation for test
      *

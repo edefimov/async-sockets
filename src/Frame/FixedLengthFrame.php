@@ -12,7 +12,7 @@ namespace AsyncSockets\Frame;
 /**
  * Class FixedLengthFrame
  */
-class FixedLengthFrame implements FrameInterface
+class FixedLengthFrame extends AbstractFrame
 {
     /**
      * Desired length of frame
@@ -35,6 +35,7 @@ class FixedLengthFrame implements FrameInterface
      */
     public function __construct($length)
     {
+        parent::__construct();
         $this->length          = (int) $length;
         $this->processedLength = 0;
     }
@@ -49,30 +50,23 @@ class FixedLengthFrame implements FrameInterface
         return $this->length;
     }
 
-
     /** {@inheritdoc} */
-    public function isEof()
+    protected function doHandleData($chunk, $lenChunk, $data)
     {
-        return $this->processedLength === $this->length;
-    }
-
-    /** {@inheritdoc} */
-    public function handleData($chunk, $lenChunk, $data)
-    {
-        if ($this->isEof()) {
-            return 0;
-        }
-
         $result = min(
             [ $this->length - $this->processedLength, $lenChunk ]
         );
 
         $this->processedLength += $result;
+        if ($this->processedLength === $this->length) {
+            $this->setFinished(true);
+        }
+
         return $result;
     }
 
     /** {@inheritdoc} */
-    public function findStartOfFrame($chunk, $lenChunk, $data)
+    protected function doFindStartOfFrame($chunk, $lenChunk, $data)
     {
         return 0;
     }

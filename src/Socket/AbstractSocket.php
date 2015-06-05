@@ -14,6 +14,7 @@ use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\NullFrame;
+use AsyncSockets\Socket\Assistant\FrameProcessor;
 
 /**
  * Class AbstractSocket
@@ -67,11 +68,11 @@ abstract class AbstractSocket implements SocketInterface
     private $isBlocking = true;
 
     /**
-     * Unprocessed data in socket
+     * Frame processor
      *
-     * @var string
+     * @var FrameProcessor
      */
-    private $unprocessedData;
+    private $frameProcessor;
 
     /**
      * Destructor
@@ -98,8 +99,7 @@ abstract class AbstractSocket implements SocketInterface
 
         $this->resource = $this->createSocketResource($address, $context ?: stream_context_get_default());
 
-        $result                = false;
-        $this->unprocessedData = '';
+        $result = false;
         if (is_resource($this->resource)) {
             $result = true;
             $meta   = stream_get_meta_data($this->resource);
@@ -114,7 +114,8 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function close()
     {
-        $this->state = self::STATE_DISCONNECTED;
+        $this->state          = self::STATE_DISCONNECTED;
+        $this->frameProcessor = null;
         if ($this->resource) {
             stream_socket_shutdown($this->resource, STREAM_SHUT_RDWR);
             fclose($this->resource);
@@ -129,27 +130,14 @@ abstract class AbstractSocket implements SocketInterface
         $frame = $previousResponse ? $previousResponse->getFrame() : $frame;
         $frame = $frame ?: new NullFrame();
 
-        $result                = $this->unprocessedData;
-        $this->unprocessedData = '';
-        $microseconds          = self::SELECT_DELAY;
-        $isDataChanged         = false;
-        $isEndOfFrame          = false;
+        $result        = '';
+        $isDataChanged = false;
+        $isEndOfFrame  = false;
         do {
-            $read     = [ $this->resource ];
-            $nomatter = null;
-            $select   = stream_select($read, $nomatter, $nomatter, 0, $microseconds);
-            $this->throwNetworkSocketExceptionIf($select === false, 'Failed to read data.');
-
-            if ($select === 0) {
-                if ($frame instanceof NullFrame || $frame->isEof()) {
-                    $isEndOfFrame = true;
-                } else {
-                    throw new FrameSocketException($frame, $this, 'Failed to receive desired frame.');
-                }
-
+            if ($this->isFullFrameRead($frame)) {
+                $isEndOfFrame = true;
                 break;
             }
-
 
             // work-around https://bugs.php.net/bug.php?id=52602
             $rawData = stream_socket_recvfrom($this->resource, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
@@ -161,11 +149,7 @@ abstract class AbstractSocket implements SocketInterface
                     break 2;
                 default:
                     $actualData = $this->readActualData();
-                    $result     = $this->processReadFrame(
-                        $actualData,
-                        $result,
-                        $frame
-                    );
+                    $result     = $this->getFrameProcessor()->processReadFrame($frame, $actualData, $result);
 
                     $isDataChanged = true;
                     $isEndOfFrame = !($frame instanceof NullFrame) && $frame->isEof();
@@ -326,40 +310,42 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /**
-     * Process data by frame
+     * Checks whether all frame data is read
      *
-     * @param string         $chunk Chunk from network
-     * @param string         $data Full data from the beginning of network operation excluding $chunk
-     * @param FrameInterface $frame Frame to process data
+     * @param FrameInterface $frame Frame object to check
      *
-     * @return string Processed chunk
+     * @return bool
+     * @throws FrameSocketException If socket data is ended and frame eof is not reached
      */
-    private function processReadFrame($chunk, $data, FrameInterface $frame)
+    private function isFullFrameRead(FrameInterface $frame)
     {
-        $lenChunk = strlen($chunk);
-        $sof = $frame->findStartOfFrame($chunk, $lenChunk, $data);
-        if ($sof === null) {
-            return $data . $chunk;
+        $read     = [ $this->resource ];
+        $nomatter = null;
+        $select   = stream_select($read, $nomatter, $nomatter, 0, self::SELECT_DELAY);
+        $this->throwNetworkSocketExceptionIf($select === false, 'Failed to read data.');
+
+        if ($select === 0) {
+            if ($frame->isEof()) {
+                return true;
+            } else {
+                throw new FrameSocketException($frame, $this, 'Failed to receive desired frame.');
+            }
         }
 
-        $processed = $frame->handleData($chunk, $lenChunk, $data);
+        return false;
+    }
 
-        if ($sof < 0) {
-            $result = substr($data, 0, $sof);
-        } else {
-            $result = ($sof === 0) ? $data . $chunk : substr($chunk, $sof);
+    /**
+     * Return FrameProcessor object
+     *
+     * @return FrameProcessor
+     */
+    private function getFrameProcessor()
+    {
+        if (!$this->frameProcessor) {
+            $this->frameProcessor = new FrameProcessor();
         }
 
-        if ($processed < 0) {
-            $result = substr($result, -$processed, $processed);
-        } elseif ($processed > $lenChunk) {
-            $processed = $lenChunk;
-        }
-
-        if (0 <= $processed && $processed < $lenChunk) {
-            $result = substr($chunk, 0, $processed);
-        }
-
-        return $result;
+        return $this->frameProcessor;
     }
 }

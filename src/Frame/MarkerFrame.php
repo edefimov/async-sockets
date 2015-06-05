@@ -12,7 +12,7 @@ namespace AsyncSockets\Frame;
 /**
  * Class MarkerFrame
  */
-class MarkerFrame implements FrameInterface
+class MarkerFrame extends AbstractFrame
 {
     /**
      * Frame start byte sequence or null
@@ -43,13 +43,6 @@ class MarkerFrame implements FrameInterface
     private $offsetForEndMarker;
 
     /**
-     * Flag, whether frame is finished
-     *
-     * @var bool
-     */
-    private $isFinished;
-
-    /**
      * MarkerFrame constructor.
      *
      * @param null|string $startMarker Start marker
@@ -57,27 +50,17 @@ class MarkerFrame implements FrameInterface
      */
     public function __construct($startMarker, $endMarker)
     {
+        parent::__construct();
         $this->startMarker        = $startMarker;
         $this->endMarker          = $endMarker;
         $this->startMarkerPos     = null;
-        $this->isFinished         = false;
         $this->offsetForEndMarker = 0;
     }
 
-    /**
-     * Check, whether this frame is started
-     *
-     * @return bool
-     */
-    private function isStarted()
-    {
-        return $this->startMarker === null || $this->startMarkerPos !== null;
-    }
-
     /** {@inheritdoc} */
-    public function findStartOfFrame($chunk, $lenChunk, $data)
+    protected function doFindStartOfFrame($chunk, $lenChunk, $data)
     {
-        if ($this->isStarted()) {
+        if ($this->startMarker === null) {
             return 0;
         }
 
@@ -111,27 +94,16 @@ class MarkerFrame implements FrameInterface
         return $this->endMarker;
     }
 
-
     /** {@inheritdoc} */
-    public function isEof()
+    protected function doHandleData($chunk, $lenChunk, $data)
     {
-        return $this->isStarted() && $this->isFinished;
-    }
-
-    /** {@inheritdoc} */
-    public function handleData($chunk, $lenChunk, $data)
-    {
-        if ($this->isFinished || !$this->isStarted()) {
-            return 0;
-        }
-
         $pos                      = $this->findMarker($this->endMarker, $chunk, $data, $this->offsetForEndMarker);
         $this->offsetForEndMarker = 0;
         if ($pos === null) {
             return $lenChunk;
         }
 
-        $this->isFinished = true;
+        $this->setFinished(true);
         return $pos + strlen($this->endMarker);
     }
 
