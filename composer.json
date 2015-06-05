@@ -22,11 +22,6 @@
             "AsyncSockets\\": "src/"
         }
     },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\AsyncSockets\\": "tests/"
-        }
-    },
     "require": {
         "php": ">=5.4"
     },
