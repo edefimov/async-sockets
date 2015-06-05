@@ -85,7 +85,8 @@ class FrameProcessorTest extends \PHPUnit_Framework_TestCase
     {
         $frame  = $this->createFrame($data);
         $result = '';
-        foreach (array_column($data, 3) as $chunk) {
+        foreach ($data as $info) {
+            $chunk  = $info[3];
             $result = $this->processor->processReadFrame($frame, $chunk, $result);
         }
 
@@ -104,9 +105,10 @@ class FrameProcessorTest extends \PHPUnit_Framework_TestCase
     {
         foreach ($frames as $index => $frameInfo) {
             $frameInterface = $this->createFrame($frameInfo[0]);
-            $data           = array_column($frameInfo[0], 3);
+            $data           = $frameInfo[0];
             $result         = '';
-            foreach ($data as $chunk) {
+            foreach ($data as $info) {
+                $chunk  = $info[3];
                 $result = $this->processor->processReadFrame($frameInterface, $chunk, $result);
             }
 

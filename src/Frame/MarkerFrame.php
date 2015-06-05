@@ -29,13 +29,6 @@ class MarkerFrame extends AbstractFrame
     private $endMarker;
 
     /**
-     * Position of start marker in first chunk
-     *
-     * @var int
-     */
-    private $startMarkerPos;
-
-    /**
      * Offset to search for end marker during data handling
      *
      * @var int
@@ -53,7 +46,6 @@ class MarkerFrame extends AbstractFrame
         parent::__construct();
         $this->startMarker        = $startMarker;
         $this->endMarker          = $endMarker;
-        $this->startMarkerPos     = null;
         $this->offsetForEndMarker = 0;
     }
 
@@ -66,7 +58,6 @@ class MarkerFrame extends AbstractFrame
 
         $pos = $this->findMarker($this->startMarker, $chunk, $data);
         if ($pos !== null) {
-            $this->startMarkerPos     = $pos;
             $this->offsetForEndMarker = $pos + strlen($this->startMarker);
             return $pos;
         }

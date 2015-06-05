@@ -13,6 +13,7 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\Frame\MarkerFrame;
 use AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor;
 use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -93,7 +94,7 @@ class Client
     public function onWrite(WriteEvent $event)
     {
         echo 'About to write: ' . number_format(strlen($event->getOperation()->getData()), 0, '.', ' ') . " bytes\n";
-        $event->nextIsRead();
+        $event->nextIsRead(new MarkerFrame('HTTP', "\r\n\r\n"));
     }
 
     /**
@@ -108,7 +109,7 @@ class Client
         $context = $event->getContext();
         $socket  = $event->getSocket();
 
-        echo 'Received: ' . number_format(strlen($event->getResponse()->getData()), 0, '.', ' ') . " bytes\n";
+        echo "Received headers: \n\n" . $event->getResponse()->getData();
 
         $event->getExecutor()->getSocketBag()->setSocketMetaData(
             $socket,
