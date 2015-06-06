@@ -10,8 +10,6 @@
 
 namespace Tests\AsyncSockets\Socket;
 
-use AsyncSockets\Frame\FrameInterface;
-use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
@@ -74,32 +72,6 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testReadingPartialContent
-     *
-     * @return void
-     */
-    public function testReadingPartialContent()
-    {
-        $testString = "HTTP 200 OK\nServer: test-reader\n\n";
-        $counter    = 0;
-
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fread');
-        $mocker->setCallable(function () use ($testString, &$counter) {
-            return $counter < strlen($testString) ? $testString[$counter++] : '';
-        });
-
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
-            function () use ($testString, &$counter) {
-                return $counter < strlen($testString) ? $testString[$counter] : '';
-            }
-        );
-
-        $this->socket->open('it has no meaning here');
-        $retString = $this->socket->read()->getData();
-        self::assertEquals($testString, $retString, 'Unexpected result was read');
-    }
-
-    /**
      * testWritePartialContent
      *
      * @return void
@@ -132,63 +104,6 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testChunkReading
-     *
-     * @return void
-     */
-    public function testChunkReading()
-    {
-        $data      = 'I will pass this test';
-        $splitData = str_split($data, 1);
-        $freadMock = $this->getMock('Countable', ['count']);
-        $freadMock->expects(self::any())
-            ->method('count')
-            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($splitData));
-        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(function () {
-            return 1;
-        });
-        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(function () use ($freadMock) {
-            /** @var \Countable $freadMock */
-            return $freadMock->count();
-        });
-
-        $streamSocketRecvFromData = [];
-        foreach ($splitData as $letter) {
-            $streamSocketRecvFromData[] = $letter;
-            $streamSocketRecvFromData[] = false;
-            if (mt_rand(1, 10) % 2) {
-                $streamSocketRecvFromData[] = false;
-            }
-        }
-        $streamSocketRecvFromData[] = '';
-        $socketReadMock = $this->getMock('Countable', ['count']);
-        $socketReadMock->expects(self::any())
-            ->method('count')
-            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($streamSocketRecvFromData));
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
-            function () use ($socketReadMock) {
-                /** @var \Countable $socketReadMock */
-                return $socketReadMock->count();
-            }
-        );
-
-        $response = null;
-        $this->socket->open('it has no meaning here');
-        do {
-            $response = $this->socket->read(null, $response);
-        } while ($response instanceof ChunkSocketResponse);
-
-        self::assertInstanceOf('AsyncSockets\Socket\SocketResponse', $response);
-        self::assertNotInstanceOf(
-            'AsyncSockets\Socket\ChunkSocketResponse',
-            $response,
-            'Final response must not be chunk'
-        );
-
-        self::assertEquals($data, (string) $response, 'Received data is incorrect');
-    }
-
-    /**
      * testNothingHappenIfNotSelected
      *
      * @return void
@@ -201,7 +116,11 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
         });
 
         $this->socket->open('it has no meaning here');
-        self::assertInstanceOf('AsyncSockets\Socket\SocketResponse', $this->socket->read(), 'Strange response');
+        self::assertInstanceOf(
+            'AsyncSockets\Socket\SocketResponseInterface',
+            $this->socket->read(),
+            'Strange response'
+        );
     }
 
     /**
@@ -259,6 +178,10 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
      */
     public function ioDataProvider()
     {
+        $falseFunction = function () {
+            return false;
+        };
+
         // data for testing read/write. Format:
         // method, arguments, mock functions
         return [
@@ -278,70 +201,9 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
                     ['read', []],
                 ],
                 [
-                    'stream_socket_get_name' => function () {
-                        return false;
-                    }
+                    'stream_socket_get_name' => $falseFunction
                 ],
                 'Connection refused.'
-            ],
-
-            // testExceptionWillBeThrownOnReadError
-            [
-                [
-                    ['open', ['no matter']],
-                    ['read', []],
-                ],
-                [
-                    'stream_select' => function () {
-                        return false;
-                    },
-                ],
-                'Failed to read data.'
-            ],
-
-            // testActualReadingFail
-            [
-                [
-                    ['open', ['no matter']],
-                    ['read', []],
-                ],
-                [
-                    'stream_select' => function () {
-                        return 1;
-                    },
-                    'fread' => function () {
-                        return false;
-                    },
-                    'stream_socket_recvfrom' => function () {
-                        return 'x';
-                    }
-                ],
-                'Failed to read data.'
-            ],
-
-            // testLossConnectionOnReading
-            [
-                [
-                    ['open', ['no matter']],
-                    ['read', []],
-                ],
-                [
-                    'stream_select' => function () {
-                        return 1;
-                    },
-                    'fread' => function () {
-                        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
-                            function () {
-                                return false;
-                            }
-                        );
-                        return 0;
-                    },
-                    'stream_socket_recvfrom' => function () {
-                        return 'x';
-                    }
-                ],
-                'Remote connection has been lost.'
             ],
 
             // testWriteFailureIfNoResource
@@ -362,9 +224,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
                     ['write', ['some data to write']],
                 ],
                 [
-                    'stream_socket_get_name' => function () {
-                        return false;
-                    }
+                    'stream_socket_get_name' => $falseFunction
                 ],
                 'Connection refused.'
             ],
@@ -376,9 +236,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
                     ['write', ['some data to write']],
                 ],
                 [
-                    'stream_select' => function () {
-                        return false;
-                    },
+                    'stream_select' => $falseFunction,
                 ],
                 'Failed to send data.'
             ],
@@ -410,9 +268,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
                     'stream_select' => function () {
                         return 1;
                     },
-                    'fwrite' => function () {
-                        return false;
-                    },
+                    'fwrite' => $falseFunction,
                     'stream_socket_sendto' => function ($handle, $data) {
                         return strlen($data);
                     }
@@ -430,11 +286,9 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
                     'stream_select' => function () {
                         return 1;
                     },
-                    'fwrite' => function () {
+                    'fwrite' => function () use ($falseFunction) {
                         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
-                            function () {
-                                return false;
-                            }
+                            $falseFunction
                         );
                         return 0;
                     },
@@ -481,12 +335,19 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
             true,
             true,
             true,
-            ['createSocketResource']
+            ['createSocketResource', 'doReadData']
         );
 
         $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
             function () {
                 return fopen('php://temp', 'rw');
+            }
+        );
+
+        $mock->expects(self::any())->method('doReadData')->willReturnCallback(
+            function () {
+                $mock = $this->getMockForAbstractClass('AsyncSockets\Socket\SocketResponseInterface');
+                return $mock;
             }
         );
         return $mock;

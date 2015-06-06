@@ -26,7 +26,6 @@ use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
-use Tests\AsyncSockets\Socket\FileSocket;
 
 /**
  * Class RequestExecutorTest
@@ -36,9 +35,16 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     /**
      * List of test objects
      *
-     * @var FileSocket
+     * @var SocketInterface
      */
     protected $socket;
+
+    /**
+     * Socket resource
+     *
+     * @var resource
+     */
+    protected $socketResource;
 
     /**
      * RequestExecutor
@@ -61,7 +67,34 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->socket   = new FileSocket();
+        $this->socketResource = fopen('php://temp', 'r+');
+        $this->socket         = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\SocketInterface',
+            [ ],
+            '',
+            false,
+            true,
+            true,
+            [ 'getStreamResource', 'read' ]
+        );
+        $this->socket->expects(self::any())->method('getStreamResource')->willReturnCallback(function () {
+            return $this->socketResource;
+        });
+        $this->socket->expects(self::any())->method('read')->willReturnCallback(function () {
+            $mock = $this->getMockForAbstractClass(
+                'AsyncSockets\Socket\SocketResponseInterface',
+                [ ],
+                '',
+                false,
+                true,
+                true,
+                [ 'getData', '__toString' ]
+            );
+
+            $mock->expects(self::any())->method('getData')->willReturn('');
+            $mock->expects(self::any())->method('__toString')->willReturn('');
+            return $mock;
+        });
         $this->executor = $this->createRequestExecutor();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(function () {
             return '';

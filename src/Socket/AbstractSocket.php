@@ -10,11 +10,9 @@
 
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\NullFrame;
-use AsyncSockets\Socket\Assistant\FrameProcessor;
 
 /**
  * Class AbstractSocket
@@ -68,13 +66,6 @@ abstract class AbstractSocket implements SocketInterface
     private $isBlocking = true;
 
     /**
-     * Frame processor
-     *
-     * @var FrameProcessor
-     */
-    private $frameProcessor;
-
-    /**
      * Destructor
      */
     public function __destruct()
@@ -91,6 +82,21 @@ abstract class AbstractSocket implements SocketInterface
      * @return resource
      */
     abstract protected function createSocketResource($address, $context);
+
+    /**
+     * Perform reading data from socket
+     *
+     * @param resource            $socket Socket resource
+     * @param FrameInterface      $frame Frame object to read
+     * @param ChunkSocketResponse $previousResponse Previous response from this socket
+     *
+     * @return SocketResponseInterface
+     */
+    abstract protected function doReadData(
+        $socket,
+        FrameInterface $frame,
+        ChunkSocketResponse $previousResponse = null
+    );
 
     /** {@inheritdoc} */
     public function open($address, $context = null)
@@ -114,8 +120,7 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function close()
     {
-        $this->state          = self::STATE_DISCONNECTED;
-        $this->frameProcessor = null;
+        $this->state = self::STATE_DISCONNECTED;
         if ($this->resource) {
             stream_socket_shutdown($this->resource, STREAM_SHUT_RDWR);
             fclose($this->resource);
@@ -130,39 +135,7 @@ abstract class AbstractSocket implements SocketInterface
         $frame = $previousResponse ? $previousResponse->getFrame() : $frame;
         $frame = $frame ?: new NullFrame();
 
-        $result        = '';
-        $isDataChanged = false;
-        $isEndOfFrame  = false;
-        do {
-            if ($this->isFullFrameRead($frame)) {
-                $isEndOfFrame = true;
-                break;
-            }
-
-            // work-around https://bugs.php.net/bug.php?id=52602
-            $rawData = stream_socket_recvfrom($this->resource, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
-            switch (true) {
-                case $rawData === '':
-                    $isEndOfFrame = $frame instanceof NullFrame || $isEndOfFrame;
-                    break 2;
-                case $rawData === false:
-                    break 2;
-                default:
-                    $actualData = $this->readActualData();
-                    $result     = $this->getFrameProcessor()->processReadFrame($frame, $actualData, $result);
-
-                    $isDataChanged = true;
-                    $isEndOfFrame = !($frame instanceof NullFrame) && $frame->isEof();
-            }
-        } while (!$isEndOfFrame);
-
-        if ($isEndOfFrame) {
-            return new SocketResponse($frame, (string) $previousResponse . $result);
-        } else {
-            return $isDataChanged || !$previousResponse ?
-                new ChunkSocketResponse($frame, $result, $previousResponse) :
-                $previousResponse;
-        }
+        return $this->doReadData($this->resource, $frame, $previousResponse);
     }
 
     /** {@inheritdoc} */
@@ -237,23 +210,6 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /**
-     * Read actual data from socket
-     *
-     * @return string
-     */
-    private function readActualData()
-    {
-        $data = fread($this->resource, self::SOCKET_BUFFER_SIZE);
-        $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
-
-        if ($data === 0) {
-            $this->throwExceptionIfNotConnected('Remote connection has been lost.');
-        }
-
-        return $data;
-    }
-
-    /**
      * Writes given data to socket
      *
      * @param string $data Data to write
@@ -303,49 +259,9 @@ abstract class AbstractSocket implements SocketInterface
      *
      * @return void
      */
-    private function throwExceptionIfNotConnected($message)
+    protected function throwExceptionIfNotConnected($message)
     {
         $name = stream_socket_get_name($this->resource, true);
         $this->throwNetworkSocketExceptionIf($name === false, $message);
-    }
-
-    /**
-     * Checks whether all frame data is read
-     *
-     * @param FrameInterface $frame Frame object to check
-     *
-     * @return bool
-     * @throws FrameSocketException If socket data is ended and frame eof is not reached
-     */
-    private function isFullFrameRead(FrameInterface $frame)
-    {
-        $read     = [ $this->resource ];
-        $nomatter = null;
-        $select   = stream_select($read, $nomatter, $nomatter, 0, self::SELECT_DELAY);
-        $this->throwNetworkSocketExceptionIf($select === false, 'Failed to read data.');
-
-        if ($select === 0) {
-            if ($frame->isEof()) {
-                return true;
-            } else {
-                throw new FrameSocketException($frame, $this, 'Failed to receive desired frame.');
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Return FrameProcessor object
-     *
-     * @return FrameProcessor
-     */
-    private function getFrameProcessor()
-    {
-        if (!$this->frameProcessor) {
-            $this->frameProcessor = new FrameProcessor();
-        }
-
-        return $this->frameProcessor;
     }
 }

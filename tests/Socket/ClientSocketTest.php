@@ -64,5 +64,152 @@ class ClientSocketTest extends AbstractSocketTest
         return new ClientSocket();
     }
 
+    /**
+     * testReadingPartialContent
+     *
+     * @return void
+     */
+    public function testReadingPartialContent()
+    {
+        $testString = "HTTP 200 OK\nServer: test-reader\n\n";
+        $counter    = 0;
 
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fread');
+        $mocker->setCallable(function () use ($testString, &$counter) {
+            return $counter < strlen($testString) ? $testString[$counter++] : '';
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () use ($testString, &$counter) {
+                return $counter < strlen($testString) ? $testString[$counter] : '';
+            }
+        );
+
+        $this->socket->open('it has no meaning here');
+        $retString = $this->socket->read()->getData();
+        self::assertEquals($testString, $retString, 'Unexpected result was read');
+    }
+
+    /**
+     * testChunkReading
+     *
+     * @return void
+     */
+    public function testChunkReading()
+    {
+        $data      = 'I will pass this test';
+        $splitData = str_split($data, 1);
+        $freadMock = $this->getMock('Countable', ['count']);
+        $freadMock->expects(self::any())
+            ->method('count')
+            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($splitData));
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(function () {
+            return 1;
+        });
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(function () use ($freadMock) {
+            /** @var \Countable $freadMock */
+            return $freadMock->count();
+        });
+
+        $streamSocketRecvFromData = [];
+        foreach ($splitData as $letter) {
+            $streamSocketRecvFromData[] = $letter;
+            $streamSocketRecvFromData[] = false;
+            if (mt_rand(1, 10) % 2) {
+                $streamSocketRecvFromData[] = false;
+            }
+        }
+        $streamSocketRecvFromData[] = '';
+        $socketReadMock = $this->getMock('Countable', ['count']);
+        $socketReadMock->expects(self::any())
+            ->method('count')
+            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($streamSocketRecvFromData));
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () use ($socketReadMock) {
+                /** @var \Countable $socketReadMock */
+                return $socketReadMock->count();
+            }
+        );
+
+        $response = null;
+        $this->socket->open('it has no meaning here');
+        do {
+            $response = $this->socket->read(null, $response);
+        } while ($response instanceof ChunkSocketResponse);
+
+        self::assertInstanceOf('AsyncSockets\Socket\SocketResponse', $response);
+        self::assertNotInstanceOf(
+            'AsyncSockets\Socket\ChunkSocketResponse',
+            $response,
+            'Final response must not be chunk'
+        );
+
+        self::assertEquals($data, (string) $response, 'Received data is incorrect');
+    }
+
+    /** {@inheritdoc} */
+    public function ioDataProvider()
+    {
+        $falseFunction = function () {
+            return false;
+        };
+
+        return array_merge(
+            parent::ioDataProvider(),
+            [
+                // testExceptionWillBeThrownOnReadError
+                [
+                    [
+                        ['open', ['no matter']],
+                        ['read', []],
+                    ],
+                    [
+                        'stream_select' => $falseFunction,
+                    ],
+                    'Failed to read data.'
+                ],
+
+                // testActualReadingFail
+                [
+                    [
+                        ['open', ['no matter']],
+                        ['read', []],
+                    ],
+                    [
+                        'stream_select' => function () {
+                            return 1;
+                        },
+                        'fread' => $falseFunction,
+                        'stream_socket_recvfrom' => function () {
+                            return 'x';
+                        }
+                    ],
+                    'Failed to read data.'
+                ],
+
+                // testLossConnectionOnReading
+                [
+                    [
+                        ['open', ['no matter']],
+                        ['read', []],
+                    ],
+                    [
+                        'stream_select' => function () {
+                            return 1;
+                        },
+                        'fread' => function () use ($falseFunction) {
+                            PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
+                                $falseFunction
+                            );
+                            return 0;
+                        },
+                        'stream_socket_recvfrom' => function () {
+                            return 'x';
+                        }
+                    ],
+                    'Remote connection has been lost.'
+                ],
+            ]
+        );
+    }
 }

@@ -11,6 +11,7 @@ namespace Tests\AsyncSockets\Socket;
 
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
+use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
 /**
@@ -24,9 +25,16 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     /**
      * Test socket
      *
-     * @var FileSocket
+     * @var SocketInterface
      */
     private $socket;
+
+    /**
+     * Socket resource for test
+     *
+     * @var resource
+     */
+    private $socketResource;
 
     /**
      * AsyncSelector
@@ -242,9 +250,17 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->socket = new FileSocket();
-        $this->socket->open('php://temp');
-        $this->socket->setBlocking(false);
+        $this->socketResource = fopen('php://temp', 'r+');
+        $this->socket = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\SocketInterface',
+            [ ],
+            '',
+            false,
+            true,
+            true,
+            [ 'getStreamResource' ]
+        );
+        $this->socket->expects(self::any())->method('getStreamResource')->willReturn($this->socketResource);
 
         $this->selector = new AsyncSelector();
     }
