@@ -20,6 +20,7 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -35,13 +36,22 @@ class Client
     private $eventDispatcher;
 
     /**
+     * Output
+     *
+     * @var OutputInterface
+     */
+    private $output;
+
+    /**
      * Constructor
      *
      * @param EventDispatcherInterface $eventDispatcher Event dispatcher
+     * @param OutputInterface $output Output for application
      */
-    public function __construct(EventDispatcherInterface $eventDispatcher)
+    public function __construct(EventDispatcherInterface $eventDispatcher, OutputInterface $output)
     {
         $this->eventDispatcher = $eventDispatcher;
+        $this->output          = $output;
     }
 
     /**
@@ -93,7 +103,11 @@ class Client
      */
     public function onWrite(WriteEvent $event)
     {
-        echo 'About to write: ' . number_format(strlen($event->getOperation()->getData()), 0, '.', ' ') . " bytes\n";
+        $this->output->writeln(
+            '<info>About to write</info>: ' .
+            number_format(strlen($event->getOperation()->getData()), 0, '.', ' ') .
+            " bytes"
+        );
         $event->nextIsRead(new MarkerFrame('HTTP', "\r\n\r\n"));
     }
 
@@ -109,7 +123,7 @@ class Client
         $context = $event->getContext();
         $socket  = $event->getSocket();
 
-        echo "Received headers: \n\n" . $event->getResponse()->getData();
+        $this->output->writeln("<info>Received headers</info>: \n\n" . $event->getResponse()->getData());
 
         $event->getExecutor()->getSocketBag()->setSocketMetaData(
             $socket,
@@ -128,7 +142,7 @@ class Client
      */
     public function onPackagistDisconnect(Event $event)
     {
-        echo "Packagist socket has disconnected\n";
+        $this->output->writeln('Packagist socket has disconnected');
 
         $context  = $event->getContext();
         $socket   = $event->getSocket();
@@ -139,7 +153,7 @@ class Client
                                $context[ 'attempts' ] - 1 > 0 &&
                                $meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ];
         if ($isTryingOneMoreTime) {
-            echo "Trying to get data one more time\n";
+            $this->output->writeln('Trying to get data one more time');
 
             $context['attempts'] -= 1;
 

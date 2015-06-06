@@ -19,22 +19,39 @@ use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Class SocketPool
  */
-class SocketPool
+class SocketPool extends Command
 {
-    /**
-     * Main
-     *
-     * @return void
-     */
-    public function main()
+    /** {@inheritdoc} */
+    protected function configure()
     {
-        $destination  = 'tls://packagist.org:443';
-        $countSockets = 256;
-        $limitSockets = 32;
+        parent::configure();
+        $this->setName('demo:socket_pool')
+            ->setDescription('Demonstrates usage of LimitationDeciderInterface')
+            ->addOption('total', 't', InputOption::VALUE_OPTIONAL, 'Total requests to execute', 256)
+            ->addOption('concurrent', 'c', InputOption::VALUE_OPTIONAL, 'Amount of requests executed in time', 32)
+            ->addOption(
+                'address',
+                'a',
+                InputOption::VALUE_OPTIONAL,
+                'Destination address in form scheme://host:port',
+                'tls://packagist.org:443'
+            );
+    }
+
+    /** {@inheritdoc} */
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $destination  = $input->getOption('address');
+        $countSockets = (int) $input->getOption('total');
+        $limitSockets = (int) $input->getOption('concurrent');
         $factory = new AsyncSocketFactory();
 
         $executor = $factory->createRequestExecutor();
@@ -47,7 +64,8 @@ class SocketPool
                     RequestExecutorInterface::META_ADDRESS      => $destination,
                     RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
                     RequestExecutorInterface::META_USER_CONTEXT => [
-                        'index' => $i + 1
+                        'index'  => $i + 1,
+                        'output' => $output,
                     ]
                 ]
             );
@@ -97,7 +115,11 @@ class SocketPool
     {
         $now     = new \DateTime();
         $context = $event->getContext();
-        echo '[' . $now->format('Y-m-d H:i:s') . '] ' . $event->getType() . ' on socket ' . $context['index'] . "\n";
+        $output  = $context['output'];
+        /** @var OutputInterface $output */
+        $output->writeln(
+            "<info>[{$now->format('Y-m-d H:i:s')}] {$event->getType()} on socket {$context['index']}</info>"
+        );
     }
 
     /**
@@ -124,7 +146,6 @@ class SocketPool
         $event->nextOperationNotRequired();
     }
 
-
     /**
      * Exception event
      *
@@ -134,8 +155,14 @@ class SocketPool
      */
     public function onException(SocketExceptionEvent $event)
     {
-        echo 'Exception during processing ' . $event->getOriginalEvent()->getType() . ': ' .
-             $event->getException()->getMessage() . "\n";
+        $context = $event->getContext();
+        $output  = $context['output'];
+        /** @var OutputInterface $output */
+        $message = $event->getException()->getMessage();
+        $type    = $event->getOriginalEvent()->getType();
+        $output->writeln(
+            "<error>Exception during processing {$type}: {$message}</error>"
+        );
     }
 
     /**
@@ -147,7 +174,13 @@ class SocketPool
      */
     public function onTimeout(Event $event)
     {
+        $context = $event->getContext();
+        $output  = $context['output'];
+        /** @var OutputInterface $output */
+
         $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
-        echo "Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
+        $output->writeln(
+            "<comment>Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}</comment>"
+        );
     }
 }

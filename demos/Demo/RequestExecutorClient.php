@@ -20,19 +20,35 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Class RequestExecutorClient
  */
-class RequestExecutorClient
+class RequestExecutorClient extends Command
 {
     /**
-     * Main
+     * OutputInterface
      *
-     * @return void
+     * @var OutputInterface
      */
-    public function main()
+    private $output;
+
+    /** {@inheritdoc} */
+    protected function configure()
     {
+        parent::configure();
+        $this->setName('demo:request_executor_client')
+            ->setDescription('Demonstrates usage of RequestExecutorInterface');
+    }
+
+    /** {@inheritdoc} */
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $this->output = $output;
+
         $factory = new AsyncSocketFactory();
 
         $client        = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
@@ -75,6 +91,7 @@ class RequestExecutorClient
         );
 
         $executor->executeRequest();
+        $this->output = null;
     }
 
     /**
@@ -88,8 +105,8 @@ class RequestExecutorClient
     {
         $now  = new \DateTime();
         $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
-        echo '[' . $now->format('Y-m-d H:i:s') . '] ' . $event->getType() . ' on socket ' .
-             $meta[RequestExecutorInterface::META_ADDRESS] . "\n";
+        $this->output->writeln('[' . $now->format('Y-m-d H:i:s') . '] ' . $event->getType() . ' on socket ' .
+             $meta[RequestExecutorInterface::META_ADDRESS]);
     }
 
     /**
@@ -119,8 +136,8 @@ class RequestExecutorClient
 
         $context['response'] = $event->getResponse()->getData();
 
-        echo $meta[RequestExecutorInterface::META_ADDRESS] . ' read ' .
-             number_format(strlen($context['response']), 0, ',', ' ') . " bytes \n";
+        $this->output->writeln("<info>{$meta[RequestExecutorInterface::META_ADDRESS]}  read " .
+             number_format(strlen($context['response']), 0, ',', ' ') . ' bytes</info>');
 
         $event->getExecutor()->getSocketBag()->setSocketMetaData(
             $socket,
@@ -147,9 +164,9 @@ class RequestExecutorClient
         $isTryingOneMoreTime = isset($context[ 'attempts' ]) &&
             $context[ 'attempts' ] - 1 > 0 &&
             $meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ];
-        echo "Packagist socket has disconnected\n";
+        $this->output->writeln('Packagist socket has disconnected') ;
         if ($isTryingOneMoreTime) {
-            echo "Trying to get data one more time\n";
+            $this->output->writeln('Trying to get data one more time');
 
             $context['attempts'] -= 1;
 
@@ -166,7 +183,7 @@ class RequestExecutorClient
      */
     public function onGitHubDisconnect()
     {
-        echo "GitHub socket has disconnected\n";
+        $this->output->writeln('GitHub socket has disconnected');
     }
 
     /**
@@ -179,7 +196,7 @@ class RequestExecutorClient
     public function onPackagistConnected(Event $event)
     {
         $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
-        echo "Connected to Packagist: {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
+        $this->output->writeln("Connected to Packagist: {$meta[RequestExecutorInterface::META_ADDRESS]}");
     }
 
     /**
@@ -192,7 +209,7 @@ class RequestExecutorClient
     public function onGitHubConnected(Event $event)
     {
         $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
-        echo "Connected to GitHub: {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
+        $this->output->writeln("Connected to GitHub: {$meta[RequestExecutorInterface::META_ADDRESS]}");
     }
 
     /**
@@ -204,8 +221,8 @@ class RequestExecutorClient
      */
     public function onException(SocketExceptionEvent $event)
     {
-        echo 'Exception during processing ' . $event->getOriginalEvent()->getType() . ': ' .
-            $event->getException()->getMessage() . "\n";
+        $this->output->writeln('<error>Exception during processing ' . $event->getOriginalEvent()->getType() . ': ' .
+            $event->getException()->getMessage() . '</error>');
     }
 
     /**
@@ -218,7 +235,9 @@ class RequestExecutorClient
     public function onTimeout(Event $event)
     {
         $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
-        echo "Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}\n";
+        $this->output->writeln(
+            "<comment>Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}</comment>"
+        );
     }
 
     /**

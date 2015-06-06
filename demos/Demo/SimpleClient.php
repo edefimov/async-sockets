@@ -12,19 +12,25 @@ namespace Demo;
 
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Socket\AsyncSocketFactory;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Class SimpleClient
  */
-final class SimpleClient
+final class SimpleClient extends Command
 {
-    /**
-     * Main
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function main()
+    /** {@inheritdoc} */
+    protected function configure()
+    {
+        parent::configure();
+        $this->setName('demo:simple_client')
+            ->setDescription('Demonstrates simple synchronous socket');
+    }
+
+    /** {@inheritdoc} */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         try {
             $factory = new AsyncSocketFactory();
@@ -35,9 +41,9 @@ final class SimpleClient
             $response = $client->read()->getData();
             $client->close();
 
-            echo $response;
+            $output->writeln($response);
         } catch (SocketException $e) {
-            echo $e->getMessage() . "\n";
+            $output->writeln("<error>{$e->getMessage()}</error>");
         }
     }
 }

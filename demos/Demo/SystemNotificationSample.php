@@ -13,35 +13,42 @@ namespace Demo;
 use AsyncSockets\Event\Event;
 use Demo\SystemNotificationSample\Client;
 use Demo\SystemNotificationSample\Logger;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 /**
  * Class SystemNotificationSample
  */
-class SystemNotificationSample
+class SystemNotificationSample extends Command
 {
-    /**
-     * Main
-     *
-     * @return int
-     */
-    public function main()
+    /** {@inheritdoc} */
+    protected function configure()
+    {
+        parent::configure();
+        $this->setName('demo:system_notification_sample')
+            ->setDescription('Demonstrates interaction with external parts of system');
+    }
+
+    /** {@inheritdoc} */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         if (!class_exists('Symfony\Component\EventDispatcher\EventDispatcher', true)) {
-            echo <<<HELP
-To run this demo you should have symfony/event-dispatcher package installed.
+            $output->writeln(<<<HELP
+<error>To run this demo you should have symfony/event-dispatcher package installed.
 You can add it by running command:
 
   \$ composer require \"symfony/event-dispatcher\" \"*\"
 
-You are free to choose any version, greater or equals to 2.0.0
-HELP;
-            return -1;
+You are free to choose any version</error>
+HELP
+            );
         }
 
-        $logger     = new Logger();
+        $logger     = new Logger($output);
         $dispatcher = new EventDispatcher();
-        $client     = new Client($dispatcher);
+        $client     = new Client($dispatcher, $output);
 
         $ref = new \ReflectionClass('AsyncSockets\Event\EventType');
         foreach ($ref->getConstants() as $eventType) {

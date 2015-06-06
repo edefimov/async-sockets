@@ -27,6 +27,7 @@
     },
     "require-dev": {
         "symfony/event-dispatcher": "*",
+        "symfony/console": "~2.7",
         "satooshi/php-coveralls": "dev-master"
     },
     "suggest": {

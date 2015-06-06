@@ -15,19 +15,25 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Class SimpleAsyncClient
  */
-final class SimpleAsyncClient
+final class SimpleAsyncClient extends Command
 {
-    /**
-     * Main
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function main()
+    /** {@inheritdoc} */
+    protected function configure()
+    {
+        parent::configure();
+        $this->setName('demo:simple_async_client')
+            ->setDescription('Demonstrates select-like usage of library');
+    }
+
+    /** {@inheritdoc} */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         try {
             $factory = new AsyncSocketFactory();
@@ -36,10 +42,12 @@ final class SimpleAsyncClient
             $anotherClient = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
 
             $selector = $factory->createSelector();
-            $selector->addSocketOperationArray([
-                [$client, RequestExecutorInterface::OPERATION_WRITE],
-                [$anotherClient, RequestExecutorInterface::OPERATION_WRITE],
-            ]);
+            $selector->addSocketOperationArray(
+                [
+                    [ $client, RequestExecutorInterface::OPERATION_WRITE ],
+                    [ $anotherClient, RequestExecutorInterface::OPERATION_WRITE ],
+                ]
+            );
 
             $data = [
                 spl_object_hash($client) => [
@@ -80,9 +88,11 @@ final class SimpleAsyncClient
 
                 foreach ($context->getRead() as $socket) {
                     $response = $socket->read(null, $data[spl_object_hash($socket)]['lastResponse']);
+                    $hash     = spl_object_hash($socket);
                     if (!($response instanceof ChunkSocketResponse)) {
                         $numReadClient += 1;
-                        echo $response->getData() . "\n\n\n";
+                        $output->writeln("<info>Response from {$data[$hash]['address']}</info>");
+                        $output->writeln($response->getData() . "\n");
                         $selector->removeAllSocketOperations($socket);
                     } else {
                         $data[spl_object_hash($socket)]['lastResponse'] = $response;
@@ -92,7 +102,7 @@ final class SimpleAsyncClient
             } while ($numReadClient < $aliveClients);
 
         } catch (SocketException $e) {
-            echo $e->getMessage() . "\n";
+            $output->writeln("<error>{$e->getMessage()}</error>");
         }
     }
 }

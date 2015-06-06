@@ -8,12 +8,31 @@
  * with this source code in the file LICENSE.
  */
 namespace Demo\SystemNotificationSample;
- 
+
+use Symfony\Component\Console\Output\OutputInterface;
+
 /**
  * Class Logger
  */
 class Logger
 {
+    /**
+     * Output
+     *
+     * @var OutputInterface
+     */
+    private $output;
+
+    /**
+     * Logger constructor.
+     *
+     * @param OutputInterface $output Output interface
+     */
+    public function __construct(OutputInterface $output)
+    {
+        $this->output = $output;
+    }
+
     /**
      * Simple log
      *
@@ -24,6 +43,6 @@ class Logger
     public function log($message)
     {
         $now = new \DateTime();
-        echo '[' . $now->format('Y-m-d H:i:s') . ']: ' . $message . "\n";
+        $this->output->writeln("<info>[{$now->format('Y-m-d H:i:s')}]: {$message}</info>");
     }
 }
