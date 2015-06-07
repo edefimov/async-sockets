@@ -34,8 +34,11 @@ Async sockets library will be good for such tasks like executing multiple reques
 The recommended way to install async sockets library is through composer
 
 ```
-$ composer require edefimov/async-sockets:~0.1.0
+$ composer require edefimov/async-sockets:~0.1.0 --prefer-dist|--prefer-source
 ```
+
+Use `--prefer-dist` option in production environment, so as it ignores downloading of test and demo files, 
+and `--prefer-source` option for development. Development version includes both test and demo files.
 
 ## Example usage
 

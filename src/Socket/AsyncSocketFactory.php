@@ -27,6 +27,11 @@ class AsyncSocketFactory
     const SOCKET_CLIENT = 'client';
 
     /**
+     * Create server socket
+     */
+    const SOCKET_SERVER = 'server';
+
+    /**
      * Create socket client
      *
      * @param string $type Socket type to create, one of SOCKET_* consts
@@ -41,10 +46,11 @@ class AsyncSocketFactory
         switch ($type) {
             case self::SOCKET_CLIENT:
                 return new ClientSocket();
+            case self::SOCKET_SERVER:
+                return new ServerSocket();
             default:
                 throw new \InvalidArgumentException("Unexpected type {$type} used in " . __FUNCTION__);
         }
-
     }
 
     /**
@@ -61,17 +67,5 @@ class AsyncSocketFactory
         } else {
             return new RequestExecutor();
         }
-    }
-
-    /**
-     * Create socket operation selector
-     *
-     * @return AsyncSelector
-     *
-     * @api
-     */
-    public function createSelector()
-    {
-        return new AsyncSelector();
     }
 }

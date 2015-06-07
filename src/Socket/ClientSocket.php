@@ -154,4 +154,11 @@ class ClientSocket extends AbstractSocket
 
         return false;
     }
+
+    /** {@inheritdoc} */
+    protected function isConnected($socket)
+    {
+        $name = stream_socket_get_name($socket, true);
+        return $name !== false;
+    }
 }

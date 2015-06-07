@@ -15,6 +15,8 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\AcceptResponse;
+use AsyncSockets\Socket\SocketInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
@@ -81,7 +83,7 @@ class EventDispatcherAwareRequestExecutorTest extends RequestExecutorTest
         }
 
         $this->executor->getSocketBag()->addSocket(
-            $this->socket,
+            $this->getSocketForEventType($eventType),
             $operation,
             $meta
         );

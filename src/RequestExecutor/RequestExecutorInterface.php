@@ -28,6 +28,11 @@ interface RequestExecutorInterface
     const OPERATION_WRITE = 'write';
 
     /**
+     * Special timeout value, which means, that socket will wait forever. Use with server sockets
+     */
+    const WAIT_FOREVER = null;
+
+    /**
      * Next I/O operation to perform on socket
      */
     const META_OPERATION = 'operation';

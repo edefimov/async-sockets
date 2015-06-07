@@ -10,17 +10,20 @@
 
 namespace AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Event\AcceptEvent;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\Exception\AcceptException;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopRequestExecuteException;
 use AsyncSockets\Exception\StopSocketOperationException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
+use AsyncSockets\Socket\AcceptResponse;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
@@ -461,16 +464,33 @@ class RequestExecutor implements RequestExecutorInterface
         try {
             /** @var ReadOperation $operation */
             $response = $socket->read($operation->getFrame(), $operationMetadata->getPreviousResponse());
-            if ($response instanceof ChunkSocketResponse) {
-                $operationMetadata->setPreviousResponse($response);
+            switch (true) {
+                case $response instanceof ChunkSocketResponse:
+                    $operationMetadata->setPreviousResponse($response);
+                    return self::IO_STATE_PARTIAL;
+                case $response instanceof AcceptResponse:
+                    $event = new AcceptEvent(
+                        $this,
+                        $socket,
+                        $meta[ self::META_USER_CONTEXT ],
+                        $response->getClientSocket(),
+                        $response->getClientAddress()
+                    );
 
-                return self::IO_STATE_PARTIAL;
+                    $this->callSocketSubscribers($socket, $event);
+                    $nextOperation = new ReadOperation();
+                    return self:: IO_STATE_DONE;
+                default:
+                    $event = new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $response);
+
+                    $this->callSocketSubscribers($socket, $event);
+                    $nextOperation = $event->getNextOperation();
+                    return self::IO_STATE_DONE;
             }
+        } catch (AcceptException $e) {
+            $this->callExceptionSubscribers($socket, $e, null);
+            $nextOperation = new ReadOperation();
 
-            $event = new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ], $response);
-
-            $this->callSocketSubscribers($socket, $event);
-            $nextOperation = $event->getNextOperation();
             return self::IO_STATE_DONE;
         } catch (SocketException $e) {
             $this->callExceptionSubscribers(
@@ -478,6 +498,7 @@ class RequestExecutor implements RequestExecutorInterface
                 $e,
                 $event ?: new ReadEvent($this, $socket, $meta[ self::META_USER_CONTEXT ])
             );
+
             return self::IO_STATE_EXCEPTION;
         }
     }
@@ -522,9 +543,11 @@ class RequestExecutor implements RequestExecutorInterface
             $meta      = $operation->getMetadata();
             $microtime = microtime(true);
             $isTimeout =
-                ($meta[self::META_CONNECTION_FINISH_TIME] === null &&
+                ($meta[self::META_CONNECTION_TIMEOUT] !== RequestExecutorInterface::WAIT_FOREVER &&
+                 $meta[self::META_CONNECTION_FINISH_TIME] === null &&
                  $microtime - $meta[self::META_CONNECTION_START_TIME] > $meta[self::META_CONNECTION_TIMEOUT]) ||
-                ($meta[self::META_CONNECTION_FINISH_TIME] !== null &&
+                ($meta[self::META_IO_TIMEOUT] !== RequestExecutorInterface::WAIT_FOREVER &&
+                 $meta[self::META_CONNECTION_FINISH_TIME] !== null &&
                  $meta[self::META_LAST_IO_START_TIME] !== null &&
                  $microtime - $meta[self::META_LAST_IO_START_TIME] > $meta[self::META_IO_TIMEOUT]);
             if ($isTimeout) {
@@ -606,29 +629,42 @@ class RequestExecutor implements RequestExecutorInterface
         $timeList  = [];
         $microtime = microtime(true);
         foreach ($activeOperations as $activeOperation) {
-            $meta = $activeOperation->getMetadata();
+            $meta    = $activeOperation->getMetadata();
+            $timeout = null;
             if ($meta[self::META_CONNECTION_FINISH_TIME] === null) {
-                $timeout = $meta[self::META_CONNECTION_START_TIME] === null ?
-                    $meta[self::META_CONNECTION_TIMEOUT] :
-                    $meta[self::META_CONNECTION_TIMEOUT] - ($microtime - $meta[self::META_CONNECTION_START_TIME]);
+                if ($meta[self::META_CONNECTION_TIMEOUT] !== RequestExecutorInterface::WAIT_FOREVER) {
+                    $timeout = $meta[self::META_CONNECTION_START_TIME] === null ?
+                        $meta[self::META_CONNECTION_TIMEOUT] :
+                        $meta[self::META_CONNECTION_TIMEOUT] - ($microtime - $meta[self::META_CONNECTION_START_TIME]);
+                }
             } else {
-                $timeout = $meta[self::META_LAST_IO_START_TIME] === null ?
-                    $meta[self::META_IO_TIMEOUT] :
-                    $meta[self::META_IO_TIMEOUT] - ($microtime - $meta[self::META_LAST_IO_START_TIME])
-                ;
+                if ($meta[self::META_IO_TIMEOUT] !== RequestExecutorInterface::WAIT_FOREVER) {
+                    $timeout = $meta[self::META_LAST_IO_START_TIME] === null ?
+                        $meta[self::META_IO_TIMEOUT] :
+                        $meta[self::META_IO_TIMEOUT] - ($microtime - $meta[self::META_LAST_IO_START_TIME])
+                    ;
+                }
             }
 
-            if ($timeout > 0) {
+            if ($timeout > 0 || $timeout === null) {
                 $timeList[] = $timeout;
             }
         }
 
         if ($timeList) {
-            $timeout = min($timeList);
-            $result = [
-                'sec'      => (int) floor($timeout),
-                'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000
-            ];
+            $timeList = array_filter($timeList);
+            if ($timeList) {
+                $timeout = min($timeList);
+                $result = [
+                    'sec'      => (int) floor($timeout),
+                    'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000
+                ];
+            } else {
+                $result = [
+                    'sec'      => null,
+                    'microsec' => null
+                ];
+            }
         }
 
         return $result;

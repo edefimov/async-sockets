@@ -181,9 +181,10 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             true,
             true,
             true,
-            [ $method, 'createSocketResource' ]
+            [ $method, 'createSocketResource', 'isConnected' ]
         );
 
+        $mock->expects(self::any())->method('isConnected')->willReturn($method === 'close');
         if ($method !== 'close') {
             $mock
                 ->expects(self::once())
@@ -788,7 +789,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $meta[ RequestExecutor::META_CONNECTION_TIMEOUT ] = 1;
         }
 
-        $this->executor->getSocketBag()->addSocket($this->socket, $operation, $meta);
+        $this->executor->getSocketBag()->addSocket($this->getSocketForEventType($eventType), $operation, $meta);
 
         $handler = function (Event $event) use ($eventType) {
             $readWriteTypes = [ EventType::READ, EventType::WRITE ];
@@ -805,6 +806,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 [
                     EventType::INITIALIZE   => $handler,
                     EventType::CONNECTED    => $handler,
+                    EventType::ACCEPT       => $handler,
                     EventType::READ         => $handler,
                     EventType::WRITE        => $handler,
                     EventType::DISCONNECTED => $handler,
@@ -856,7 +858,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $meta[ RequestExecutor::META_CONNECTION_TIMEOUT ] = 1;
         }
 
-        $this->executor->getSocketBag()->addSocket($this->socket, $operation, $meta);
+        $this->executor->getSocketBag()->addSocket($this->getSocketForEventType($eventType), $operation, $meta);
 
         $handler = function (Event $event) use ($eventType) {
             $readWriteTypes = [ EventType::READ, EventType::WRITE ];
@@ -877,6 +879,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 [
                     EventType::INITIALIZE   => $handler,
                     EventType::CONNECTED    => $handler,
+                    EventType::ACCEPT       => $handler,
                     EventType::READ         => $handler,
                     EventType::WRITE        => $handler,
                     EventType::DISCONNECTED => $handler,
@@ -966,7 +969,9 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $result = [ ];
             foreach ($ref->getConstants() as $value) {
                 $result[] = [ $value, new ReadOperation() ];
-                $result[] = [ $value, new WriteOperation() ];
+                if ($value !== EventType::ACCEPT) {
+                    $result[] = [ $value, new WriteOperation() ];
+                }
             }
         }
 
@@ -990,5 +995,47 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         self::assertEquals($sequence, count($mock), $event->getType() . ' must be fired ' . $sequence);
         self::assertSame($this->socket, $event->getSocket(), 'Strange socket provided');
         self::assertNotNull($event->getExecutor(), 'Request executor was not provided');
+    }
+
+    /**
+     * Return socket object for given event type
+     *
+     * @param string $eventType Event type
+     *
+     * @return SocketInterface
+     */
+    protected function getSocketForEventType($eventType)
+    {
+        switch ($eventType) {
+            case EventType::ACCEPT:
+                $mock = $this->getMock('AsyncSockets\Socket\ServerSocket', ['read', 'createSocketResource' , 'write']);
+
+                $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
+                    function () {
+                        return fopen('php://temp', 'rw');
+                    }
+                );
+                $mock->expects(self::any())->method('read')->willReturnCallback(
+                    function () {
+                        $mock = $this->getMock(
+                            'AsyncSockets\Socket\AcceptResponse',
+                            [ 'getClientSocket', 'getClientAddress' ],
+                            [ ],
+                            '',
+                            false
+                        );
+
+                        $mock->expects(self::any())->method('getClientAddress')->willReturn('127.0.0.1:11111');
+                        $mock->expects(self::any())
+                             ->method('getClientSocket')
+                             ->willReturn($this->getMock('AsyncSockets\Socket\ClientSocket'));
+
+                        return $mock;
+                    }
+                );
+                return $mock;
+            default:
+                return $this->socket;
+        }
     }
 }

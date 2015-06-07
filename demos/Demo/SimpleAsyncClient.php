@@ -12,6 +12,7 @@ namespace Demo;
 
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
@@ -41,7 +42,7 @@ final class SimpleAsyncClient extends Command
             $client        = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
             $anotherClient = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
 
-            $selector = $factory->createSelector();
+            $selector = new AsyncSelector();
             $selector->addSocketOperationArray(
                 [
                     [ $client, RequestExecutorInterface::OPERATION_WRITE ],

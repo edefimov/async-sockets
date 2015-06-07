@@ -162,6 +162,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
         $class  = get_class($this->socket);
         $object = $this->getMockBuilder($class)
             ->setMethods(['close'])
+            ->disableOriginalConstructor()
             ->getMock();
         $object->expects(self::once())
             ->method('close')
@@ -194,18 +195,6 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
                 'Can not start io operation on uninitialized socket.'
             ],
 
-            // testConnectionRefusedOnRead
-            [
-                [
-                    ['open', ['no matter']],
-                    ['read', []],
-                ],
-                [
-                    'stream_socket_get_name' => $falseFunction
-                ],
-                'Connection refused.'
-            ],
-
             // testWriteFailureIfNoResource
             [
                 [
@@ -215,18 +204,6 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
 
                 ],
                 'Can not start io operation on uninitialized socket.'
-            ],
-
-            // testConnectionRefusedOnWrite
-            [
-                [
-                    ['open', ['no matter']],
-                    ['write', ['some data to write']],
-                ],
-                [
-                    'stream_socket_get_name' => $falseFunction
-                ],
-                'Connection refused.'
             ],
 
             // testExceptionWillBeThrownOnWriteError
@@ -276,29 +253,6 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
                 'Failed to send data.'
             ],
 
-            // testLossConnectionOnWriting
-            [
-                [
-                    ['open', ['no matter']],
-                    ['write', ['some data to write']],
-                ],
-                [
-                    'stream_select' => function () {
-                        return 1;
-                    },
-                    'fwrite' => function () use ($falseFunction) {
-                        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
-                            $falseFunction
-                        );
-                        return 0;
-                    },
-                    'stream_socket_sendto' => function ($handle, $data) {
-                        return strlen($data);
-                    }
-                ],
-                'Remote connection has been lost.'
-            ],
-
             // testWriteFailByAttempts
             [
                 [
@@ -335,9 +289,10 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
             true,
             true,
             true,
-            ['createSocketResource', 'doReadData']
+            ['createSocketResource', 'doReadData', 'isConnected']
         );
 
+        $mock->expects(self::any())->method('isConnected')->willReturn(true);
         $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
             function () {
                 return fopen('php://temp', 'rw');

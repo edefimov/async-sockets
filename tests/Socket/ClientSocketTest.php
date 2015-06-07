@@ -209,6 +209,53 @@ class ClientSocketTest extends AbstractSocketTest
                     ],
                     'Remote connection has been lost.'
                 ],
+
+                // testConnectionRefusedOnRead
+                [
+                    [
+                        ['open', ['no matter']],
+                        ['read', []],
+                    ],
+                    [
+                        'stream_socket_get_name' => $falseFunction
+                    ],
+                    'Connection refused.'
+                ],
+
+                // testConnectionRefusedOnWrite
+                [
+                    [
+                        ['open', ['no matter']],
+                        ['write', ['some data to write']],
+                    ],
+                    [
+                        'stream_socket_get_name' => $falseFunction
+                    ],
+                    'Connection refused.'
+                ],
+
+                // testLossConnectionOnWriting
+                [
+                    [
+                        ['open', ['no matter']],
+                        ['write', ['some data to write']],
+                    ],
+                    [
+                        'stream_select' => function () {
+                            return 1;
+                        },
+                        'fwrite' => function () use ($falseFunction) {
+                            PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
+                                $falseFunction
+                            );
+                            return 0;
+                        },
+                        'stream_socket_sendto' => function ($handle, $data) {
+                            return strlen($data);
+                        }
+                    ],
+                    'Remote connection has been lost.'
+                ],
             ]
         );
     }

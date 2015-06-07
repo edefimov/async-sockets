@@ -84,6 +84,15 @@ abstract class AbstractSocket implements SocketInterface
     abstract protected function createSocketResource($address, $context);
 
     /**
+     * Check whether given socket resource is connected
+     *
+     * @param resource $socket Socket resource to check
+     *
+     * @return bool
+     */
+    abstract protected function isConnected($socket);
+
+    /**
      * Perform reading data from socket
      *
      * @param resource            $socket Socket resource
@@ -259,9 +268,11 @@ abstract class AbstractSocket implements SocketInterface
      *
      * @return void
      */
-    protected function throwExceptionIfNotConnected($message)
+    final protected function throwExceptionIfNotConnected($message)
     {
-        $name = stream_socket_get_name($this->resource, true);
-        $this->throwNetworkSocketExceptionIf($name === false, $message);
+        $this->throwNetworkSocketExceptionIf(
+            !$this->isConnected($this->resource),
+            $message
+        );
     }
 }

@@ -42,6 +42,13 @@ final class EventType
     const CONNECTED = 'socket.event.connected';
 
     /**
+     * Event is fired by server sockets when new client was connected. AcceptEvent will be given in argument
+     *
+     * @see AcceptEvent
+     */
+    const ACCEPT = 'socket.event.accept';
+
+    /**
      * Socket data has been read into event object. ReadEvent object will be given in argument. Use event object
      * to get received data
      *

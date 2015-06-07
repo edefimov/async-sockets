@@ -96,20 +96,6 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testCreateAsyncSelector
-     *
-     * @return void
-     */
-    public function testCreateAsyncSelector()
-    {
-        self::assertInstanceOf(
-            'AsyncSockets\Socket\AsyncSelector',
-            $this->factory->createSelector(),
-            'Strange selector was created'
-        );
-    }
-
-    /**
      * testCreateSocket
      *
      * @param string $type Socket type
