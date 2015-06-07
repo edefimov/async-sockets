@@ -67,6 +67,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
+        $isOpened             = false;
         $this->socketResource = fopen('php://temp', 'r+');
         $this->socket         = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\SocketInterface',
@@ -75,11 +76,19 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             false,
             true,
             true,
-            [ 'getStreamResource', 'read' ]
+            [ 'getStreamResource', 'read', 'open' ]
         );
-        $this->socket->expects(self::any())->method('getStreamResource')->willReturnCallback(function () {
-            return $this->socketResource;
-        });
+        $this->socket->expects(self::any())->method('getStreamResource')->willReturnCallback(
+            function () use (&$isOpened) {
+                return $isOpened ? $this->socketResource : null;
+            }
+        );
+        $this->socket->expects(self::any())->method('open')->willReturnCallback(
+            function () use (&$isOpened) {
+                $isOpened = true;
+            }
+        );
+
         $this->socket->expects(self::any())->method('read')->willReturnCallback(function () {
             $mock = $this->getMockForAbstractClass(
                 'AsyncSockets\Socket\SocketResponseInterface',

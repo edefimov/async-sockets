@@ -206,6 +206,46 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testGetSetSocketOperation
+     *
+     * @return void
+     */
+    public function testGetSetSocketOperation()
+    {
+        $this->bag->addSocket(
+            $this->socket,
+            $this->operation
+        );
+
+        self::assertSame(
+            $this->operation,
+            $this->bag->getSocketOperation($this->socket),
+            'Incorrect initial operation'
+        );
+
+        $operation = clone $this->operation;
+        $this->bag->setSocketOperation($this->socket, $operation);
+
+        self::assertSame(
+            $operation,
+            $this->bag->getSocketOperation($this->socket),
+            'Incorrect set operation'
+        );
+    }
+
+    /**
+     * testExceptionWillBeThrownForRequireKey
+     *
+     * @return void
+     * @expectedException \OutOfBoundsException
+     * @expectedExceptionMessage Trying to perform operation on not added socket.
+     */
+    public function testExceptionWillBeThrownForRequireKey()
+    {
+        $this->bag->requireOperationKey($this->socket);
+    }
+
+    /**
      * metadataKeysDataProvider
      *
      * @return array

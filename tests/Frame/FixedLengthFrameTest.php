@@ -11,12 +11,25 @@
 namespace Tests\AsyncSockets\Frame;
 
 use AsyncSockets\Frame\FixedLengthFrame;
+use AsyncSockets\Frame\FrameInterface;
 
 /**
  * Class FixedLengthFrameTest
  */
-class FixedLengthFrameTest extends \PHPUnit_Framework_TestCase
+class FixedLengthFrameTest extends AbstractFrameTest
 {
+    /** {@inheritdoc} */
+    protected function createFrame()
+    {
+        return new FixedLengthFrame(5);
+    }
+
+    /** {@inheritdoc} */
+    protected function ensureStartOfFrameIsFound(FrameInterface $frame)
+    {
+        $frame->findStartOfFrame('data', 4, '');
+    }
+
     /**
      * testGetters
      *

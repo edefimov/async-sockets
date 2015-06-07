@@ -10,27 +10,52 @@
 
 namespace Tests\AsyncSockets\Frame;
 
+use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\MarkerFrame;
 
 /**
  * Class MarkerFrameTest
  */
-class MarkerFrameTest extends \PHPUnit_Framework_TestCase
+class MarkerFrameTest extends AbstractFrameTest
 {
     /**
-     * testInitialState
+     * Start marker
      *
-     * @return void
+     * @var string
      */
+    private $startMarker;
+
+    /**
+     * End marker
+     *
+     * @var string
+     */
+    private $endMarker;
+
+    /** {@inheritdoc} */
+    protected function createFrame()
+    {
+        $this->startMarker = base64_encode(md5(microtime(true)));
+        $this->endMarker   = base64_encode(md5(microtime(true)));
+        return new MarkerFrame($this->startMarker, $this->endMarker);
+    }
+
+    /** {@inheritdoc} */
+    protected function ensureStartOfFrameIsFound(FrameInterface $frame)
+    {
+        $frame->findStartOfFrame($this->startMarker . 'aaaa', strlen($this->startMarker) + 4, '');
+    }
+
+    /** {@inheritdoc} */
     public function testInitialState()
     {
-        $start = base64_encode(md5(microtime(true)));
-        $end   = base64_encode(md5(microtime(true)));
-        $frame = new MarkerFrame($start, $end);
+        $frame = parent::testInitialState();
 
-        self::assertEquals($start, $frame->getStartMarker(), 'Incorrect start marker');
-        self::assertEquals($end, $frame->getEndMarker(), 'Incorrect end marker');
-        self::assertFalse($frame->isEof(), 'Incorrect end of frame');
+        /** @var MarkerFrame $frame */
+        self::assertEquals($this->startMarker, $frame->getStartMarker(), 'Incorrect start marker');
+        self::assertEquals($this->endMarker, $frame->getEndMarker(), 'Incorrect end marker');
+
+        return $frame;
     }
 
     /**
