@@ -14,7 +14,7 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Frame\MarkerFrame;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
@@ -60,7 +60,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
         }
 
         $this->executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::WRITE => function (WriteEvent $event) {
                         $event->nextIsRead();

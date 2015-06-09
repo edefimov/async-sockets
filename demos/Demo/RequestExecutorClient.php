@@ -15,7 +15,7 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -64,7 +64,7 @@ class RequestExecutorClient extends Command
                 RequestExecutorInterface::META_ADDRESS      => 'tls://github.com:443',
                 RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::DISCONNECTED => [ $this, 'onGitHubDisconnect' ],
                     EventType::CONNECTED    => [ $this, 'onGitHubConnected' ],
@@ -73,7 +73,7 @@ class RequestExecutorClient extends Command
         );
 
         $executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::CONNECTED => function () {
                         echo "Some socket connected\n";
@@ -270,7 +270,7 @@ class RequestExecutorClient extends Command
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT => $connectionTimeout,
                 RequestExecutorInterface::META_IO_TIMEOUT         => $ioTimeout,
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::DISCONNECTED => [$this, 'onPackagistDisconnect'],
                     EventType::CONNECTED    => [$this, 'onPackagistConnected'],

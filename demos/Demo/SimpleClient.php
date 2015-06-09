@@ -41,7 +41,7 @@ final class SimpleClient extends Command
             $response = $client->read()->getData();
             $client->close();
 
-            $output->writeln($response);
+            $output->writeln((string) $response);
         } catch (SocketException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
         }

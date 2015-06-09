@@ -59,7 +59,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
             $this->socket,
             $this->operation,
             [ ],
-            $this->getMock('AsyncSockets\RequestExecutor\EventInvocationHandlerInterface')
+            $this->getMock('AsyncSockets\RequestExecutor\EventHandlerInterface')
         );
     }
 

@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor;
 use AsyncSockets\Event\Event;
 
 /**
- * Interface EventInvocationHandlerInterface
+ * Interface EventHandlerInterface
  */
-interface EventInvocationHandlerInterface
+interface EventHandlerInterface
 {
     /**
      * Invokes on each event in RequestExecutor

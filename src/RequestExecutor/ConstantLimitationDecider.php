@@ -16,7 +16,7 @@ use AsyncSockets\Socket\SocketInterface;
 /**
  * Class ConstantLimitationDecider
  */
-class ConstantLimitationDecider implements LimitationDeciderInterface, EventInvocationHandlerInterface
+class ConstantLimitationDecider implements LimitationDeciderInterface, EventHandlerInterface
 {
     /**
      * Limit of running requests

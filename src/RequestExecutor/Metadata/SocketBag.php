@@ -10,7 +10,7 @@
 namespace AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\RequestExecutor\OperationInterface;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerInterface;
+use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\SocketBagInterface;
 use AsyncSockets\Socket\SocketInterface;
@@ -65,7 +65,7 @@ class SocketBag implements SocketBagInterface
         SocketInterface $socket,
         OperationInterface $operation,
         array $metadata = null,
-        EventInvocationHandlerInterface $eventHandlers = null
+        EventHandlerInterface $eventHandlers = null
     ) {
         $hash = $this->getOperationStorageKey($socket);
         if (isset($this->items[$hash])) {

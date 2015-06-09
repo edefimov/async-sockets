@@ -11,7 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\Metadata\HandlerBag;
 
 /**
@@ -22,7 +22,7 @@ class EventInvocationHandlerBagTest extends \PHPUnit_Framework_TestCase
     /**
      * Handler bag
      *
-     * @var EventInvocationHandlerBag
+     * @var CallbackEventHandler
      */
     private $bag;
 
@@ -30,7 +30,7 @@ class EventInvocationHandlerBagTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->bag = new EventInvocationHandlerBag();
+        $this->bag = new CallbackEventHandler();
     }
 
     /**

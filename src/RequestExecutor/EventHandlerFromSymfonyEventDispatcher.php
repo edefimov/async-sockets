@@ -10,13 +10,12 @@
 namespace AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
-use AsyncSockets\Socket\SocketInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Class EventDispatcherAwareRequestExecutor
+ * Class EventHandlerFromSymfonyEventDispatcher
  */
-class EventDispatcherAwareRequestExecutor extends RequestExecutor implements EventDispatcherAwareInterface
+class EventHandlerFromSymfonyEventDispatcher implements EventHandlerInterface
 {
     /**
      * EventDispatcherInterface
@@ -25,19 +24,19 @@ class EventDispatcherAwareRequestExecutor extends RequestExecutor implements Eve
      */
     private $eventDispatcher;
 
-    /** {@inheritdoc} */
-    public function setEventDispatcher(EventDispatcherInterface $eventDispatcher = null)
+    /**
+     * EventHandlerFromSymfonyEventDispatcher constructor.
+     *
+     * @param EventDispatcherInterface $eventDispatcher Symfony event dispatcher
+     */
+    public function __construct(EventDispatcherInterface $eventDispatcher)
     {
         $this->eventDispatcher = $eventDispatcher;
     }
 
     /** {@inheritdoc} */
-    protected function handleSocketEvent(
-        SocketInterface $socket,
-        Event $event
-    ) {
-        if ($this->eventDispatcher) {
-            $this->eventDispatcher->dispatch($event->getType(), $event);
-        }
+    public function invokeEvent(Event $event)
+    {
+        $this->eventDispatcher->dispatch($event->getType(), $event);
     }
 }

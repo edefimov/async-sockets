@@ -13,8 +13,8 @@ use AsyncSockets\Event\AcceptEvent;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerInterface;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
+use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -31,7 +31,7 @@ class SimpleServer extends Command
     /**
      * Handlers for client
      *
-     * @var EventInvocationHandlerInterface
+     * @var EventHandlerInterface
      */
     private $clientHandlers;
 
@@ -93,7 +93,7 @@ class SimpleServer extends Command
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT => RequestExecutorInterface::WAIT_FOREVER,
                 RequestExecutorInterface::META_IO_TIMEOUT         => RequestExecutorInterface::WAIT_FOREVER,
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::ACCEPT => function (AcceptEvent $event) use ($output) {
                         $output->writeln("<info>Incoming connection from {$event->getRemoteAddress()}</info>");
@@ -117,12 +117,12 @@ class SimpleServer extends Command
      *
      * @param OutputInterface $output Output interface
      *
-     * @return EventInvocationHandlerInterface
+     * @return EventHandlerInterface
      */
     private function getAcceptedClientHandlers(OutputInterface $output)
     {
         if (!$this->clientHandlers) {
-            $this->clientHandlers = new EventInvocationHandlerBag(
+            $this->clientHandlers = new CallbackEventHandler(
                 [
                     EventType::READ => function (ReadEvent $event) {
                         $request  = $event->getResponse()->getData();

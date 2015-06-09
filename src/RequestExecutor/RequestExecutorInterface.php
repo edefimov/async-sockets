@@ -108,14 +108,14 @@ interface RequestExecutorInterface
     /**
      * Set event invocation handler for all events
      *
-     * @param EventInvocationHandlerInterface $handler Event invocation handler
+     * @param EventHandlerInterface $handler Event invocation handler
      *
      * @return void
      */
-    public function setEventInvocationHandler(EventInvocationHandlerInterface $handler = null);
+    public function setEventInvocationHandler(EventHandlerInterface $handler = null);
 
     /**
-     * Set decider for limiting running at once requests. You can additionally implement EventInvocationHandlerInterface
+     * Set decider for limiting running at once requests. You can additionally implement EventHandlerInterface
      * on your LimitationDecider to receive events from request executor
      *
      * @param LimitationDeciderInterface $decider New decider. If null, then NoLimitationDecider will be used

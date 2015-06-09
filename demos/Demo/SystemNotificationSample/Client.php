@@ -14,8 +14,9 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Frame\MarkerFrame;
-use AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
+use AsyncSockets\RequestExecutor\EventHandlerFromSymfonyEventDispatcher;
+use AsyncSockets\RequestExecutor\EventMultiHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -67,9 +68,6 @@ class Client
         $anotherClient = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
 
         $executor = $factory->createRequestExecutor();
-        if ($executor instanceof EventDispatcherAwareRequestExecutor) {
-            $executor->setEventDispatcher($this->eventDispatcher);
-        }
 
         $this->registerPackagistSocket($executor, $client, 60, 0.001, 2);
 
@@ -83,10 +81,15 @@ class Client
 
 
         $executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new EventMultiHandler(
                 [
-                    EventType::WRITE => [ $this, 'onWrite' ],
-                    EventType::READ  => [ $this, 'onRead' ],
+                    new CallbackEventHandler(
+                        [
+                            EventType::WRITE => [ $this, 'onWrite' ],
+                            EventType::READ  => [ $this, 'onRead' ],
+                        ]
+                    ),
+                    new EventHandlerFromSymfonyEventDispatcher($this->eventDispatcher)
                 ]
             )
         );
@@ -106,7 +109,7 @@ class Client
         $this->output->writeln(
             '<info>About to write</info>: ' .
             number_format(strlen($event->getOperation()->getData()), 0, '.', ' ') .
-            " bytes"
+            ' bytes'
         );
         $event->nextIsRead(new MarkerFrame('HTTP', "\r\n\r\n"));
     }
@@ -193,7 +196,7 @@ class Client
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT => $connectionTimeout,
                 RequestExecutorInterface::META_IO_TIMEOUT         => $ioTimeout,
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::DISCONNECTED => [ $this, 'onPackagistDisconnect' ],
                 ]

@@ -23,7 +23,7 @@ interface SocketBagInterface extends \Countable
      * @param OperationInterface              $operation Operation to perform on socket
      * @param array                           $metadata Socket metadata information, which will be passed
      *                                   to setSocketMetaData during this call
-     * @param EventInvocationHandlerInterface $eventHandlers Optional handlers for this socket
+     * @param EventHandlerInterface $eventHandlers Optional handlers for this socket
      *
      * @return void
      * @throws \LogicException If socket has been already added
@@ -35,7 +35,7 @@ interface SocketBagInterface extends \Countable
         SocketInterface $socket,
         OperationInterface $operation,
         array $metadata = null,
-        EventInvocationHandlerInterface $eventHandlers = null
+        EventHandlerInterface $eventHandlers = null
     );
 
     /**

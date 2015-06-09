@@ -14,8 +14,8 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\ConstantLimitationDecider;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -73,7 +73,7 @@ class SocketPool extends Command
 
         $executor->setLimitationDecider(new ConstantLimitationDecider($limitSockets));
         $executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::DISCONNECTED => [
                         [ $this, 'logEvent' ],

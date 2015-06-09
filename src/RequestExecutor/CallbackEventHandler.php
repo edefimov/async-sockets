@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor;
 use AsyncSockets\Event\Event;
 
 /**
- * Class EventInvocationHandlerBag
+ * Class CallbackEventHandler
  */
-class EventInvocationHandlerBag implements \Countable, EventInvocationHandlerInterface
+class CallbackEventHandler implements \Countable, EventHandlerInterface
 {
     /**
      * List of callables in this bag indexed by event name
@@ -24,7 +24,7 @@ class EventInvocationHandlerBag implements \Countable, EventInvocationHandlerInt
     private $handlers = [];
 
     /**
-     * EventInvocationHandlerBag constructor.
+     * CallbackEventHandler constructor.
      *
      * @param array $events Events to handle: [ "eventName" => callable|callable[], ... ]
      */

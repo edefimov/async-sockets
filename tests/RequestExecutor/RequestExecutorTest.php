@@ -17,7 +17,7 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
-use AsyncSockets\RequestExecutor\EventInvocationHandlerBag;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
 use AsyncSockets\RequestExecutor\NoLimitationDecider;
 use AsyncSockets\RequestExecutor\OperationInterface;
@@ -154,7 +154,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $bag = new EventInvocationHandlerBag(
+        $bag = new CallbackEventHandler(
             [
                 EventType::INITIALIZE => $handler,
             ]
@@ -222,7 +222,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->executor->getSocketBag()->addSocket($mock, $operation);
         $this->executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::WRITE     => function (WriteEvent $event) {
                         $event->getOperation()->setData('I will pass the test');
@@ -265,7 +265,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     $eventType                   => function (IoEvent $event) {
                         if ($event->getType() === EventType::READ) {
@@ -310,7 +310,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::CONNECTED    => function (Event $event) {
                         $event->getExecutor()->stopRequest();
@@ -350,7 +350,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::CONNECTED    => function (Event $event) {
                         $event->cancelThisOperation(true);
@@ -370,7 +370,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::CONNECTED    => [ $mock, 'count' ],
                     $eventType              => [ $mock, 'count' ],
@@ -406,7 +406,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => function (Event $event) {
                         $event->getExecutor()->setLimitationDecider(new NoLimitationDecider());
@@ -450,7 +450,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             [
                 RequestExecutor::META_ADDRESS   => 'php://temp',
             ],
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     $eventType => function () {
                         $this->executor->executeRequest();
@@ -587,7 +587,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->method('count')
             ->willReturnOnConsecutiveCalls(1, 2, 3, 4, 5);
 
-        $this->executor->setEventInvocationHandler(new EventInvocationHandlerBag($handlers));
+        $this->executor->setEventInvocationHandler(new CallbackEventHandler($handlers));
 
         $this->executor->executeRequest();
     }
@@ -677,7 +677,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->method('count');
 
         $this->executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => [ $mock, 'count' ],
                     EventType::CONNECTED    => $failHandler,
@@ -726,7 +726,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->method('count');
 
         $this->executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => [ $mock, 'count' ],
                     EventType::CONNECTED    => [ $mock, 'count' ],
@@ -811,7 +811,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         };
 
         $this->executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => $handler,
                     EventType::CONNECTED    => $handler,
@@ -884,7 +884,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->method('count');
 
         $this->executor->setEventInvocationHandler(
-            new EventInvocationHandlerBag(
+            new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => $handler,
                     EventType::CONNECTED    => $handler,

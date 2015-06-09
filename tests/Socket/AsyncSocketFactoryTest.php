@@ -39,51 +39,15 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testRequestExecutorUsesEventDispatcher
-     *
-     * @return void
-     */
-    public function testRequestExecutorUsesEventDispatcher()
-    {
-        $this->ensureEventDispatcherInstalled();
-        $executor = $this->factory->createRequestExecutor();
-        self::assertInstanceOf(
-            'AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor',
-            $executor,
-            'Strange object ' . get_class($executor) . ' was created'
-        );
-        $ref = new \ReflectionClass('AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor');
-        self::assertTrue(
-            $ref->implementsInterface('AsyncSockets\RequestExecutor\RequestExecutorInterface'),
-            'EventDispatcherAwareRequestExecutor must implement RequestExecutorInterface'
-        );
-    }
-
-    /**
      * testSimpleRequestExecutorCreated
      *
      * @return void
      */
     public function testSimpleRequestExecutorCreated()
     {
-        PhpFunctionMocker::getPhpFunctionMocker('interface_exists')->setCallable(
-            function ($interface, $autoload = true) {
-                if ($interface === 'Symfony\Component\EventDispatcher\EventDispatcherInterface') {
-                    return false;
-                }
-
-                return \interface_exists($interface, $autoload);
-            }
-        );
-
         $executor = $this->factory->createRequestExecutor();
         self::assertInstanceOf(
             'AsyncSockets\RequestExecutor\RequestExecutor',
-            $executor,
-            'Strange object ' . get_class($executor) . ' was created'
-        );
-        self::assertNotInstanceOf(
-            'AsyncSockets\RequestExecutor\EventDispatcherAwareRequestExecutor',
             $executor,
             'Strange object ' . get_class($executor) . ' was created'
         );
