@@ -201,7 +201,7 @@ class ClientSocketTest extends AbstractSocketTest
                             PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
                                 $falseFunction
                             );
-                            return 0;
+                            return '';
                         },
                         'stream_socket_recvfrom' => function () {
                             return 'x';

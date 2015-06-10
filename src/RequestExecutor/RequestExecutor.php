@@ -10,11 +10,9 @@
 
 namespace AsyncSockets\RequestExecutor;
 
-use AsyncSockets\Event\Event;
-use AsyncSockets\RequestExecutor\Pipeline\Pipeline;
-use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
-use AsyncSockets\Socket\SocketInterface;
+use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
+use AsyncSockets\RequestExecutor\Pipeline\Pipeline;
 
 /**
  * Class RequestExecutor
@@ -54,7 +52,7 @@ class RequestExecutor implements RequestExecutorInterface
      *
      * @var Pipeline
      */
-    private $Pipeline;
+    private $pipeline;
 
     /**
      * RequestExecutor constructor.
@@ -89,8 +87,8 @@ class RequestExecutor implements RequestExecutorInterface
             throw new \LogicException('Request is already in progress');
         }
 
-        $Pipeline = $this->getPipeline();
-        $Pipeline->setLimitationDecider($this->decider);
+        $pipeline = $this->getPipeline();
+        $pipeline->setLimitationDecider($this->decider);
 
         $this->isExecuting = true;
 
@@ -106,7 +104,7 @@ class RequestExecutor implements RequestExecutorInterface
         $eventCaller->addHandler($this->getPipeline());
 
         try {
-            $this->getPipeline()->process($this, $this->socketBag, $eventCaller);
+            $pipeline->process($this, $this->socketBag, $eventCaller);
         } catch (\Exception $e) {
             $this->isExecuting = false;
             throw $e;
@@ -142,10 +140,10 @@ class RequestExecutor implements RequestExecutorInterface
      */
     private function getPipeline()
     {
-        if (!$this->Pipeline) {
-            $this->Pipeline = new Pipeline($this->socketBag);
+        if (!$this->pipeline) {
+            $this->pipeline = new Pipeline();
         }
 
-        return $this->Pipeline;
+        return $this->pipeline;
     }
 }

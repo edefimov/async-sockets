@@ -182,7 +182,7 @@ class SelectStage extends AbstractTimeAwareStage
      * @param double $desiredTimeout Timeout from settings
      * @param double $lastOperationTime Last operation timestamp
      *
-     * @return bool Truem if socket with this params in timeout, false otherwise
+     * @return bool True, if socket with this params in timeout, false otherwise
      */
     private function isSingleSocketTimeout($microTime, $desiredTimeout, $lastOperationTime)
     {

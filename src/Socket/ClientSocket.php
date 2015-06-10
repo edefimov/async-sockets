@@ -121,7 +121,7 @@ class ClientSocket extends AbstractSocket
         $data = fread($socket, self::SOCKET_BUFFER_SIZE);
         $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
 
-        if ($data === 0) {
+        if ($data === '') {
             $this->throwExceptionIfNotConnected('Remote connection has been lost.');
         }
 

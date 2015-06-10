@@ -78,8 +78,6 @@ class EventCaller
             $handler->invokeEvent($event);
         }
 
-        //$this->handleSocketEvent($socket, $event);
-
         if ($event->isOperationCancelled()) {
             throw new StopSocketOperationException();
         }

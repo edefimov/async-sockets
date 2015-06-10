@@ -81,7 +81,7 @@ class AsyncSelector
      *                                     then it must be array of SocketInterface. If $operation parameter is
      *                                     omitted then this argument must contain pairs [SocketInterface, operation]
      *                                     for each element
-     * @param string|string[]   $operation Operation, one of RequestExecutorInterface::OPERATION_* consts
+     * @param string            $operation Operation, one of RequestExecutorInterface::OPERATION_* consts
      *
      * @return void
      */
