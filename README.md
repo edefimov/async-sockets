@@ -2,11 +2,12 @@ Async sockets library
 =====================
 
 [![Build Status](https://img.shields.io/travis/edefimov/async-sockets/master.svg?style=flat)](https://travis-ci.org/edefimov/async-sockets)
-[![Coverage Status](https://img.shields.io/coveralls/edefimov/async-sockets/master.svg?style=flat)](https://coveralls.io/r/edefimov/async-sockets)
+[![Scrutinizer Coverage](https://img.shields.io/scrutinizer/coverage/g/edefimov/async-sockets.svg?style=flat)](https://scrutinizer-ci.com/g/edefimov/async-sockets/)
 [![SensioLabsInsight](https://img.shields.io/sensiolabs/i/c816a980-e97a-46ae-b334-16c6bfd1ec4a.svg?style=flat)](https://insight.sensiolabs.com/projects/c816a980-e97a-46ae-b334-16c6bfd1ec4a)
+[![Scrutinizer](https://img.shields.io/scrutinizer/g/edefimov/async-sockets.svg?style=flat)](https://scrutinizer-ci.com/g/edefimov/async-sockets/)
 [![GitHub release](https://img.shields.io/github/release/edefimov/async-sockets.svg?style=flat)](https://github.com/edefimov/async-sockets/releases/latest)
 [![Dependency Status](https://www.versioneye.com/user/projects/55525b5706c318305500014b/badge.png?style=flat)](https://www.versioneye.com/user/projects/55525b5706c318305500014b)
-[![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%205.4-777bb4.svg)](https://php.net/)
+[![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%205.4-777bb4.svg?style=flat)](https://php.net/)
 
 Async sockets is the library for asynchronous work with sockets based on php streams. 
 Library's workflow process is built on event model, but also select like and common syncronous models are supported.

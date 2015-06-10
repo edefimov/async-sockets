@@ -5,12 +5,6 @@
     "keywords": [ "async", "stream", "socket" ],
     "minimum-stability": "stable",
     "license": "MIT",
-    "repositories": [
-        {
-            "type": "git",
-            "url": "https://github.com/aimeos/php-coveralls.git"
-        }
-    ],
     "authors": [
         {
             "name": "Efimov Evgenij",
@@ -27,8 +21,7 @@
     },
     "require-dev": {
         "symfony/event-dispatcher": "*",
-        "symfony/console": "~2.7",
-        "satooshi/php-coveralls": "dev-master"
+        "symfony/console": "~2.7"
     },
     "suggest": {
         "symfony/event-dispatcher": "Allows to notify system about socket events"

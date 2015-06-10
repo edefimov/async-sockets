@@ -23,7 +23,6 @@ script:
   - phpunit -c tests/travis/no-eventdispatcher.phpunit.xml $PHPUNIT_FLAGS_2 --exclude-group "networking"
 
 after_script:
-  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then php vendor/bin/coveralls -v --no-interaction --exclude-no-stmt; fi
   - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then php ocular.phar code-coverage:upload --format=php-clover ./build/logs/clover-with-eventdispatcher.xml; fi
   - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then php ocular.phar code-coverage:upload --format=php-clover ./build/logs/clover-no-eventdispatcher.xml; fi
 
