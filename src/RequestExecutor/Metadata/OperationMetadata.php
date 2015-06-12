@@ -13,11 +13,12 @@ use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
+use AsyncSockets\Socket\StreamResourceInterface;
 
 /**
  * Class OperationMetadata
  */
-class OperationMetadata
+class OperationMetadata implements StreamResourceInterface
 {
     /**
      * Socket for this operation
@@ -167,6 +168,12 @@ class OperationMetadata
     public function getSocket()
     {
         return $this->socket;
+    }
+
+    /** {@inheritdoc} */
+    public function getStreamResource()
+    {
+        return $this->socket->getStreamResource();
     }
 
     /**

@@ -12,6 +12,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -32,6 +33,13 @@ abstract class AbstractStage
      * @var RequestExecutorInterface
      */
     protected $executor;
+
+    /**
+     * Sockets for operations
+     *
+     * @var SocketBag
+     */
+    protected $socketBag;
 
     /**
      * AbstractStage constructor.

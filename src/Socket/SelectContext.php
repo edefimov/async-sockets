@@ -18,22 +18,22 @@ class SelectContext
     /**
      * List os sockets ready to read
      *
-     * @var SocketInterface[]
+     * @var StreamResourceInterface[]
      */
     private $read;
 
     /**
      * List of sockets ready to write
      *
-     * @var SocketInterface[]
+     * @var StreamResourceInterface[]
      */
     private $write;
 
     /**
      * Constructor
      *
-     * @param SocketInterface[] $read List of ready to read sockets
-     * @param SocketInterface[] $write List of ready to write sockets
+     * @param StreamResourceInterface[] $read List of ready to read sockets
+     * @param StreamResourceInterface[] $write List of ready to write sockets
      */
     public function __construct(array $read, array $write)
     {
@@ -44,7 +44,7 @@ class SelectContext
     /**
      * Get ready to read sockets
      *
-     * @return SocketInterface[]
+     * @return StreamResourceInterface[]
      */
     public function getRead()
     {
@@ -54,7 +54,7 @@ class SelectContext
     /**
      * Get ready to write sockets
      *
-     * @return SocketInterface[]
+     * @return StreamResourceInterface[]
      */
     public function getWrite()
     {

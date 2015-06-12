@@ -13,19 +13,13 @@ namespace AsyncSockets\RequestExecutor;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\Pipeline;
+use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 
 /**
  * Class RequestExecutor
  */
 class RequestExecutor implements RequestExecutorInterface
 {
-    /**
-     * Flag whether we are executing request
-     *
-     * @var bool
-     */
-    private $isExecuting = false;
-
     /**
      * Decider for request limitation
      *
@@ -55,11 +49,21 @@ class RequestExecutor implements RequestExecutorInterface
     private $pipeline;
 
     /**
-     * RequestExecutor constructor.
+     * PipelineFactory
+     *
+     * @var PipelineFactory
      */
-    public function __construct()
+    private $pipelineFactory;
+
+    /**
+     * RequestExecutor constructor.
+     *
+     * @param PipelineFactory $pipelineFactory Pipeline factory
+     */
+    public function __construct(PipelineFactory $pipelineFactory)
     {
-        $this->socketBag = new SocketBag($this);
+        $this->socketBag       = new SocketBag($this);
+        $this->pipelineFactory = $pipelineFactory;
     }
 
     /** {@inheritdoc} */
@@ -77,7 +81,7 @@ class RequestExecutor implements RequestExecutorInterface
     /** {@inheritdoc} */
     public function isExecuting()
     {
-        return $this->isExecuting;
+        return $this->pipeline !== null;
     }
 
     /** {@inheritdoc} */
@@ -87,12 +91,8 @@ class RequestExecutor implements RequestExecutorInterface
             throw new \LogicException('Request is already in progress');
         }
 
-        $pipeline = $this->getPipeline();
-        $pipeline->setLimitationDecider($this->decider);
-
-        $this->isExecuting = true;
-
-        $eventCaller = new EventCaller($this);
+        $eventCaller   = new EventCaller($this);
+        $this->decider = $this->decider ?: new NoLimitationDecider();
         if ($this->eventInvocationHandler) {
             $eventCaller->addHandler($this->eventInvocationHandler);
         }
@@ -101,16 +101,21 @@ class RequestExecutor implements RequestExecutorInterface
             $eventCaller->addHandler($this->decider);
         }
 
-        $eventCaller->addHandler($this->getPipeline());
+        $this->pipeline  = $this->pipelineFactory->createPipeline($this, $eventCaller, $this->decider);
+
+        $eventCaller->addHandler($this->pipeline);
 
         try {
-            $pipeline->process($this, $this->socketBag, $eventCaller);
+            $this->decider->initialize($this);
+            $this->pipeline->process($this->socketBag, $eventCaller);
+            $this->decider->finalize($this);
         } catch (\Exception $e) {
-            $this->isExecuting = false;
+            $this->decider->finalize($this);
+            $this->pipeline = null;
             throw $e;
         }
 
-        $this->isExecuting = false;
+        $this->pipeline = null;
     }
 
     /** {@inheritdoc} */
@@ -120,7 +125,7 @@ class RequestExecutor implements RequestExecutorInterface
             throw new \BadMethodCallException('Can not stop inactive request');
         }
 
-        $this->getPipeline()->stopRequest();
+        $this->pipeline->stopRequest();
     }
 
     /** {@inheritdoc} */
@@ -131,19 +136,5 @@ class RequestExecutor implements RequestExecutorInterface
         }
 
         $this->decider = $decider;
-    }
-
-    /**
-     * Get active Pipeline
-     *
-     * @return Pipeline
-     */
-    private function getPipeline()
-    {
-        if (!$this->pipeline) {
-            $this->pipeline = new Pipeline();
-        }
-
-        return $this->pipeline;
     }
 }

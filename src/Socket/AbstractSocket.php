@@ -100,6 +100,7 @@ abstract class AbstractSocket implements SocketInterface
      * @param ChunkSocketResponse $previousResponse Previous response from this socket
      *
      * @return SocketResponseInterface
+     * @throws NetworkSocketException
      */
     abstract protected function doReadData(
         $socket,
@@ -267,6 +268,7 @@ abstract class AbstractSocket implements SocketInterface
      * @param string $message Message to pass in exception
      *
      * @return void
+     * @throws NetworkSocketException
      */
     final protected function throwExceptionIfNotConnected($message)
     {

@@ -17,6 +17,8 @@ namespace AsyncSockets\Event;
 if (!class_alias('Symfony\Component\EventDispatcher\Event', 'AsyncSockets\Event\AbstractEvent', true)) {
     /**
      * Class AbstractEvent
+     *
+     * @noinspection EmptyClassInspection
      */
     abstract class AbstractEvent
     {

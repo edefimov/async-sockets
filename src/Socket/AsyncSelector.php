@@ -22,9 +22,9 @@ class AsyncSelector
     /**
      * Array of sockets
      *
-     * @var SocketInterface
+     * @var StreamResourceInterface[]
      */
-    private $sockets = [];
+    private $streamResources = [];
 
     /**
      * Wait socket resources for network operation
@@ -39,7 +39,7 @@ class AsyncSelector
      */
     public function select($seconds, $usec = null)
     {
-        if (!$this->sockets) {
+        if (!$this->streamResources) {
             throw new \InvalidArgumentException('Can not perform select on empty data');
         }
 
@@ -64,40 +64,41 @@ class AsyncSelector
     /**
      * Add socket into selector list
      *
-     * @param SocketInterface $socket Socket object
-     * @param string          $operation One of RequestExecutorInterface::OPERATION_* consts
+     * @param StreamResourceInterface $streamResource Resource object
+     * @param string                  $operation One of RequestExecutorInterface::OPERATION_* consts
      *
      * @return void
      */
-    public function addSocketOperation(SocketInterface $socket, $operation)
+    public function addSocketOperation(StreamResourceInterface $streamResource, $operation)
     {
-        $this->sockets[$operation][spl_object_hash($socket)] = $socket;
+        $this->streamResources[$operation][spl_object_hash($streamResource)] = $streamResource;
     }
 
     /**
      * Add array of socket with specified operation
      *
-     * @param SocketInterface[] $sockets List of sockets. Value depends on second argument. If string is provided,
-     *                                     then it must be array of SocketInterface. If $operation parameter is
-     *                                     omitted then this argument must contain pairs [SocketInterface, operation]
-     *                                     for each element
-     * @param string            $operation Operation, one of RequestExecutorInterface::OPERATION_* consts
+     * @param StreamResourceInterface[] $streamResources List of resources. Value depends on second argument.
+     *                                     If string is provided, then it must be array of StreamResourceInterface.
+     *                                     If $operation parameter is omitted then this argument must contain
+     *                                     pairs [StreamResourceInterface, operation] for each element
+     * @param string                    $operation Operation, one of RequestExecutorInterface::OPERATION_* consts
      *
      * @return void
+     * @throws \InvalidArgumentException
      */
-    public function addSocketOperationArray(array $sockets, $operation = null)
+    public function addSocketOperationArray(array $streamResources, $operation = null)
     {
-        foreach ($sockets as $item) {
+        foreach ($streamResources as $streamResource) {
             if ($operation !== null) {
-                $this->addSocketOperation($item, $operation);
+                $this->addSocketOperation($streamResource, $operation);
             } else {
-                if (!is_array($item) || count($item) !== 2) {
+                if (!is_array($streamResource) || count($streamResource) !== 2) {
                     throw new \InvalidArgumentException(
                         'First parameter must contain pair (SocketInterface, operation)'
                     );
                 }
 
-                $this->addSocketOperation(reset($item), end($item));
+                $this->addSocketOperation(reset($streamResource), end($streamResource));
             }
         }
     }
@@ -105,18 +106,18 @@ class AsyncSelector
     /**
      * Remove given socket from select list
      *
-     * @param SocketInterface $socket Socket object
-     * @param string          $operation One of RequestExecutorInterface::OPERATION_* consts
+     * @param StreamResourceInterface $streamResource Stream resource object
+     * @param string                  $operation One of RequestExecutorInterface::OPERATION_* consts
      *
      * @return void
      */
-    public function removeSocketOperation(SocketInterface $socket, $operation)
+    public function removeSocketOperation(StreamResourceInterface $streamResource, $operation)
     {
-        $hash = spl_object_hash($socket);
-        if (isset($this->sockets[$operation], $this->sockets[$operation][$hash])) {
-            unset($this->sockets[$operation][$hash]);
-            if (!$this->sockets[$operation]) {
-                unset($this->sockets[$operation]);
+        $hash = spl_object_hash($streamResource);
+        if (isset($this->streamResources[$operation], $this->streamResources[$operation][$hash])) {
+            unset($this->streamResources[$operation][$hash]);
+            if (!$this->streamResources[$operation]) {
+                unset($this->streamResources[$operation]);
             }
         }
     }
@@ -124,16 +125,16 @@ class AsyncSelector
     /**
      * Remove all previously defined operations on this socket and adds socket into list of given operation
      *
-     * @param SocketInterface $socket Socket object
-     * @param string          $operation One of RequestExecutorInterface::OPERATION_* consts
+     * @param StreamResourceInterface $streamResource Stream resource object
+     * @param string                  $operation One of RequestExecutorInterface::OPERATION_* consts
      *
      * @return void
      */
-    public function changeSocketOperation(SocketInterface $socket, $operation)
+    public function changeSocketOperation(StreamResourceInterface $streamResource, $operation)
     {
-        $this->removeAllSocketOperations($socket);
+        $this->removeAllSocketOperations($streamResource);
 
-        $this->addSocketOperation($socket, $operation);
+        $this->addSocketOperation($streamResource, $operation);
     }
 
     /**
@@ -145,12 +146,12 @@ class AsyncSelector
      */
     private function getSocketsForOperation($operation)
     {
-        if (!isset($this->sockets[$operation])) {
+        if (!isset($this->streamResources[$operation])) {
             return null;
         }
 
         $result = [];
-        foreach ($this->sockets[$operation] as $socket) {
+        foreach ($this->streamResources[$operation] as $socket) {
             /** @var StreamResourceInterface $socket */
             $result[] = $socket->getStreamResource();
         }
@@ -161,19 +162,19 @@ class AsyncSelector
     /**
      * Get socket objects by resources and remove them from work list
      *
-     * @param resource[] $resources Socket resources
+     * @param resource[] $resources Stream resources
      * @param string     $operation One of RequestExecutorInterface::OPERATION_* consts
      *
-     * @return SocketInterface[]
+     * @return StreamResourceInterface[]
      */
     private function popSocketsByResources(array $resources, $operation)
     {
-        if (!$resources || !isset($this->sockets[$operation])) {
+        if (!$resources || !isset($this->streamResources[$operation])) {
             return [];
         }
 
         $result = [];
-        foreach ($this->sockets[$operation] as $socket) {
+        foreach ($this->streamResources[$operation] as $socket) {
             /** @var SocketInterface $socket */
             if (in_array($socket->getStreamResource(), $resources, true)) {
                 $this->removeSocketOperation($socket, $operation);
@@ -187,17 +188,17 @@ class AsyncSelector
     /**
      * Remove given socket from all operations
      *
-     * @param SocketInterface $socket
+     * @param StreamResourceInterface $streamResource Resource object
      *
      * @return void
      */
-    public function removeAllSocketOperations(SocketInterface $socket)
+    public function removeAllSocketOperations(StreamResourceInterface $streamResource)
     {
         $opList = [ RequestExecutorInterface::OPERATION_READ,
                     RequestExecutorInterface::OPERATION_WRITE  ];
 
         foreach ($opList as $op) {
-            $this->removeSocketOperation($socket, $op);
+            $this->removeSocketOperation($streamResource, $op);
         }
     }
 

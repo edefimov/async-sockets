@@ -14,6 +14,7 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -47,14 +48,14 @@ class ConnectStage extends AbstractTimeAwareStage
     /**
      * Process connect phase
      *
-     * @param OperationMetadata[] $operationMetadata List of operation information for connecting stage
+     * @param SocketBag $socketBag List of operation information for connecting stage
      *
-     * @return OperationMetadata[] Connected operations
+     * @return OperationMetadata[] Active operations
      */
-    public function processConnect(array $operationMetadata)
+    public function processConnect(SocketBag $socketBag)
     {
-        $totalItems = count($operationMetadata);
-        foreach ($operationMetadata as $item) {
+        $totalItems = count($socketBag);
+        foreach ($socketBag->getItems() as $item) {
             $decision = $this->decide($item, $totalItems);
             if ($decision === LimitationDeciderInterface::DECISION_PROCESS_SCHEDULED) {
                 break;
@@ -91,6 +92,8 @@ class ConnectStage extends AbstractTimeAwareStage
                 $this->callExceptionSubscribers($item, $e, $event);
             }
         }
+
+        return $this->getActiveOperations($socketBag);
     }
 
     /**
@@ -144,5 +147,25 @@ class ConnectStage extends AbstractTimeAwareStage
         }
 
         return null;
+    }
+
+    /**
+     * Return array of keys for socket waiting for processing
+     *
+     * @param SocketBag $socketBag Socket bag object
+     *
+     * @return OperationMetadata[]
+     */
+    private function getActiveOperations(SocketBag $socketBag)
+    {
+        $result = [];
+        foreach ($socketBag->getItems() as $key => $item) {
+            $meta = $item->getMetadata();
+            if (!$meta[RequestExecutorInterface::META_REQUEST_COMPLETE] && $item->isRunning()) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 }

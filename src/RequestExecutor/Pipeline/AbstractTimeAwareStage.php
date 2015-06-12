@@ -24,6 +24,7 @@ abstract class AbstractTimeAwareStage extends AbstractStage
      * @param string            $key Metadata key to set
      *
      * @return void
+     * @throws \InvalidArgumentException
      */
     protected function setSocketOperationTime(OperationMetadata $operationMetadata, $key)
     {

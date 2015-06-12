@@ -178,7 +178,7 @@ class SocketBag implements SocketBagInterface
      * @return string
      * @throws \OutOfBoundsException
      */
-    public function requireOperationKey(SocketInterface $socket)
+    private function requireOperationKey(SocketInterface $socket)
     {
         $hash = $this->getOperationStorageKey($socket);
         if (!isset($this->items[$hash])) {
@@ -195,7 +195,7 @@ class SocketBag implements SocketBagInterface
      *
      * @return OperationMetadata
      */
-    public function requireOperation(SocketInterface $socket)
+    private function requireOperation(SocketInterface $socket)
     {
         return $this->items[ $this->requireOperationKey($socket) ];
     }

@@ -21,6 +21,7 @@ use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
 use AsyncSockets\RequestExecutor\NoLimitationDecider;
 use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\WriteOperation;
@@ -60,7 +61,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     protected function createRequestExecutor()
     {
-        return new RequestExecutor();
+        return new RequestExecutor(new PipelineFactory());
     }
 
     /** {@inheritdoc} */
@@ -601,7 +602,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      * @dataProvider socketOperationDataProvider
      * @expectedException \LogicException
      */
-    public function testLimitationDecider(OperationInterface$operation)
+    public function testLimitationDecider(OperationInterface $operation)
     {
         for ($i = 0; $i < 10; $i++) {
             $this->executor->getSocketBag()->addSocket(

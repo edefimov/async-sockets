@@ -22,17 +22,36 @@ use AsyncSockets\Socket\AsyncSelector;
 class DisconnectStage extends AbstractStage
 {
     /**
+     * Selector
+     *
+     * @var AsyncSelector
+     */
+    private $selector;
+
+    /**
+     * DisconnectStage constructor.
+     *
+     * @param RequestExecutorInterface $executor Request executor
+     * @param EventCaller              $eventCaller Event caller
+     * @param AsyncSelector            $selector Async selector
+     */
+    public function __construct(RequestExecutorInterface $executor, EventCaller $eventCaller, AsyncSelector $selector)
+    {
+        parent::__construct($executor, $eventCaller);
+        $this->selector = $selector;
+    }
+
+    /**
      * Disconnect array of sockets by given keys
      *
      * @param OperationMetadata[] $operations Array of operations to perform disconnect
-     * @param AsyncSelector       $selector Selector object
      *
      * @return void
      */
-    public function disconnectSockets(array $operations, AsyncSelector $selector = null)
+    public function disconnectSockets(array $operations)
     {
         foreach ($operations as $operation) {
-            $this->disconnectSingleSocket($operation, $selector);
+            $this->disconnectSingleSocket($operation);
         }
     }
 
@@ -40,11 +59,10 @@ class DisconnectStage extends AbstractStage
      * Disconnect given socket
      *
      * @param OperationMetadata $operation Operation object
-     * @param AsyncSelector     $selector Selector, which processing this socket
      *
      * @return void
      */
-    private function disconnectSingleSocket(OperationMetadata $operation, AsyncSelector $selector = null)
+    private function disconnectSingleSocket(OperationMetadata $operation)
     {
         $meta = $operation->getMetadata();
 
@@ -71,10 +89,7 @@ class DisconnectStage extends AbstractStage
             $this->callExceptionSubscribers($operation, $e, $event);
         }
 
-        if ($selector) {
-            $selector->removeAllSocketOperations($socket);
-        }
-
+        $this->selector->removeAllSocketOperations($operation);
         $this->callSocketSubscribers(
             $operation,
             new Event($this->executor, $socket, $meta[RequestExecutorInterface::META_USER_CONTEXT], EventType::FINALIZE)

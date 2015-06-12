@@ -13,12 +13,8 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopRequestExecuteException;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
-use AsyncSockets\RequestExecutor\NoLimitationDecider;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\AsyncSelector;
 
 /**
  * Class Pipeline
@@ -40,18 +36,52 @@ class Pipeline implements EventHandlerInterface
     private $isRequestStopInProgress = false;
 
     /**
-     * Limitation decider
-     *
-     * @var LimitationDeciderInterface
-     */
-    private $decider;
-
-    /**
      * DisconnectStage
      *
      * @var DisconnectStage
      */
     private $disconnectStage;
+
+    /**
+     * Connect stage
+     *
+     * @var ConnectStage
+     */
+    private $connectStage;
+
+    /**
+     * Select stage
+     *
+     * @var SelectStage
+     */
+    private $selectStage;
+
+    /**
+     * I/O stage
+     *
+     * @var IoStage
+     */
+    private $ioStage;
+
+    /**
+     * Pipeline constructor
+     *
+     * @param ConnectStage    $connectStage Connect stage
+     * @param SelectStage     $selectStage Select stage
+     * @param IoStage         $ioStage I/O stage
+     * @param DisconnectStage $disconnectStage Disconnect stage
+     */
+    public function __construct(
+        ConnectStage $connectStage,
+        SelectStage $selectStage,
+        IoStage $ioStage,
+        DisconnectStage $disconnectStage
+    ) {
+        $this->connectStage    = $connectStage;
+        $this->selectStage     = $selectStage;
+        $this->ioStage         = $ioStage;
+        $this->disconnectStage = $disconnectStage;
+    }
 
     /** {@inheritdoc} */
     public function invokeEvent(Event $event)
@@ -63,51 +93,26 @@ class Pipeline implements EventHandlerInterface
     }
 
     /**
-     * Set decider for limiting running at once requests. You can additionally implement EventHandlerInterface
-     * on your LimitationDecider to receive events from request executor
-     *
-     * @param LimitationDeciderInterface $decider New decider. If null, then NoLimitationDecider will be used
-     *
-     * @return void
-     * @throws \BadMethodCallException When called on executing request
-     * @see NoLimitationDecider
-     * @see EventInvocationHandlerInterface
-     */
-    public function setLimitationDecider(LimitationDeciderInterface $decider = null)
-    {
-        $this->decider = $decider ?: new NoLimitationDecider();
-    }
-
-    /**
      * Process I/O operations on sockets
      *
-     * @param RequestExecutorInterface $executor Request executor
-     * @param SocketBag                $socketBag Socket bag
-     * @param EventCaller              $eventCaller Event caller
+     * @param SocketBag   $socketBag Socket bag
+     * @param EventCaller $eventCaller Event caller
      *
      * @return void
      * @throws \Exception
      */
-    public function process(RequestExecutorInterface $executor, SocketBag $socketBag, EventCaller $eventCaller)
+    public function process(SocketBag $socketBag, EventCaller $eventCaller)
     {
         $this->isRequestStopInProgress = false;
         $this->isRequestStopped        = false;
-        $this->disconnectStage         = new DisconnectStage($executor, $eventCaller);
-        $this->decider->initialize($executor);
 
         try {
-            $this->processMainExecutionLoop($executor, $socketBag, $eventCaller);
-            $this->disconnectStage->disconnectSockets($socketBag->getItems());
-            $this->decider->finalize($executor);
+            $this->processMainExecutionLoop($socketBag, $eventCaller);
         } catch (StopRequestExecuteException $e) {
             $this->isRequestStopInProgress = true;
             $this->disconnectStage->disconnectSockets($socketBag->getItems());
-            $this->decider->finalize($executor);
-            $this->disconnectStage = null;
         } catch (\Exception $e) {
             $this->emergencyShutdown($socketBag);
-            $this->decider->finalize($executor);
-            $this->disconnectStage = null;
             throw $e;
         }
     }
@@ -115,41 +120,38 @@ class Pipeline implements EventHandlerInterface
     /**
      * Start Pipeline cycle
      *
-     * @param RequestExecutorInterface $executor Request executor
-     * @param SocketBag                $socketBag Socket bag
-     * @param EventCaller              $eventCaller Event caller
+     * @param SocketBag   $socketBag Socket bag
+     * @param EventCaller $eventCaller Event caller
      *
      * @return void
      */
-    private function processMainExecutionLoop(
-        RequestExecutorInterface $executor,
-        SocketBag $socketBag,
-        EventCaller $eventCaller
-    ) {
-        $selector = new AsyncSelector();
+    private function processMainExecutionLoop(SocketBag $socketBag, EventCaller $eventCaller)
+    {
         foreach ($socketBag->getItems() as $item) {
             $item->initialize();
         }
 
-        $connectStage = new ConnectStage($executor, $eventCaller, $this->decider);
-        $selectStage  = new SelectStage($executor, $eventCaller);
-        $ioStage      = new IoStage($executor, $eventCaller);
-
-
         do {
-            $connectStage->processConnect($socketBag->getItems());
-            $activeOperations = $this->getActiveOperations($socketBag);
-            if (!$activeOperations) {
-                break;
-            }
-
             try {
-                $context = $selectStage->processSelect($activeOperations, $selector);
-                if ($context) {
-                    $doneSockets = $ioStage->processIo($socketBag, $context);
-                    $this->disconnectStage->disconnectSockets($doneSockets, $selector);
-                    $activeOperations = array_diff_key($activeOperations, $doneSockets);
+                $activeOperations = $this->connectStage->processConnect($socketBag);
+                if (!$activeOperations) {
+                    break;
                 }
+
+                $context     = $this->selectStage->processSelect($activeOperations);
+                $doneSockets = $this->ioStage->processIo($context);
+                $this->disconnectStage->disconnectSockets($doneSockets);
+                foreach ($activeOperations as $key => $socket) {
+                    if (in_array($socket, $doneSockets, true)) {
+                        unset($activeOperations[$key]);
+                    }
+                }
+
+                $timeoutOperations = $this->selectStage->processTimeoutSockets($activeOperations);
+
+                $this->disconnectStage->disconnectSockets($timeoutOperations);
+
+                unset($doneSockets, $timeoutOperations);
             } catch (SocketException $e) {
                 foreach ($socketBag->getItems() as $item) {
                     $eventCaller->callExceptionSubscribers($item, $e, null);
@@ -157,12 +159,6 @@ class Pipeline implements EventHandlerInterface
 
                 return;
             }
-
-            $timeoutOperations = $selectStage->processTimeoutSockets($activeOperations);
-
-            $this->disconnectStage->disconnectSockets($timeoutOperations, $selector);
-
-            unset($doneSockets, $timeoutOperations);
         } while (true);
     }
 
@@ -174,26 +170,6 @@ class Pipeline implements EventHandlerInterface
     public function stopRequest()
     {
         $this->isRequestStopped = true;
-    }
-
-    /**
-     * Return array of keys for socket waiting for processing
-     *
-     * @param SocketBag $socketBag Socket bag object
-     *
-     * @return OperationMetadata[]
-     */
-    private function getActiveOperations(SocketBag $socketBag)
-    {
-        $result = [];
-        foreach ($socketBag->getItems() as $key => $item) {
-            $meta = $item->getMetadata();
-            if (!$meta[RequestExecutorInterface::META_REQUEST_COMPLETE] && $item->isRunning()) {
-                $result[$key] = $item;
-            }
-        }
-
-        return $result;
     }
 
     /**

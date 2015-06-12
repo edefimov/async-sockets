@@ -10,6 +10,7 @@
 
 namespace AsyncSockets\Socket;
 
+use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -61,6 +62,6 @@ class AsyncSocketFactory
      */
     public function createRequestExecutor()
     {
-        return new RequestExecutor();
+        return new RequestExecutor(new PipelineFactory());
     }
 }

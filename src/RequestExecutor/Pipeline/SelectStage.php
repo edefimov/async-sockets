@@ -16,7 +16,6 @@ use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
-use AsyncSockets\Socket\SelectContext;
 
 /**
  * Class SelectStageAbstract
@@ -24,34 +23,57 @@ use AsyncSockets\Socket\SelectContext;
 class SelectStage extends AbstractTimeAwareStage
 {
     /**
+     * Selector
+     *
+     * @var AsyncSelector
+     */
+    private $selector;
+
+    /**
+     * SelectStage constructor.
+     *
+     * @param RequestExecutorInterface $executor Request executor
+     * @param EventCaller              $eventCaller Event caller
+     * @param AsyncSelector            $selector Async selector
+     */
+    public function __construct(RequestExecutorInterface $executor, EventCaller $eventCaller, AsyncSelector $selector)
+    {
+        parent::__construct($executor, $eventCaller);
+        $this->selector = $selector;
+    }
+
+    /**
      * Perform select operation on active sockets
      *
      * @param OperationMetadata[] $activeOperations List of active operations
-     * @param AsyncSelector       $selector Selector object
      *
-     * @return SelectContext|null Return null, if timeout occurred
+     * @return OperationMetadata[] Array of ready operations, or empty array on timeout
      * @throws SocketException If network operation failed
      */
-    public function processSelect(array $activeOperations, AsyncSelector $selector)
+    public function processSelect(array $activeOperations)
     {
         foreach ($activeOperations as $activeOperation) {
             $this->setSocketOperationTime($activeOperation, RequestExecutorInterface::META_LAST_IO_START_TIME);
-            $selector->addSocketOperation(
-                $activeOperation->getSocket(),
+            $this->selector->addSocketOperation(
+                $activeOperation,
                 $activeOperation->getOperation()->getType()
             );
         }
 
         try {
             $timeout = $this->calculateSelectorTimeout($activeOperations);
-            return $selector->select($timeout['sec'], $timeout['microsec']);
+            $context = $this->selector->select($timeout['sec'], $timeout['microsec']);
+            return array_merge(
+                $context->getRead(),
+                $context->getWrite()
+            );
         } catch (TimeoutException $e) {
             // do nothing
         } catch (SocketException $e) {
             throw $e;
         }
 
-        return null;
+        return [];
     }
 
     /**

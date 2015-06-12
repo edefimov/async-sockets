@@ -14,6 +14,7 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\ConstantLimitationDecider;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
+use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 
 /**
@@ -47,7 +48,7 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
      */
     public function testExcessCount()
     {
-        $mock   = new RequestExecutor();
+        $mock   = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface');
         $socket = $this->getMock('AsyncSockets\Socket\SocketInterface');
         $this->decider->initialize($mock);
 
@@ -80,7 +81,7 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
      */
     public function testWithRequestComplete()
     {
-        $mock    = new RequestExecutor();
+        $mock    = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface');
         $socket  = $this->getMock('AsyncSockets\Socket\SocketInterface');
         $decider = new ConstantLimitationDecider(2);
 

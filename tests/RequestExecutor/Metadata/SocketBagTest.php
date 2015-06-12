@@ -234,15 +234,15 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testExceptionWillBeThrownForRequireKey
+     * testCantOperateNonAddedSocket
      *
      * @return void
      * @expectedException \OutOfBoundsException
      * @expectedExceptionMessage Trying to perform operation on not added socket.
      */
-    public function testExceptionWillBeThrownForRequireKey()
+    public function testCantOperateNonAddedSocket()
     {
-        $this->bag->requireOperationKey($this->socket);
+        $this->bag->getSocketMetaData($this->socket);
     }
 
     /**
