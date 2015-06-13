@@ -33,9 +33,9 @@ class ReadOperationTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         self::assertInstanceOf(
-            'AsyncSockets\Frame\NullFrame',
-            $this->operation->getFrame(),
-            'Incorrect initial state for frame'
+            'AsyncSockets\Frame\NullFramePicker',
+            $this->operation->getFramePicker(),
+            'Incorrect initial state for framePicker'
         );
         self::assertEquals(
             RequestExecutorInterface::OPERATION_READ,
@@ -51,9 +51,9 @@ class ReadOperationTest extends \PHPUnit_Framework_TestCase
      */
     public function testSetFrame()
     {
-        $frame = $this->getMock('AsyncSockets\Frame\FrameInterface');
-        $this->operation->setFrame($frame);
-        self::assertSame($frame, $this->operation->getFrame(), 'Frame is not set');
+        $frame = $this->getMock('AsyncSockets\Frame\FramePickerInterface');
+        $this->operation->setFramePicker($frame);
+        self::assertSame($frame, $this->operation->getFramePicker(), 'Frame is not set');
     }
 
     /** {@inheritdoc} */

@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 
 /**
  * Interface SocketResponseInterface
@@ -17,11 +17,11 @@ use AsyncSockets\Frame\FrameInterface;
 interface SocketResponseInterface
 {
     /**
-     * Return frame used to create this response
+     * Return framePicker used to create this response
      *
-     * @return FrameInterface
+     * @return FramePickerInterface
      */
-    public function getFrame();
+    public function getFramePicker();
 
     /**
      * Return full content of this response

@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 
 /**
  * Class AbstractSocketResponse
@@ -26,20 +26,20 @@ abstract class AbstractSocketResponse implements SocketResponseInterface
     /**
      * Frame this data is created from
      *
-     * @var FrameInterface
+     * @var FramePickerInterface
      */
-    protected $frame;
+    protected $framePicker;
 
     /**
      * SocketResponse constructor.
      *
-     * @param FrameInterface $frame Frame this data was created from
+     * @param FramePickerInterface $frame Frame this data was created from
      * @param string         $data Data from network
      */
-    public function __construct(FrameInterface $frame, $data)
+    public function __construct(FramePickerInterface $frame, $data)
     {
-        $this->data = (string) $data;
-        $this->frame = $frame;
+        $this->data        = (string) $data;
+        $this->framePicker = $frame;
     }
 
     /** {@inheritdoc} */
@@ -49,8 +49,8 @@ abstract class AbstractSocketResponse implements SocketResponseInterface
     }
 
     /** {@inheritdoc} */
-    public function getFrame()
+    public function getFramePicker()
     {
-        return $this->frame;
+        return $this->framePicker;
     }
 }

@@ -12,8 +12,8 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Frame\FrameInterface;
-use AsyncSockets\Frame\NullFrame;
+use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\Assistant\FrameProcessor;
 
 /**
@@ -57,7 +57,7 @@ class ClientSocket extends AbstractSocket
     /** {@inheritdoc} */
     protected function doReadData(
         $socket,
-        FrameInterface $frame,
+        FramePickerInterface $frame,
         ChunkSocketResponse $previousResponse = null
     ) {
         $result        = '';
@@ -73,7 +73,7 @@ class ClientSocket extends AbstractSocket
             $rawData = stream_socket_recvfrom($socket, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
             switch (true) {
                 case $rawData === '':
-                    $isEndOfFrame = $frame instanceof NullFrame || $isEndOfFrame;
+                    $isEndOfFrame = $frame instanceof NullFramePicker || $isEndOfFrame;
                     break 2;
                 case $rawData === false:
                     break 2;
@@ -82,7 +82,7 @@ class ClientSocket extends AbstractSocket
                     $result     = $this->getFrameProcessor()->processReadFrame($frame, $actualData, $result);
 
                     $isDataChanged = true;
-                    $isEndOfFrame = !($frame instanceof NullFrame) && $frame->isEof();
+                    $isEndOfFrame = !($frame instanceof NullFramePicker) && $frame->isEof();
             }
         } while (!$isEndOfFrame);
 
@@ -129,15 +129,15 @@ class ClientSocket extends AbstractSocket
     }
 
     /**
-     * Checks whether all frame data is read
+     * Checks whether all framePicker data is read
      *
      * @param resource       $socket Socket resource object
-     * @param FrameInterface $frame Frame object to check
+     * @param FramePickerInterface $frame Frame object to check
      *
      * @return bool
-     * @throws FrameSocketException If socket data is ended and frame eof is not reached
+     * @throws FrameSocketException If socket data is ended and framePicker eof is not reached
      */
-    private function isFullFrameRead($socket, FrameInterface $frame)
+    private function isFullFrameRead($socket, FramePickerInterface $frame)
     {
         $read     = [ $socket ];
         $nomatter = null;
@@ -148,7 +148,7 @@ class ClientSocket extends AbstractSocket
             if ($frame->isEof()) {
                 return true;
             } else {
-                throw new FrameSocketException($frame, $this, 'Failed to receive desired frame.');
+                throw new FrameSocketException($frame, $this, 'Failed to receive desired framePicker.');
             }
         }
 

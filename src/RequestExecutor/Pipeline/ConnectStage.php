@@ -9,7 +9,6 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
@@ -61,12 +60,7 @@ class ConnectStage extends AbstractTimeAwareStage
 
             $socket = $item->getSocket();
             $meta   = $item->getMetadata();
-            $event  = new Event(
-                $this->executor,
-                $socket,
-                $meta[RequestExecutorInterface::META_USER_CONTEXT],
-                EventType::INITIALIZE
-            );
+            $event  = $this->createEvent($item, EventType::INITIALIZE);
 
             try {
                 $this->callSocketSubscribers($item, $event);

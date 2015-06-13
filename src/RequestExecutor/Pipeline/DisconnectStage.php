@@ -9,7 +9,6 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
@@ -69,12 +68,7 @@ class DisconnectStage extends AbstractStage
         $operation->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
 
         $socket = $operation->getSocket();
-        $event  = new Event(
-            $this->executor,
-            $socket,
-            $meta[RequestExecutorInterface::META_USER_CONTEXT],
-            EventType::DISCONNECTED
-        );
+        $event  = $this->createEvent($operation, EventType::DISCONNECTED);
 
         try {
             $socket->close();
@@ -88,7 +82,7 @@ class DisconnectStage extends AbstractStage
         $this->selector->removeAllSocketOperations($operation);
         $this->callSocketSubscribers(
             $operation,
-            new Event($this->executor, $socket, $meta[RequestExecutorInterface::META_USER_CONTEXT], EventType::FINALIZE)
+            $this->createEvent($operation, EventType::FINALIZE)
         );
     }
 }

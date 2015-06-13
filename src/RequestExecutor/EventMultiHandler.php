@@ -28,7 +28,7 @@ class EventMultiHandler implements EventHandlerInterface
      *
      * @param EventHandlerInterface[] $handlers List of handlers
      */
-    public function __construct(array $handlers)
+    public function __construct(array $handlers = [])
     {
         $this->handlers = [];
         foreach ($handlers as $handler) {

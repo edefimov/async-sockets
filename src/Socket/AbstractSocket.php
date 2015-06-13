@@ -11,8 +11,8 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Frame\FrameInterface;
-use AsyncSockets\Frame\NullFrame;
+use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Frame\NullFramePicker;
 
 /**
  * Class AbstractSocket
@@ -96,7 +96,7 @@ abstract class AbstractSocket implements SocketInterface
      * Perform reading data from socket
      *
      * @param resource            $socket Socket resource
-     * @param FrameInterface      $frame Frame object to read
+     * @param FramePickerInterface      $frame Frame object to read
      * @param ChunkSocketResponse $previousResponse Previous response from this socket
      *
      * @return SocketResponseInterface
@@ -104,7 +104,7 @@ abstract class AbstractSocket implements SocketInterface
      */
     abstract protected function doReadData(
         $socket,
-        FrameInterface $frame,
+        FramePickerInterface $frame,
         ChunkSocketResponse $previousResponse = null
     );
 
@@ -119,7 +119,7 @@ abstract class AbstractSocket implements SocketInterface
         if (is_resource($this->resource)) {
             $result = true;
             $meta   = stream_get_meta_data($this->resource);
-            if (isset($meta[ 'blocked' ]) && $meta[ 'blocked' ] != $this->isBlocking) {
+            if (isset($meta['blocked']) && $meta['blocked'] != $this->isBlocking) {
                 $this->setBlocking($this->isBlocking);
             }
         }
@@ -139,11 +139,11 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function read(FrameInterface $frame = null, ChunkSocketResponse $previousResponse = null)
+    public function read(FramePickerInterface $frame = null, ChunkSocketResponse $previousResponse = null)
     {
         $this->setConnectedState();
-        $frame = $previousResponse ? $previousResponse->getFrame() : $frame;
-        $frame = $frame ?: new NullFrame();
+        $frame = $previousResponse ? $previousResponse->getFramePicker() : $frame;
+        $frame = $frame ?: new NullFramePicker();
 
         return $this->doReadData($this->resource, $frame, $previousResponse);
     }

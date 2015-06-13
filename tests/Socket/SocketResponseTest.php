@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\SocketResponse;
 
 /**
@@ -19,9 +19,9 @@ use AsyncSockets\Socket\SocketResponse;
 class SocketResponseTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * Mocked frame
+     * Mocked framePicker
      *
-     * @var FrameInterface
+     * @var FramePickerInterface
      */
     protected $frame;
 
@@ -54,6 +54,6 @@ class SocketResponseTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->frame = $this->getMock('AsyncSockets\Frame\FrameInterface');
+        $this->frame = $this->getMock('AsyncSockets\Frame\FramePickerInterface');
     }
 }

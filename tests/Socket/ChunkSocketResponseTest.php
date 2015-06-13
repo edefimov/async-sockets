@@ -37,7 +37,7 @@ class ChunkSocketResponseTest extends SocketResponseTest
         }
 
         $response  = null;
-        $frameMock = $this->getMock('AsyncSockets\Frame\FrameInterface');
+        $frameMock = $this->getMock('AsyncSockets\Frame\FramePickerInterface');
         for ($i = 0; $i < strlen($data); $i++) {
             $response = new ChunkSocketResponse($frameMock, $data[$i], $response);
             self::assertEquals($data[$i], $response->getChunkData(), 'Incorrect chunk data returned');

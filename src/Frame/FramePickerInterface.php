@@ -10,9 +10,9 @@
 namespace AsyncSockets\Frame;
 
 /**
- * Interface FrameInterface
+ * Interface FramePickerInterface
  */
-interface FrameInterface
+interface FramePickerInterface
 {
     /**
      * Determines start of this frame

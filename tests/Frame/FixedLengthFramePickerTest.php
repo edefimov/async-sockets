@@ -10,22 +10,22 @@
 
 namespace Tests\AsyncSockets\Frame;
 
-use AsyncSockets\Frame\FixedLengthFrame;
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FixedLengthFramePicker;
+use AsyncSockets\Frame\FramePickerInterface;
 
 /**
- * Class FixedLengthFrameTest
+ * Class FixedLengthFramePickerTest
  */
-class FixedLengthFrameTest extends AbstractFrameTest
+class FixedLengthFramePickerTest extends AbstractFramePickerTest
 {
     /** {@inheritdoc} */
     protected function createFrame()
     {
-        return new FixedLengthFrame(5);
+        return new FixedLengthFramePicker(5);
     }
 
     /** {@inheritdoc} */
-    protected function ensureStartOfFrameIsFound(FrameInterface $frame)
+    protected function ensureStartOfFrameIsFound(FramePickerInterface $frame)
     {
         $frame->findStartOfFrame('data', 4, '');
     }
@@ -33,24 +33,24 @@ class FixedLengthFrameTest extends AbstractFrameTest
     /**
      * testGetters
      *
-     * @param int $length Length of frame
+     * @param int $length Length of framePicker
      *
      * @return void
      * @dataProvider frameSizeDataProvider
      */
     public function testGetters($length)
     {
-        $frame  = new FixedLengthFrame($length);
+        $frame  = new FixedLengthFramePicker($length);
 
-        self::assertEquals($length, $frame->getLength(), 'Incorrect frame length');
+        self::assertEquals($length, $frame->getLength(), 'Incorrect framePicker length');
         self::assertFalse($frame->isEof(), 'Incorrect eof state');
-        self::assertEquals(0, $frame->findStartOfFrame('', 0, ''), 'Incorrect start of frame');
+        self::assertEquals(0, $frame->findStartOfFrame('', 0, ''), 'Incorrect start of framePicker');
     }
 
     /**
      * testProcessingByFullLength
      *
-     * @param int $length Length of frame Length of frame
+     * @param int $length Length of framePicker Length of framePicker
      *
      * @return void
      * @depends testGetters
@@ -58,9 +58,9 @@ class FixedLengthFrameTest extends AbstractFrameTest
      */
     public function testProcessingByFullLength($length)
     {
-        $frame = new FixedLengthFrame($length);
+        $frame = new FixedLengthFramePicker($length);
         $data  = str_repeat('x', $length);
-        self::assertEquals(0, $frame->findStartOfFrame($data, $length, ''), 'Incorrect start of frame');
+        self::assertEquals(0, $frame->findStartOfFrame($data, $length, ''), 'Incorrect start of framePicker');
 
         $processed = $frame->handleData($data, $length, '');
         self::assertEquals($length, $processed);
@@ -70,7 +70,7 @@ class FixedLengthFrameTest extends AbstractFrameTest
     /**
      * testProcessMoreThanSize
      *
-     * @param int $length Length of frame Length of frame
+     * @param int $length Length of framePicker Length of framePicker
      *
      * @return void
      * @depends testGetters
@@ -78,10 +78,10 @@ class FixedLengthFrameTest extends AbstractFrameTest
      */
     public function testProcessMoreThanSize($length)
     {
-        $frame = new FixedLengthFrame($length);
+        $frame = new FixedLengthFramePicker($length);
         $chunk = str_repeat('y', $length);
         $data  = str_repeat('x', $length) ;
-        self::assertEquals(0, $frame->findStartOfFrame($chunk, $length, $data), 'Incorrect start of frame');
+        self::assertEquals(0, $frame->findStartOfFrame($chunk, $length, $data), 'Incorrect start of framePicker');
         $processed = $frame->handleData($chunk, $length, $data);
 
         self::assertEquals($length, $processed);
@@ -91,7 +91,7 @@ class FixedLengthFrameTest extends AbstractFrameTest
     /**
      * testOverfill
      *
-     * @param int $length Length of frame Length of frame
+     * @param int $length Length of framePicker Length of framePicker
      *
      * @return void
      * @depends testGetters
@@ -99,15 +99,15 @@ class FixedLengthFrameTest extends AbstractFrameTest
      */
     public function testOverfill($length)
     {
-        $frame = new FixedLengthFrame($length);
+        $frame = new FixedLengthFramePicker($length);
         $chunk = str_repeat('y', $length);
 
         $data = '';
         for ($i = 0; $i < 5; $i++) {
-            self::assertEquals(0, $frame->findStartOfFrame($chunk, $length, $data), 'Incorrect start of frame');
+            self::assertEquals(0, $frame->findStartOfFrame($chunk, $length, $data), 'Incorrect start of framePicker');
             $processed = $frame->handleData($data, $length, $data);
             $data     .= $chunk;
-            self::assertEquals($i === 0 ? $length : 0, $processed, 'Processed more than frame size');
+            self::assertEquals($i === 0 ? $length : 0, $processed, 'Processed more than framePicker size');
         }
 
         self::assertTrue($frame->isEof(), 'Incorrect eof state');

@@ -11,7 +11,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\AcceptException;
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 
 /**
  * Class ServerSocket
@@ -39,7 +39,7 @@ class ServerSocket extends AbstractSocket
     /** {@inheritdoc} */
     protected function doReadData(
         $socket,
-        FrameInterface $frame,
+        FramePickerInterface $frame,
         ChunkSocketResponse $previousResponse = null
     ) {
         $client = stream_socket_accept($socket, 0, $peerName);

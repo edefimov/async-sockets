@@ -10,7 +10,6 @@
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\AcceptEvent;
-use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
@@ -28,71 +27,21 @@ use AsyncSockets\Socket\ChunkSocketResponse;
  */
 class IoStage extends AbstractTimeAwareStage
 {
-    /**
-     * Io was completely done
-     */
-    const IO_STATE_DONE = 0;
-
-    /**
-     * Partial i/o result
-     */
-    const IO_STATE_PARTIAL = 1;
-
-    /**
-     * Exception during I/O processing
-     */
-    const IO_STATE_EXCEPTION = 2;
-
     /** {@inheritdoc} */
     public function processStage(array $operations)
     {
         /** @var OperationMetadata[] $operations */
         $result = [];
         foreach ($operations as $item) {
-            $meta         = $item->getMetadata();
-            $wasConnected = $meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null;
-            $this->setSocketOperationTime($item, RequestExecutorInterface::META_CONNECTION_FINISH_TIME);
-            if (!$wasConnected) {
-                $event = new Event(
-                    $this->executor,
-                    $item->getSocket(),
-                    $meta[ RequestExecutorInterface::META_USER_CONTEXT ],
-                    EventType::CONNECTED
-                );
-
-                try {
-                    $this->callSocketSubscribers($item, $event);
-                } catch (SocketException $e) {
-                    $this->callExceptionSubscribers($item, $e, $event);
-                    $result[] = $item;
-                    continue;
-                }
+            if (!$this->setConnectionFinishTime($item)) {
+                $result[] = $item;
+                continue;
             }
 
-            if ($item->getOperation()->getType() === RequestExecutorInterface::OPERATION_READ) {
-                $ioState = $this->processReadIo($item, $nextOperation);
-            } else {
-                $ioState = $this->processWriteIo($item, $nextOperation);
-            }
+            $isComplete = $this->processIoOperation($item);
 
-            switch ($ioState) {
-                case self::IO_STATE_DONE:
-                    if ($nextOperation === null) {
-                        $result[] = $item;
-                    } else {
-                        $item->setOperation($nextOperation);
-                        $item->setMetadata(
-                            [
-                                RequestExecutorInterface::META_LAST_IO_START_TIME => null,
-                            ]
-                        );
-                    }
-                    break;
-                case self::IO_STATE_PARTIAL:
-                    continue;
-                case self::IO_STATE_EXCEPTION:
-                    $result[] = $item;
-                    break;
+            if ($isComplete) {
+                $result[] = $item;
             }
         }
 
@@ -100,76 +49,93 @@ class IoStage extends AbstractTimeAwareStage
     }
 
     /**
+     * Resolves I/O operation type and process it
+     *
+     * @param OperationMetadata $operation Operation object
+     *
+     * @return bool Flag, whether operation is complete
+     */
+    private function processIoOperation(OperationMetadata $operation)
+    {
+        $operationType = $operation->getOperation()->getType();
+        return (
+                   $operationType === RequestExecutorInterface::OPERATION_READ &&
+                   $this->processReadIo($operation)
+               ) || (
+                   $operationType === RequestExecutorInterface::OPERATION_WRITE &&
+                   $this->processWriteIo($operation)
+               ) || (
+                   // should never happen
+                   $operationType !== RequestExecutorInterface::OPERATION_READ &&
+                   $operationType !== RequestExecutorInterface::OPERATION_WRITE
+               );
+    }
+
+    /**
      * Process reading operation
      *
-     * @param OperationMetadata       $operationMetadata Metadata
-     * @param OperationInterface|null &$nextOperation Next operation to perform on socket
+     * @param OperationMetadata $operationMetadata Metadata
      *
-     * @return int One of IO_STATE_* consts
+     * @return bool Flag, whether operation is complete
      */
-    private function processReadIo(OperationMetadata $operationMetadata, OperationInterface &$nextOperation = null)
+    private function processReadIo(OperationMetadata $operationMetadata)
     {
         $meta      = $operationMetadata->getMetadata();
         $socket    = $operationMetadata->getSocket();
         $operation = $operationMetadata->getOperation();
+        $context   = $meta[ RequestExecutorInterface::META_USER_CONTEXT ];
+        $event     = null;
 
-        $event = null;
         try {
             /** @var ReadOperation $operation */
-            $response = $socket->read($operation->getFrame(), $operationMetadata->getPreviousResponse());
+            $response = $socket->read($operation->getFramePicker(), $operationMetadata->getPreviousResponse());
             switch (true) {
                 case $response instanceof ChunkSocketResponse:
                     $operationMetadata->setPreviousResponse($response);
-                    return self::IO_STATE_PARTIAL;
+                    return false;
                 case $response instanceof AcceptResponse:
                     $event = new AcceptEvent(
                         $this->executor,
                         $socket,
-                        $meta[ RequestExecutorInterface::META_USER_CONTEXT ],
+                        $context,
                         $response->getClientSocket(),
                         $response->getClientAddress()
                     );
 
                     $this->callSocketSubscribers($operationMetadata, $event);
-                    $nextOperation = new ReadOperation();
-                    return self:: IO_STATE_DONE;
+                    return $this->resolveNextOperation($operationMetadata, new ReadOperation());
                 default:
                     $event = new ReadEvent(
                         $this->executor,
                         $socket,
-                        $meta[ RequestExecutorInterface::META_USER_CONTEXT ],
+                        $context,
                         $response
                     );
 
                     $this->callSocketSubscribers($operationMetadata, $event);
-                    $nextOperation = $event->getNextOperation();
-                    return self::IO_STATE_DONE;
+                    return $this->resolveNextOperation($operationMetadata, $event->getNextOperation());
             }
         } catch (AcceptException $e) {
-            $this->callExceptionSubscribers($operationMetadata, $e, null);
-            $nextOperation = new ReadOperation();
-
-            return self::IO_STATE_DONE;
+            return $this->resolveNextOperation($operationMetadata, new ReadOperation());
         } catch (SocketException $e) {
             $this->callExceptionSubscribers(
                 $operationMetadata,
                 $e,
-                $event ?: new ReadEvent($this->executor, $socket, $meta[ RequestExecutorInterface::META_USER_CONTEXT ])
+                $event ?: new ReadEvent($this->executor, $socket, $context)
             );
 
-            return self::IO_STATE_EXCEPTION;
+            return true;
         }
     }
 
     /**
      * Process write operation
      *
-     * @param OperationMetadata       $operationMetadata Metadata
-     * @param OperationInterface|null &$nextOperation Next operation to perform on socket
+     * @param OperationMetadata $operationMetadata Metadata
      *
-     * @return int One of IO_STATE_* consts
+     * @return bool Flag, whether operation is complete
      */
-    private function processWriteIo(OperationMetadata $operationMetadata, OperationInterface &$nextOperation = null)
+    private function processWriteIo(OperationMetadata $operationMetadata)
     {
         $meta   = $operationMetadata->getMetadata();
         $socket = $operationMetadata->getSocket();
@@ -184,11 +150,63 @@ class IoStage extends AbstractTimeAwareStage
             if ($event->getOperation()->hasData()) {
                 $socket->write($event->getOperation()->getData());
             }
-            $nextOperation = $event->getNextOperation();
-            return self::IO_STATE_DONE;
+
+            return $this->resolveNextOperation($operationMetadata, $event->getNextOperation());
         } catch (SocketException $e) {
             $this->callExceptionSubscribers($operationMetadata, $e, $event);
-            return self::IO_STATE_EXCEPTION;
+            return true;
         }
+    }
+
+    /**
+     * Fill next operation in given object and return flag indicating whether operation is required
+     *
+     * @param OperationMetadata  $operationMetadata Operation metadata object
+     * @param OperationInterface $nextOperation Next operation object
+     *
+     * @return bool True if given operation is complete
+     */
+    private function resolveNextOperation(
+        OperationMetadata $operationMetadata,
+        OperationInterface $nextOperation = null
+    ) {
+        if (!$nextOperation) {
+            return true;
+        }
+
+        $operationMetadata->setOperation($nextOperation);
+        $operationMetadata->setMetadata(
+            [
+                RequestExecutorInterface::META_LAST_IO_START_TIME => null,
+            ]
+        );
+
+        return false;
+    }
+
+    /**
+     * Set connection finish time and fire socket if it was not connected
+     *
+     * @param OperationMetadata $operationMetadata
+     *
+     * @return bool True, if there was no error, false if operation should be stopped
+     */
+    private function setConnectionFinishTime(OperationMetadata $operationMetadata)
+    {
+        $meta         = $operationMetadata->getMetadata();
+        $wasConnected = $meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null;
+        $this->setSocketOperationTime($operationMetadata, RequestExecutorInterface::META_CONNECTION_FINISH_TIME);
+        if (!$wasConnected) {
+            $event = $this->createEvent($operationMetadata, EventType::CONNECTED);
+
+            try {
+                $this->callSocketSubscribers($operationMetadata, $event);
+            } catch (SocketException $e) {
+                $this->callExceptionSubscribers($operationMetadata, $e, $event);
+                return false;
+            }
+        }
+
+        return true;
     }
 }

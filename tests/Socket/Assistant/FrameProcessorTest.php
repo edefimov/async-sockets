@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket\Assistant;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\Assistant\FrameProcessor;
 
 /**
@@ -26,16 +26,16 @@ class FrameProcessorTest extends \PHPUnit_Framework_TestCase
     private $processor;
 
     /**
-     * Create frame from data, received from dataProvider
+     * Create framePicker from data, received from dataProvider
      *
      * @param array $data Frame data
      *
-     * @return FrameInterface
+     * @return FramePickerInterface
      */
     private function createFrame(array $data)
     {
         $frame = $this->getMock(
-            'AsyncSockets\Frame\FrameInterface',
+            'AsyncSockets\Frame\FramePickerInterface',
             ['findStartOfFrame', 'isEof', 'isStarted', 'handleData']
         );
 
@@ -112,7 +112,7 @@ class FrameProcessorTest extends \PHPUnit_Framework_TestCase
                 $result = $this->processor->processReadFrame($frameInterface, $chunk, $result);
             }
 
-            self::assertEquals($frameInfo[1], $result, "Unexpected output at frame {$index}");
+            self::assertEquals($frameInfo[1], $result, "Unexpected output at framePicker {$index}");
         }
 
     }
@@ -244,7 +244,7 @@ class FrameProcessorTest extends \PHPUnit_Framework_TestCase
                 ]
             ],
 
-            // unhandled data at the end of first frame will be passed to second one
+            // unhandled data at the end of first framePicker will be passed to second one
             [
                 [
                     [

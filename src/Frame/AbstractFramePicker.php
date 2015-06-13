@@ -10,26 +10,26 @@
 namespace AsyncSockets\Frame;
 
 /**
- * Class AbstractFrame
+ * Class AbstractFramePicker
  */
-abstract class AbstractFrame implements FrameInterface
+abstract class AbstractFramePicker implements FramePickerInterface
 {
     /**
-     * Flag whether this frame is started
+     * Flag whether this framePicker is started
      *
      * @var bool
      */
     private $isStarted;
 
     /**
-     * Flag, whether frame is finished
+     * Flag, whether framePicker is finished
      *
      * @var bool
      */
     private $isFinished;
 
     /**
-     * AbstractFrame constructor.
+     * AbstractFramePicker constructor.
      */
     public function __construct()
     {
@@ -76,35 +76,35 @@ abstract class AbstractFrame implements FrameInterface
     }
 
     /**
-     * Determines start of this frame
+     * Determines start of this framePicker
      *
      * @param string $chunk Part of data, before calling this method
      * @param int    $lenChunk Length if chunk
      * @param string $data Data, collected from socket till this moment, excluding $chunk
      *
-     * @return int|null Offset in $chunk where this frame starts.
-     *                  Can be negative if beginning of this frame was before current chunk.
-     *                  If null, then there is no start frame in given chunk
+     * @return int|null Offset in $chunk where this framePicker starts.
+     *                  Can be negative if beginning of this framePicker was before current chunk.
+     *                  If null, then there is no start framePicker in given chunk
      */
     abstract protected function doFindStartOfFrame($chunk, $lenChunk, $data);
 
     /**
-     * Process raw network data. Data should be used to determine end of this concrete frame
+     * Process raw network data. Data should be used to determine end of this concrete framePicker
      *
      * @param string $chunk Part of data, before calling this method
      * @param int    $lenChunk Length if chunk
      * @param string $data Data, collected from socket till this moment, excluding $chunk, and beginning from
-     *                      start of this frame
+     *                      start of this framePicker
      *
      * @return int Length of processed data. Unprocessed data will be passed on next call to this function.
-     *             If negative value is returned, then frame data will be truncated to returned length
+     *             If negative value is returned, then framePicker data will be truncated to returned length
      */
     abstract protected function doHandleData($chunk, $lenChunk, $data);
 
     /**
      * Sets finished flag
      *
-     * @param boolean $isFinished Flag whether frame is finished
+     * @param boolean $isFinished Flag whether framePicker is finished
      *
      * @return void
      */

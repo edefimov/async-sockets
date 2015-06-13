@@ -12,7 +12,6 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -74,5 +73,25 @@ abstract class AbstractStage implements PipelineStageInterface
         Event $event = null
     ) {
         $this->eventCaller->callExceptionSubscribers($operationMetadata, $exception, $event);
+    }
+
+    /**
+     * Create simple event
+     *
+     * @param OperationMetadata $operation Operation item
+     * @param string            $eventName Event name for object
+     *
+     * @return Event
+     */
+    protected function createEvent(OperationMetadata $operation, $eventName)
+    {
+        $meta = $operation->getMetadata();
+
+        return new Event(
+            $this->executor,
+            $operation->getSocket(),
+            $meta[ RequestExecutorInterface::META_USER_CONTEXT ],
+            $eventName
+        );
     }
 }

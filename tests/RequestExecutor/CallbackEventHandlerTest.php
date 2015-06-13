@@ -15,9 +15,9 @@ use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\Metadata\HandlerBag;
 
 /**
- * Class EventInvocationHandlerBagTest
+ * Class CallbackEventHandlerTest
  */
-class EventInvocationHandlerBagTest extends \PHPUnit_Framework_TestCase
+class CallbackEventHandlerTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Handler bag

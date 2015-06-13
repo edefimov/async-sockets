@@ -13,7 +13,7 @@ namespace Tests\AsyncSockets\Socket;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
-use AsyncSockets\Frame\MarkerFrame;
+use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;

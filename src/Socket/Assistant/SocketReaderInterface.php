@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\Socket\Assistant;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketResponseInterface;
 
@@ -22,10 +22,10 @@ interface SocketReaderInterface
      * Perform reading data from socket
      *
      * @param resource            $socket Socket resource
-     * @param FrameInterface      $frame Frame object to read
+     * @param FramePickerInterface      $frame Frame object to read
      * @param ChunkSocketResponse $previousResponse Previous response from this socket
      *
      * @return SocketResponseInterface
      */
-    public function read($socket, FrameInterface $frame, ChunkSocketResponse $previousResponse = null);
+    public function read($socket, FramePickerInterface $frame, ChunkSocketResponse $previousResponse = null);
 }

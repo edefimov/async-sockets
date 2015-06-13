@@ -19,5 +19,5 @@ interface OperationInterface
      *
      * @return string One of RequestExecutorInterface::OPERATION_* consts
      */
-     public function getType();
+    public function getType();
 }

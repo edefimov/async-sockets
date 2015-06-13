@@ -13,7 +13,7 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
-use AsyncSockets\Frame\MarkerFrame;
+use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\EventHandlerFromSymfonyEventDispatcher;
 use AsyncSockets\RequestExecutor\EventMultiHandler;
@@ -111,7 +111,7 @@ class Client
             number_format(strlen($event->getOperation()->getData()), 0, '.', ' ') .
             ' bytes'
         );
-        $event->nextIsRead(new MarkerFrame('HTTP', "\r\n\r\n"));
+        $event->nextIsRead(new MarkerFramePicker('HTTP', "\r\n\r\n"));
     }
 
     /**

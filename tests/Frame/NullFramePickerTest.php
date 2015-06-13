@@ -10,17 +10,17 @@
 
 namespace Tests\AsyncSockets\Frame;
 
-use AsyncSockets\Frame\NullFrame;
+use AsyncSockets\Frame\NullFramePicker;
 
 /**
- * Class NullFrameTest
+ * Class NullFramePickerTest
  */
-class NullFrameTest extends \PHPUnit_Framework_TestCase
+class NullFramePickerTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Test object
      *
-     * @var NullFrame
+     * @var NullFramePicker
      */
     private $frame;
 
@@ -31,18 +31,18 @@ class NullFrameTest extends \PHPUnit_Framework_TestCase
      */
     public function testInitialState()
     {
-        self::assertTrue($this->frame->isEof(), 'NullFrame::isEof must always return true');
+        self::assertTrue($this->frame->isEof(), 'NullFramePicker::isEof must always return true');
         self::assertEquals(
             0,
             $this->frame->findStartOfFrame('', 0, ''),
-            'NullFrame::findStartOfFrame must always return 0'
+            'NullFramePicker::findStartOfFrame must always return 0'
         );
     }
 
     /**
      * testEveryTimeReturnLength
      *
-     * @param int $length Length of frame Length of frame
+     * @param int $length Length of framePicker Length of framePicker
      *
      * @return void
      * @dataProvider frameSizeDataProvider
@@ -54,7 +54,7 @@ class NullFrameTest extends \PHPUnit_Framework_TestCase
 
         self::assertEquals($length, $processed);
         self::assertTrue($this->frame->isEof(), 'Incorrect eof state');
-        self::assertEquals(0, $this->frame->findStartOfFrame($data, $length, ''), 'Incorrect start of frame');
+        self::assertEquals(0, $this->frame->findStartOfFrame($data, $length, ''), 'Incorrect start of framePicker');
     }
 
     /**
@@ -74,6 +74,6 @@ class NullFrameTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->frame = new NullFrame();
+        $this->frame = new NullFramePicker();
     }
 }

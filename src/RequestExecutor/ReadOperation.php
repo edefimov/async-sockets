@@ -9,8 +9,8 @@
  */
 namespace AsyncSockets\RequestExecutor;
 
-use AsyncSockets\Frame\FrameInterface;
-use AsyncSockets\Frame\NullFrame;
+use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Frame\NullFramePicker;
 
 /**
  * Class ReadOperation
@@ -18,20 +18,20 @@ use AsyncSockets\Frame\NullFrame;
 class ReadOperation implements OperationInterface
 {
     /**
-     * Frame object to read
+     * Frame picker object
      *
-     * @var FrameInterface
+     * @var FramePickerInterface
      */
-    private $frame;
+    private $framePicker;
 
     /**
      * ReadOperation constructor.
      *
-     * @param FrameInterface $frame Frame to read
+     * @param FramePickerInterface $framePicker Frame picker object
      */
-    public function __construct(FrameInterface $frame = null)
+    public function __construct(FramePickerInterface $framePicker = null)
     {
-        $this->frame = $frame ?: new NullFrame();
+        $this->framePicker = $framePicker ?: new NullFramePicker();
     }
 
 
@@ -42,24 +42,24 @@ class ReadOperation implements OperationInterface
     }
 
     /**
-     * Return Frame
+     * Return FramePicker
      *
-     * @return FrameInterface
+     * @return FramePickerInterface
      */
-    public function getFrame()
+    public function getFramePicker()
     {
-        return $this->frame;
+        return $this->framePicker;
     }
 
     /**
-     * Sets Frame
+     * Sets FramePicker
      *
-     * @param FrameInterface $frame New value for Frame
+     * @param FramePickerInterface $framePicker New value for Frame
      *
      * @return void
      */
-    public function setFrame(FrameInterface $frame)
+    public function setFramePicker(FramePickerInterface $framePicker)
     {
-        $this->frame = $frame;
+        $this->framePicker = $framePicker;
     }
 }

@@ -10,9 +10,9 @@
 namespace AsyncSockets\Frame;
 
 /**
- * Class MarkerFrame
+ * Class MarkerFramePicker
  */
-class MarkerFrame extends AbstractFrame
+class MarkerFramePicker extends AbstractFramePicker
 {
     /**
      * Frame start byte sequence or null
@@ -36,7 +36,7 @@ class MarkerFrame extends AbstractFrame
     private $offsetForEndMarker;
 
     /**
-     * MarkerFrame constructor.
+     * MarkerFramePicker constructor.
      *
      * @param null|string $startMarker Start marker
      * @param string      $endMarker End marker

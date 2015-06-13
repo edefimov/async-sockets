@@ -10,33 +10,33 @@
 
 namespace Tests\AsyncSockets\Frame;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 
 /**
- * Class AbstractFrameTest
+ * Class AbstractFramePickerTest
  */
-abstract class AbstractFrameTest extends \PHPUnit_Framework_TestCase
+abstract class AbstractFramePickerTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * Create frame for test
+     * Create framePicker for test
      *
-     * @return FrameInterface
+     * @return FramePickerInterface
      */
     abstract protected function createFrame();
 
     /**
      * ensureStartOfFrameIsFound
      *
-     * @param FrameInterface $frame Test object
+     * @param FramePickerInterface $frame Test object
      *
      * @return void
      */
-    abstract protected function ensureStartOfFrameIsFound(FrameInterface $frame);
+    abstract protected function ensureStartOfFrameIsFound(FramePickerInterface $frame);
 
     /**
      * testInitialState
      *
-     * @return FrameInterface
+     * @return FramePickerInterface
      */
     public function testInitialState()
     {
@@ -51,14 +51,14 @@ abstract class AbstractFrameTest extends \PHPUnit_Framework_TestCase
     /**
      * testHandleDataIfNotStarted
      *
-     * @param FrameInterface $frame Test object
+     * @param FramePickerInterface $frame Test object
      *
      * @return void
      * @depends testInitialState
      */
-    public function testHandleDataIfNotStarted(FrameInterface $frame)
+    public function testHandleDataIfNotStarted(FramePickerInterface $frame)
     {
-        self::assertSame(0, $frame->handleData('test', 4, ''), 'Not started frame must return 0');
+        self::assertSame(0, $frame->handleData('test', 4, ''), 'Not started framePicker must return 0');
     }
 
     /**

@@ -10,12 +10,12 @@
 namespace AsyncSockets\Frame;
 
 /**
- * Class FixedLengthFrame
+ * Class FixedLengthFramePicker
  */
-class FixedLengthFrame extends AbstractFrame
+class FixedLengthFramePicker extends AbstractFramePicker
 {
     /**
-     * Desired length of frame
+     * Desired length of framePicker
      *
      * @var int
      */
@@ -29,9 +29,9 @@ class FixedLengthFrame extends AbstractFrame
     private $processedLength;
 
     /**
-     * FixedLengthFrame constructor.
+     * FixedLengthFramePicker constructor.
      *
-     * @param int $length Length of data for this frame
+     * @param int $length Length of data for this framePicker
      */
     public function __construct($length)
     {

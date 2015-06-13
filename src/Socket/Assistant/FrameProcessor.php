@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\Socket\Assistant;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 
 /**
  * Class FrameProcessor
@@ -17,22 +17,22 @@ use AsyncSockets\Frame\FrameInterface;
 class FrameProcessor
 {
     /**
-     * Unhandled portion of data at the end of frame
+     * Unhandled portion of data at the end of framePicker
      *
      * @var string
      */
     private $unhandledData = '';
 
     /**
-     * Process data by frame
+     * Process data by framePicker
      *
-     * @param FrameInterface $frame Frame to process data
+     * @param FramePickerInterface $frame Frame to process data
      * @param string         $chunk Chunk from network
      * @param string         $data Data from previous call to this method
      *
      * @return string Processed chunk
      */
-    public function processReadFrame(FrameInterface $frame, $chunk, $data)
+    public function processReadFrame(FramePickerInterface $frame, $chunk, $data)
     {
         $chunk               = $this->unhandledData . $chunk;
         $lenChunk            = strlen($chunk);

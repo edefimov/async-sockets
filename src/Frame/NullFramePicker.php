@@ -10,10 +10,10 @@
 namespace AsyncSockets\Frame;
 
 /**
- * Class NullFrame. Special type of frame, indicates that data should be read
+ * Class NullFramePicker. Special type of framePicker, indicates that data should be read
  * until all data is not received
  */
-final class NullFrame implements FrameInterface
+final class NullFramePicker implements FramePickerInterface
 {
     /** {@inheritdoc} */
     public function isStarted()

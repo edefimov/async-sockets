@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\Exception;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -18,23 +18,23 @@ use AsyncSockets\Socket\SocketInterface;
 class FrameSocketException extends NetworkSocketException
 {
     /**
-     * Failed frame
+     * Failed framePicker
      *
-     * @var FrameInterface
+     * @var FramePickerInterface
      */
     private $frame;
 
     /**
      * Construct the exception.
      *
-     * @param FrameInterface  $frame Corrupted frame
+     * @param FramePickerInterface  $frame Corrupted framePicker
      * @param SocketInterface $socket Socket object
      * @param string          $message The Exception message to throw.
      * @param int             $code The Exception code.
      * @param \Exception      $previous The previous exception used for the exception chaining.
      */
     public function __construct(
-        FrameInterface $frame,
+        FramePickerInterface $frame,
         SocketInterface $socket,
         $message = '',
         $code = 0,
@@ -45,9 +45,9 @@ class FrameSocketException extends NetworkSocketException
     }
 
     /**
-     * Return corrupted frame
+     * Return corrupted framePicker
      *
-     * @return FrameInterface
+     * @return FramePickerInterface
      */
     public function getFrame()
     {

@@ -103,7 +103,8 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     public function socketTypeDataProvider()
     {
         return [
-            [AsyncSocketFactory::SOCKET_CLIENT, 'AsyncSockets\Socket\ClientSocket']
+            [AsyncSocketFactory::SOCKET_CLIENT, 'AsyncSockets\Socket\ClientSocket'],
+            [AsyncSocketFactory::SOCKET_SERVER, 'AsyncSockets\Socket\ServerSocket'],
         ];
     }
 

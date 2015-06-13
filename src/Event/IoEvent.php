@@ -10,7 +10,7 @@
 
 namespace AsyncSockets\Event;
 
-use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\WriteOperation;
@@ -42,13 +42,13 @@ class IoEvent extends Event
     /**
      * Mark next operation as read
      *
-     * @param FrameInterface $frame Frame to read on next operation
+     * @param FramePickerInterface $framePicker Frame picker for reading data
      *
      * @return void
      */
-    public function nextIsRead(FrameInterface $frame = null)
+    public function nextIsRead(FramePickerInterface $framePicker = null)
     {
-        $this->nextOperation = new ReadOperation($frame);
+        $this->nextOperation = new ReadOperation($framePicker);
     }
 
     /**

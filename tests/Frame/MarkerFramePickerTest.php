@@ -10,13 +10,13 @@
 
 namespace Tests\AsyncSockets\Frame;
 
-use AsyncSockets\Frame\FrameInterface;
-use AsyncSockets\Frame\MarkerFrame;
+use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Frame\MarkerFramePicker;
 
 /**
- * Class MarkerFrameTest
+ * Class MarkerFramePickerTest
  */
-class MarkerFrameTest extends AbstractFrameTest
+class MarkerFramePickerTest extends AbstractFramePickerTest
 {
     /**
      * Start marker
@@ -37,11 +37,11 @@ class MarkerFrameTest extends AbstractFrameTest
     {
         $this->startMarker = base64_encode(md5(microtime(true)));
         $this->endMarker   = base64_encode(md5(microtime(true)));
-        return new MarkerFrame($this->startMarker, $this->endMarker);
+        return new MarkerFramePicker($this->startMarker, $this->endMarker);
     }
 
     /** {@inheritdoc} */
-    protected function ensureStartOfFrameIsFound(FrameInterface $frame)
+    protected function ensureStartOfFrameIsFound(FramePickerInterface $frame)
     {
         $frame->findStartOfFrame($this->startMarker . 'aaaa', strlen($this->startMarker) + 4, '');
     }
@@ -51,7 +51,7 @@ class MarkerFrameTest extends AbstractFrameTest
     {
         $frame = parent::testInitialState();
 
-        /** @var MarkerFrame $frame */
+        /** @var MarkerFramePicker $frame */
         self::assertEquals($this->startMarker, $frame->getStartMarker(), 'Incorrect start marker');
         self::assertEquals($this->endMarker, $frame->getEndMarker(), 'Incorrect end marker');
 
@@ -73,7 +73,7 @@ class MarkerFrameTest extends AbstractFrameTest
      */
     public function testSearchMarkerInString($start, $end, $chunk, $expectedStart, $expectedEnd, $isEof)
     {
-        $frame = new MarkerFrame($start, $end);
+        $frame = new MarkerFramePicker($start, $end);
 
         $actualStart = $frame->findStartOfFrame($chunk, strlen($chunk), '');
         $actualEnd   = $frame->handleData($chunk, strlen($chunk), '');
@@ -98,7 +98,7 @@ class MarkerFrameTest extends AbstractFrameTest
      */
     public function testMarkerWillFoundOnBoundary($start, $end, array $chunks, $expectedStart, $expectedEnd, $isEof)
     {
-        $frame = new MarkerFrame($start, $end);
+        $frame = new MarkerFramePicker($start, $end);
 
         $actualStart = $frame->findStartOfFrame($chunks[0][0], strlen($chunks[0][0]), $chunks[0][1]);
         $actualEnd   = null;

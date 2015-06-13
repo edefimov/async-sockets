@@ -9,7 +9,6 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
@@ -46,13 +45,7 @@ class TimeoutStage extends AbstractStage
                 );
 
             if ($isTimeout) {
-                $socket = $operation->getSocket();
-                $event  = new Event(
-                    $this->executor,
-                    $socket,
-                    $meta[RequestExecutorInterface::META_USER_CONTEXT],
-                    EventType::TIMEOUT
-                );
+                $event = $this->createEvent($operation, EventType::TIMEOUT);
                 try {
                     $this->callSocketSubscribers($operation, $event);
                 } catch (SocketException $e) {
