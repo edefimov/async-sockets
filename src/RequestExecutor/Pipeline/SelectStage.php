@@ -9,8 +9,6 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\Event\Event;
-use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
@@ -42,89 +40,30 @@ class SelectStage extends AbstractTimeAwareStage
         $this->selector = $selector;
     }
 
-    /**
-     * Perform select operation on active sockets
-     *
-     * @param OperationMetadata[] $activeOperations List of active operations
-     *
-     * @return OperationMetadata[] Array of ready operations, or empty array on timeout
-     * @throws SocketException If network operation failed
-     */
-    public function processSelect(array $activeOperations)
+    /** {@inheritdoc} */
+    public function processStage(array $operations)
     {
-        foreach ($activeOperations as $activeOperation) {
-            $this->setSocketOperationTime($activeOperation, RequestExecutorInterface::META_LAST_IO_START_TIME);
+        /** @var OperationMetadata[] $operations */
+        foreach ($operations as $operation) {
+            $this->setSocketOperationTime($operation, RequestExecutorInterface::META_LAST_IO_START_TIME);
             $this->selector->addSocketOperation(
-                $activeOperation,
-                $activeOperation->getOperation()->getType()
+                $operation,
+                $operation->getOperation()->getType()
             );
         }
 
         try {
-            $timeout = $this->calculateSelectorTimeout($activeOperations);
+            $timeout = $this->calculateSelectorTimeout($operations);
             $context = $this->selector->select($timeout['sec'], $timeout['microsec']);
             return array_merge(
                 $context->getRead(),
                 $context->getWrite()
             );
         } catch (TimeoutException $e) {
-            // do nothing
+            return [];
         } catch (SocketException $e) {
             throw $e;
         }
-
-        return [];
-    }
-
-    /**
-     * Check given sockets to timeout
-     *
-     * @param OperationMetadata[] $operations Array of operations
-     *
-     * @return OperationMetadata[] Array of timeout operations
-     */
-    public function processTimeoutSockets(array $operations)
-    {
-        $result = [];
-        foreach ($operations as $key => $operation) {
-            $meta      = $operation->getMetadata();
-            $microTime = microtime(true);
-            $isTimeout =
-                (
-                    $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] === null &&
-                    $this->isSingleSocketTimeout(
-                        $microTime,
-                        $meta[RequestExecutorInterface::META_CONNECTION_TIMEOUT],
-                        $meta[RequestExecutorInterface::META_CONNECTION_START_TIME]
-                    )
-                ) || (
-                    $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] !== null &&
-                    $this->isSingleSocketTimeout(
-                        $microTime,
-                        $meta[RequestExecutorInterface::META_IO_TIMEOUT],
-                        $meta[RequestExecutorInterface::META_LAST_IO_START_TIME]
-                    )
-                );
-
-            if ($isTimeout) {
-                $socket = $operation->getSocket();
-                $event  = new Event(
-                    $this->executor,
-                    $socket,
-                    $meta[RequestExecutorInterface::META_USER_CONTEXT],
-                    EventType::TIMEOUT
-                );
-                try {
-                    $this->callSocketSubscribers($operation, $event);
-                } catch (SocketException $e) {
-                    $this->callExceptionSubscribers($operation, $e, $event);
-                }
-
-                $result[$key] = $operation;
-            }
-        }
-
-        return $result;
     }
 
     /**
@@ -164,12 +103,12 @@ class SelectStage extends AbstractTimeAwareStage
                 $timeout = min($timeList);
                 $result = [
                     'sec'      => (int) floor($timeout),
-                    'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000
+                    'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000,
                 ];
             } else {
                 $result = [
                     'sec'      => null,
-                    'microsec' => null
+                    'microsec' => null,
                 ];
             }
         }
@@ -195,20 +134,5 @@ class SelectStage extends AbstractTimeAwareStage
         return $lastOperationTime === null ?
             $desiredTimeout :
             $desiredTimeout - ($microTime - $lastOperationTime);
-    }
-
-    /**
-     * Checks whether given params lead to timeout
-     *
-     * @param double $microTime Current time with microseconds
-     * @param double $desiredTimeout Timeout from settings
-     * @param double $lastOperationTime Last operation timestamp
-     *
-     * @return bool True, if socket with this params in timeout, false otherwise
-     */
-    private function isSingleSocketTimeout($microTime, $desiredTimeout, $lastOperationTime)
-    {
-        return ($desiredTimeout !== RequestExecutorInterface::WAIT_FOREVER) &&
-               ($microTime - $lastOperationTime > $desiredTimeout);
     }
 }

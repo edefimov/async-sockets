@@ -14,7 +14,6 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -45,17 +44,12 @@ class ConnectStage extends AbstractTimeAwareStage
         $this->decider = $decider;
     }
 
-    /**
-     * Process connect phase
-     *
-     * @param SocketBag $socketBag List of operation information for connecting stage
-     *
-     * @return OperationMetadata[] Active operations
-     */
-    public function processConnect(SocketBag $socketBag)
+    /** {@inheritdoc} */
+    public function processStage(array $operations)
     {
-        $totalItems = count($socketBag);
-        foreach ($socketBag->getItems() as $item) {
+        /** @var OperationMetadata[] $operations */
+        $totalItems = count($operations);
+        foreach ($operations as $item) {
             $decision = $this->decide($item, $totalItems);
             if ($decision === LimitationDeciderInterface::DECISION_PROCESS_SCHEDULED) {
                 break;
@@ -93,7 +87,7 @@ class ConnectStage extends AbstractTimeAwareStage
             }
         }
 
-        return $this->getActiveOperations($socketBag);
+        return $this->getActiveOperations($operations);
     }
 
     /**
@@ -152,14 +146,14 @@ class ConnectStage extends AbstractTimeAwareStage
     /**
      * Return array of keys for socket waiting for processing
      *
-     * @param SocketBag $socketBag Socket bag object
+     * @param OperationMetadata[] $operations List of all operations
      *
      * @return OperationMetadata[]
      */
-    private function getActiveOperations(SocketBag $socketBag)
+    private function getActiveOperations(array $operations)
     {
         $result = [];
-        foreach ($socketBag->getItems() as $key => $item) {
+        foreach ($operations as $key => $item) {
             $meta = $item->getMetadata();
             if (!$meta[RequestExecutorInterface::META_REQUEST_COMPLETE] && $item->isRunning()) {
                 $result[$key] = $item;

@@ -20,9 +20,9 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 class AsyncSelector
 {
     /**
-     * Array of sockets
+     * Array of resources indexed by operation
      *
-     * @var StreamResourceInterface[]
+     * @var StreamResourceInterface[][]
      */
     private $streamResources = [];
 
@@ -30,7 +30,7 @@ class AsyncSelector
      * Wait socket resources for network operation
      *
      * @param int $seconds Number of seconds to wait
-     * @param int $usec Number of microseonds to add
+     * @param int $usec Number of microseconds to add
      *
      * @return SelectContext
      * @throws TimeoutException If operation was interrupted during timeout

@@ -32,12 +32,24 @@ class PipelineFactory
         EventCaller $eventCaller,
         LimitationDeciderInterface $limitationDecider
     ) {
-        $selector = $this->createSelector();
+        $selector        = $this->createSelector();
+        $disconnectStage = $this->createDisconnectStage($executor, $eventCaller, $selector);
         return new Pipeline(
             new ConnectStage($executor, $eventCaller, $limitationDecider),
-            new SelectStage($executor, $eventCaller, $selector),
-            new IoStage($executor, $eventCaller),
-            new DisconnectStage($executor, $eventCaller, $selector)
+            [
+                new GetExcludedOperationsStage(
+                    $executor,
+                    $eventCaller,
+                    [
+                        new SelectStage($executor, $eventCaller, $selector),
+                        new IoStage($executor, $eventCaller),
+                        $disconnectStage
+                    ]
+                ),
+                new TimeoutStage($executor, $eventCaller),
+                $disconnectStage
+            ],
+            $disconnectStage
         );
     }
 
@@ -49,5 +61,22 @@ class PipelineFactory
     protected function createSelector()
     {
         return new AsyncSelector();
+    }
+
+    /**
+     * Create DisconnectStage
+     *
+     * @param RequestExecutorInterface $executor Request executor
+     * @param EventCaller              $eventCaller Event caller
+     * @param AsyncSelector            $selector Selector object
+     *
+     * @return DisconnectStage
+     */
+    protected function createDisconnectStage(
+        RequestExecutorInterface $executor,
+        EventCaller $eventCaller,
+        AsyncSelector $selector
+    ) {
+        return new DisconnectStage($executor, $eventCaller, $selector);
     }
 }

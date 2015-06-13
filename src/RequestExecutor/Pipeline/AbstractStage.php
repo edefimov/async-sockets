@@ -18,7 +18,7 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 /**
  * Class AbstractStage
  */
-abstract class AbstractStage
+abstract class AbstractStage implements PipelineStageInterface
 {
     /**
      * Event caller
@@ -33,13 +33,6 @@ abstract class AbstractStage
      * @var RequestExecutorInterface
      */
     protected $executor;
-
-    /**
-     * Sockets for operations
-     *
-     * @var SocketBag
-     */
-    protected $socketBag;
 
     /**
      * AbstractStage constructor.

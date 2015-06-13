@@ -38,48 +38,38 @@ class Pipeline implements EventHandlerInterface
     /**
      * DisconnectStage
      *
-     * @var DisconnectStage
+     * @var PipelineStageInterface
      */
     private $disconnectStage;
 
     /**
      * Connect stage
      *
-     * @var ConnectStage
+     * @var PipelineStageInterface
      */
     private $connectStage;
 
     /**
-     * Select stage
+     * PipelineStageInterface
      *
-     * @var SelectStage
+     * @var PipelineStageInterface[]
      */
-    private $selectStage;
-
-    /**
-     * I/O stage
-     *
-     * @var IoStage
-     */
-    private $ioStage;
+    private $stages;
 
     /**
      * Pipeline constructor
      *
-     * @param ConnectStage    $connectStage Connect stage
-     * @param SelectStage     $selectStage Select stage
-     * @param IoStage         $ioStage I/O stage
-     * @param DisconnectStage $disconnectStage Disconnect stage
+     * @param PipelineStageInterface   $connectStage Connect stage
+     * @param PipelineStageInterface[] $stages Pipeline stages
+     * @param PipelineStageInterface   $disconnectStage Disconnect stages
      */
     public function __construct(
-        ConnectStage $connectStage,
-        SelectStage $selectStage,
-        IoStage $ioStage,
-        DisconnectStage $disconnectStage
+        PipelineStageInterface $connectStage,
+        array $stages,
+        PipelineStageInterface $disconnectStage
     ) {
         $this->connectStage    = $connectStage;
-        $this->selectStage     = $selectStage;
-        $this->ioStage         = $ioStage;
+        $this->stages          = $stages;
         $this->disconnectStage = $disconnectStage;
     }
 
@@ -110,7 +100,7 @@ class Pipeline implements EventHandlerInterface
             $this->processMainExecutionLoop($socketBag, $eventCaller);
         } catch (StopRequestExecuteException $e) {
             $this->isRequestStopInProgress = true;
-            $this->disconnectStage->disconnectSockets($socketBag->getItems());
+            $this->disconnectStage->processStage($socketBag->getItems());
         } catch (\Exception $e) {
             $this->emergencyShutdown($socketBag);
             throw $e;
@@ -133,25 +123,14 @@ class Pipeline implements EventHandlerInterface
 
         do {
             try {
-                $activeOperations = $this->connectStage->processConnect($socketBag);
+                $activeOperations = $this->connectStage->processStage($socketBag->getItems());
                 if (!$activeOperations) {
                     break;
                 }
 
-                $context     = $this->selectStage->processSelect($activeOperations);
-                $doneSockets = $this->ioStage->processIo($context);
-                $this->disconnectStage->disconnectSockets($doneSockets);
-                foreach ($activeOperations as $key => $socket) {
-                    if (in_array($socket, $doneSockets, true)) {
-                        unset($activeOperations[$key]);
-                    }
+                foreach ($this->stages as $stage) {
+                    $activeOperations = $stage->processStage($activeOperations);
                 }
-
-                $timeoutOperations = $this->selectStage->processTimeoutSockets($activeOperations);
-
-                $this->disconnectStage->disconnectSockets($timeoutOperations);
-
-                unset($doneSockets, $timeoutOperations);
             } catch (SocketException $e) {
                 foreach ($socketBag->getItems() as $item) {
                     $eventCaller->callExceptionSubscribers($item, $e, null);

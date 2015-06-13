@@ -41,18 +41,14 @@ class DisconnectStage extends AbstractStage
         $this->selector = $selector;
     }
 
-    /**
-     * Disconnect array of sockets by given keys
-     *
-     * @param OperationMetadata[] $operations Array of operations to perform disconnect
-     *
-     * @return void
-     */
-    public function disconnectSockets(array $operations)
+    /** {@inheritdoc} */
+    public function processStage(array $operations)
     {
         foreach ($operations as $operation) {
             $this->disconnectSingleSocket($operation);
         }
+
+        return $operations;
     }
 
     /**

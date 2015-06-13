@@ -43,15 +43,10 @@ class IoStage extends AbstractTimeAwareStage
      */
     const IO_STATE_EXCEPTION = 2;
 
-    /**
-     * Process I/O operation
-     *
-     * @param OperationMetadata[] $operations Operations ready for I/O
-     *
-     * @return OperationMetadata[] Array of done sockets
-     */
-    public function processIo(array $operations)
+    /** {@inheritdoc} */
+    public function processStage(array $operations)
     {
+        /** @var OperationMetadata[] $operations */
         $result = [];
         foreach ($operations as $item) {
             $meta         = $item->getMetadata();
