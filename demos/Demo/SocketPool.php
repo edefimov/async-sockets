@@ -62,7 +62,6 @@ class SocketPool extends Command
                 new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
                 [
                     RequestExecutorInterface::META_ADDRESS      => $destination,
-                    RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
                     RequestExecutorInterface::META_USER_CONTEXT => [
                         'index'  => $i + 1,
                         'output' => $output,

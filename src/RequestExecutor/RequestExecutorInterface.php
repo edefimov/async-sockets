@@ -33,11 +33,6 @@ interface RequestExecutorInterface
     const WAIT_FOREVER = null;
 
     /**
-     * Next I/O operation to perform on socket
-     */
-    const META_OPERATION = 'operation';
-
-    /**
      * Flag indicating that execute operation on this socket is complete. Read-only value
      */
     const META_REQUEST_COMPLETE = 'isRequestComplete';

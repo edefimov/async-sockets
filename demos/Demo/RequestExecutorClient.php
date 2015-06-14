@@ -61,8 +61,7 @@ class RequestExecutorClient extends Command
             $anotherClient,
             new WriteOperation("GET / HTTP/1.1\nHost: github.com\n\n"),
             [
-                RequestExecutorInterface::META_ADDRESS      => 'tls://github.com:443',
-                RequestExecutorInterface::META_OPERATION    => RequestExecutorInterface::OPERATION_WRITE,
+                RequestExecutorInterface::META_ADDRESS => 'tls://github.com:443',
             ],
             new CallbackEventHandler(
                 [
@@ -263,7 +262,6 @@ class RequestExecutorClient extends Command
             new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
             [
                 RequestExecutorInterface::META_ADDRESS            => 'tls://packagist.org:443',
-                RequestExecutorInterface::META_OPERATION          => RequestExecutorInterface::OPERATION_WRITE,
                 RequestExecutorInterface::META_USER_CONTEXT       => [
                     'attempts' => $attempts,
                 ],

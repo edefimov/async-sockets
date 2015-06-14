@@ -189,7 +189,6 @@ class Client
             new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
             [
                 RequestExecutorInterface::META_ADDRESS            => 'tls://packagist.org:443',
-                RequestExecutorInterface::META_OPERATION          => RequestExecutorInterface::OPERATION_WRITE,
                 RequestExecutorInterface::META_USER_CONTEXT       => [
                     'attempts' => $attempts,
                 ],

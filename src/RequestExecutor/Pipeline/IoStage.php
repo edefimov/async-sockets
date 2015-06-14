@@ -57,18 +57,14 @@ class IoStage extends AbstractTimeAwareStage
      */
     private function processIoOperation(OperationMetadata $operation)
     {
-        $operationType = $operation->getOperation()->getType();
-        return (
-                   $operationType === RequestExecutorInterface::OPERATION_READ &&
-                   $this->processReadIo($operation)
-               ) || (
-                   $operationType === RequestExecutorInterface::OPERATION_WRITE &&
-                   $this->processWriteIo($operation)
-               ) || (
-                   // should never happen
-                   $operationType !== RequestExecutorInterface::OPERATION_READ &&
-                   $operationType !== RequestExecutorInterface::OPERATION_WRITE
-               );
+        switch ($operation->getOperation()->getType()) {
+            case RequestExecutorInterface::OPERATION_READ:
+                return $this->processReadIo($operation);
+            case RequestExecutorInterface::OPERATION_WRITE:
+                return $this->processWriteIo($operation);
+            default:
+                return true;
+        }
     }
 
     /**

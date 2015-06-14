@@ -76,7 +76,6 @@ class SocketBag implements SocketBagInterface
             [
                 RequestExecutorInterface::META_ADDRESS               => null,
                 RequestExecutorInterface::META_USER_CONTEXT          => null,
-                RequestExecutorInterface::META_OPERATION             => null,
                 RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => null,
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT    => (int) $this->defaultSocketTimeout,
                 RequestExecutorInterface::META_IO_TIMEOUT            => (double) $this->defaultSocketTimeout,
@@ -142,7 +141,6 @@ class SocketBag implements SocketBagInterface
         $writableKeys = [
             RequestExecutorInterface::META_ADDRESS               => 1,
             RequestExecutorInterface::META_USER_CONTEXT          => 1,
-            RequestExecutorInterface::META_OPERATION             => 1,
             RequestExecutorInterface::META_CONNECTION_TIMEOUT    => 1,
             RequestExecutorInterface::META_IO_TIMEOUT            => 1,
             RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => 1,
