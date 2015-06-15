@@ -26,19 +26,6 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     private $factory;
 
     /**
-     * ensureEventDispatcherInstalled
-     *
-     * @return void
-     */
-    private function ensureEventDispatcherInstalled()
-    {
-        $isError = !interface_exists('Symfony\Component\EventDispatcher\EventDispatcherInterface', true);
-        if ($isError) {
-            self::markTestSkipped('You must have symfony/event-dispatcher installed to pass this test');
-        }
-    }
-
-    /**
      * testSimpleRequestExecutorCreated
      *
      * @return void

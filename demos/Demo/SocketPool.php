@@ -15,7 +15,7 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
-use AsyncSockets\RequestExecutor\ConstantLimitationDecider;
+use AsyncSockets\RequestExecutor\ConstantLimitationSolver;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -34,7 +34,7 @@ class SocketPool extends Command
     {
         parent::configure();
         $this->setName('demo:socket_pool')
-            ->setDescription('Demonstrates usage of LimitationDeciderInterface')
+            ->setDescription('Demonstrates usage of LimitationSolverInterface')
             ->addOption('total', 't', InputOption::VALUE_OPTIONAL, 'Total requests to execute', 256)
             ->addOption('concurrent', 'c', InputOption::VALUE_OPTIONAL, 'Amount of requests executed in time', 32)
             ->addOption(
@@ -57,7 +57,7 @@ class SocketPool extends Command
         $executor = $factory->createRequestExecutor();
         for ($i = 0; $i < $countSockets; $i++) {
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
-            $executor->getSocketBag()->addSocket(
+            $executor->socketBag()->addSocket(
                 $client,
                 new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
                 [
@@ -70,8 +70,8 @@ class SocketPool extends Command
             );
         }
 
-        $executor->setLimitationDecider(new ConstantLimitationDecider($limitSockets));
-        $executor->setEventInvocationHandler(
+        $executor->withLimitationSolver(new ConstantLimitationSolver($limitSockets));
+        $executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::DISCONNECTED => [
@@ -177,7 +177,7 @@ class SocketPool extends Command
         $output  = $context['output'];
         /** @var OutputInterface $output */
 
-        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
         $output->writeln(
             "<comment>Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}</comment>"
         );

@@ -12,7 +12,7 @@ namespace Tests\AsyncSockets\Event;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\OperationInterface;
 
 /**
  * Class IoEventTest
@@ -38,7 +38,7 @@ class IoEventTest extends EventTest
         $event->nextIsRead();
         self::assertNotNull($event->getNextOperation(), 'Read operation was not changed');
         self::assertEquals(
-            RequestExecutorInterface::OPERATION_READ,
+            OperationInterface::OPERATION_READ,
             $event->getNextOperation()->getType(),
             'Failed to switch to read operation'
         );
@@ -46,7 +46,7 @@ class IoEventTest extends EventTest
         $event->nextIsWrite();
         self::assertNotNull($event->getNextOperation(), 'Write operation was not changed');
         self::assertEquals(
-            RequestExecutorInterface::OPERATION_WRITE,
+            OperationInterface::OPERATION_WRITE,
             $event->getNextOperation()->getType(),
             'Failed to switch to write operation'
         );

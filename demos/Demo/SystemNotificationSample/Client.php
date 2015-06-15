@@ -71,7 +71,7 @@ class Client
 
         $this->registerPackagistSocket($executor, $client, 60, 0.001, 2);
 
-        $executor->getSocketBag()->addSocket(
+        $executor->socketBag()->addSocket(
             $anotherClient,
             new WriteOperation("GET / HTTP/1.1\nHost: github.com\n\n"),
             [
@@ -80,7 +80,7 @@ class Client
         );
 
 
-        $executor->setEventInvocationHandler(
+        $executor->withEventHandler(
             new EventMultiHandler(
                 [
                     new CallbackEventHandler(
@@ -128,7 +128,7 @@ class Client
 
         $this->output->writeln("<info>Received headers</info>: \n\n" . $event->getResponse()->getData());
 
-        $event->getExecutor()->getSocketBag()->setSocketMetaData(
+        $event->getExecutor()->socketBag()->setSocketMetaData(
             $socket,
             RequestExecutorInterface::META_USER_CONTEXT,
             $context
@@ -150,7 +150,7 @@ class Client
         $context  = $event->getContext();
         $socket   = $event->getSocket();
         $executor = $event->getExecutor();
-        $meta     = $executor->getSocketBag()->getSocketMetaData($socket);
+        $meta     = $executor->socketBag()->getSocketMetaData($socket);
 
         $isTryingOneMoreTime = isset($context[ 'attempts' ]) &&
                                $context[ 'attempts' ] - 1 > 0 &&
@@ -161,7 +161,7 @@ class Client
             $context['attempts'] -= 1;
 
             // automatically try one more time
-            $executor->getSocketBag()->removeSocket($socket);
+            $executor->socketBag()->removeSocket($socket);
             $this->registerPackagistSocket($executor, $socket, 30, 30, 1);
         }
     }
@@ -184,7 +184,7 @@ class Client
         $ioTimeout,
         $attempts
     ) {
-        $executor->getSocketBag()->addSocket(
+        $executor->socketBag()->addSocket(
             $client,
             new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
             [

@@ -57,7 +57,7 @@ class RequestExecutorClient extends Command
         $executor = $factory->createRequestExecutor();
         $this->registerPackagistSocket($executor, $client, 60, 0.001, 2);
 
-        $executor->getSocketBag()->addSocket(
+        $executor->socketBag()->addSocket(
             $anotherClient,
             new WriteOperation("GET / HTTP/1.1\nHost: github.com\n\n"),
             [
@@ -71,7 +71,7 @@ class RequestExecutorClient extends Command
             )
         );
 
-        $executor->setEventInvocationHandler(
+        $executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::CONNECTED => function () {
@@ -103,7 +103,7 @@ class RequestExecutorClient extends Command
     public function logEvent(Event $event)
     {
         $now  = new \DateTime();
-        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
         $this->output->writeln('[' . $now->format('Y-m-d H:i:s') . '] ' . $event->getType() . ' on socket ' .
              $meta[RequestExecutorInterface::META_ADDRESS]);
     }
@@ -131,14 +131,14 @@ class RequestExecutorClient extends Command
     {
         $context = $event->getContext();
         $socket  = $event->getSocket();
-        $meta    = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
+        $meta    = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
 
         $context['response'] = $event->getResponse()->getData();
 
         $this->output->writeln("<info>{$meta[RequestExecutorInterface::META_ADDRESS]}  read " .
              number_format(strlen($context['response']), 0, ',', ' ') . ' bytes</info>');
 
-        $event->getExecutor()->getSocketBag()->setSocketMetaData(
+        $event->getExecutor()->socketBag()->setSocketMetaData(
             $socket,
             RequestExecutorInterface::META_USER_CONTEXT,
             $context
@@ -158,7 +158,7 @@ class RequestExecutorClient extends Command
         $context  = $event->getContext();
         $socket   = $event->getSocket();
         $executor = $event->getExecutor();
-        $meta     = $executor->getSocketBag()->getSocketMetaData($socket);
+        $meta     = $executor->socketBag()->getSocketMetaData($socket);
 
         $isTryingOneMoreTime = isset($context[ 'attempts' ]) &&
             $context[ 'attempts' ] - 1 > 0 &&
@@ -170,7 +170,7 @@ class RequestExecutorClient extends Command
             $context['attempts'] -= 1;
 
             // automatically try one more time
-            $executor->getSocketBag()->removeSocket($socket);
+            $executor->socketBag()->removeSocket($socket);
             $this->registerPackagistSocket($executor, $socket, 30, 30, 1);
         }
     }
@@ -194,7 +194,7 @@ class RequestExecutorClient extends Command
      */
     public function onPackagistConnected(Event $event)
     {
-        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
         $this->output->writeln("Connected to Packagist: {$meta[RequestExecutorInterface::META_ADDRESS]}");
     }
 
@@ -207,7 +207,7 @@ class RequestExecutorClient extends Command
      */
     public function onGitHubConnected(Event $event)
     {
-        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
         $this->output->writeln("Connected to GitHub: {$meta[RequestExecutorInterface::META_ADDRESS]}");
     }
 
@@ -233,7 +233,7 @@ class RequestExecutorClient extends Command
      */
     public function onTimeout(Event $event)
     {
-        $meta = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
+        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
         $this->output->writeln(
             "<comment>Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}</comment>"
         );
@@ -257,7 +257,7 @@ class RequestExecutorClient extends Command
         $ioTimeout,
         $attempts
     ) {
-        $executor->getSocketBag()->addSocket(
+        $executor->socketBag()->addSocket(
             $client,
             new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
             [

@@ -14,9 +14,9 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
- * Class ConstantLimitationDecider
+ * Class ConstantLimitationSolver
  */
-class ConstantLimitationDecider implements LimitationDeciderInterface, EventHandlerInterface
+class ConstantLimitationSolver implements LimitationSolverInterface, EventHandlerInterface
 {
     /**
      * Limit of running requests
@@ -33,7 +33,7 @@ class ConstantLimitationDecider implements LimitationDeciderInterface, EventHand
     private $activeRequests;
 
     /**
-     * ConstantLimitationDecider constructor.
+     * ConstantLimitationSolver constructor.
      *
      * @param int $limit Limit of running requests
      */

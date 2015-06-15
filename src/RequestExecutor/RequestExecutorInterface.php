@@ -18,16 +18,6 @@ namespace AsyncSockets\RequestExecutor;
 interface RequestExecutorInterface
 {
     /**
-     * Read operation
-     */
-    const OPERATION_READ = 'read';
-
-    /**
-     * Write operation
-     */
-    const OPERATION_WRITE = 'write';
-
-    /**
      * Special timeout value, which means, that socket will wait forever. Use with server sockets
      */
     const WAIT_FOREVER = null;
@@ -98,22 +88,22 @@ interface RequestExecutorInterface
      *
      * @return SocketBagInterface
      */
-    public function getSocketBag();
+    public function socketBag();
 
     /**
-     * Set event invocation handler for all events
+     * Set event handler for all events
      *
      * @param EventHandlerInterface $handler Event invocation handler
      *
      * @return void
      */
-    public function setEventInvocationHandler(EventHandlerInterface $handler = null);
+    public function withEventHandler(EventHandlerInterface $handler = null);
 
     /**
-     * Set decider for limiting running at once requests. You can additionally implement EventHandlerInterface
+     * Set solver for limiting running at once requests. You can additionally implement EventHandlerInterface
      * on your LimitationDecider to receive events from request executor
      *
-     * @param LimitationDeciderInterface $decider New decider. If null, then NoLimitationDecider will be used
+     * @param LimitationSolverInterface $solver New solver
      *
      * @return void
      * @throws \BadMethodCallException When called on executing request
@@ -122,13 +112,13 @@ interface RequestExecutorInterface
      *
      * @api
      */
-    public function setLimitationDecider(LimitationDeciderInterface $decider = null);
+    public function withLimitationSolver(LimitationSolverInterface $solver);
 
     /**
      * Execute this request
      *
      * @return void
-     * @throws \LogicException If you try to call this method when request is active
+     * @throws \BadMethodCallException If you try to call this method when request is active
      *
      * @api
      */

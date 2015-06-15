@@ -85,7 +85,7 @@ class SimpleServer extends Command
         $port = (int) $input->getOption('port');
         $output->writeln("<info>Starting HTTP server on {$host}:{$port}</info>");
         $output->writeln('<comment>Press CTRL+C to exit</comment>');
-        $executor->getSocketBag()->addSocket(
+        $executor->socketBag()->addSocket(
             $serverSocket,
             new ReadOperation(),
             [
@@ -97,7 +97,7 @@ class SimpleServer extends Command
                 [
                     EventType::ACCEPT => function (AcceptEvent $event) use ($output) {
                         $output->writeln("<info>Incoming connection from {$event->getRemoteAddress()}</info>");
-                        $event->getExecutor()->getSocketBag()->addSocket(
+                        $event->getExecutor()->socketBag()->addSocket(
                             $event->getClientSocket(),
                             new ReadOperation(),
                             [ ],

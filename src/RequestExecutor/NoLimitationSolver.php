@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
- * Class NoLimitationDecider
+ * Class NoLimitationSolver
  */
-class NoLimitationDecider implements LimitationDeciderInterface
+class NoLimitationSolver implements LimitationSolverInterface
 {
     /** {@inheritdoc} */
     public function initialize(RequestExecutorInterface $executor)

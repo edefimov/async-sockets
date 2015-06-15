@@ -71,6 +71,7 @@ class NullFramePickerTest extends \PHPUnit_Framework_TestCase
         return $result;
     }
 
+    /** {@inheritdoc} */
     protected function setUp()
     {
         parent::setUp();

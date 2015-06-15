@@ -283,9 +283,9 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
             'AsyncSockets\RequestExecutor\RequestExecutorInterface',
             [
                 'isExecuting',
-                'getSocketBag',
-                'setEventInvocationHandler',
-                'setLimitationDecider',
+                'socketBag',
+                'withEventHandler',
+                'withLimitationSolver',
                 'executeRequest',
                 'stopRequest',
             ]

@@ -13,7 +13,6 @@ namespace Tests\AsyncSockets\Socket;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
-use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -50,7 +49,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             $request    = "GET / HTTP/1.1\nHost: {$components['host']}:{$components['port']}\n\n";
             $socket     = new ClientSocket();
 
-            $this->executor->getSocketBag()->addSocket(
+            $this->executor->socketBag()->addSocket(
                 $socket,
                 new WriteOperation($request),
                 [
@@ -59,7 +58,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             );
         }
 
-        $this->executor->setEventInvocationHandler(
+        $this->executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::WRITE => function (WriteEvent $event) {
@@ -67,7 +66,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
                     },
                     EventType::READ => function (ReadEvent $event) {
                         $output = strtolower($event->getResponse()->getData());
-                        $meta   = $event->getExecutor()->getSocketBag()->getSocketMetaData($event->getSocket());
+                        $meta   = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
                         self::assertTrue(
                             strpos($output, '</html>') !== false,
                             'Incomplete data were received for ' . $meta[RequestExecutorInterface::META_ADDRESS]

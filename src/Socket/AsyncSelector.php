@@ -12,7 +12,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\OperationInterface;
 
 /**
  * Class AsyncSelector
@@ -43,8 +43,8 @@ class AsyncSelector
             throw new \InvalidArgumentException('Can not perform select on empty data');
         }
 
-        $read  = $this->getSocketsForOperation(RequestExecutorInterface::OPERATION_READ);
-        $write = $this->getSocketsForOperation(RequestExecutorInterface::OPERATION_WRITE);
+        $read  = $this->getSocketsForOperation(OperationInterface::OPERATION_READ);
+        $write = $this->getSocketsForOperation(OperationInterface::OPERATION_WRITE);
 
         $result = $this->doStreamSelect($seconds, $usec, $read, $write);
         if ($result === false) {
@@ -56,8 +56,8 @@ class AsyncSelector
         }
 
         return new SelectContext(
-            $this->popSocketsByResources($read ?: [], RequestExecutorInterface::OPERATION_READ),
-            $this->popSocketsByResources($write ?: [], RequestExecutorInterface::OPERATION_WRITE)
+            $this->popSocketsByResources($read ?: [], OperationInterface::OPERATION_READ),
+            $this->popSocketsByResources($write ?: [], OperationInterface::OPERATION_WRITE)
         );
     }
 
@@ -65,7 +65,7 @@ class AsyncSelector
      * Add socket into selector list
      *
      * @param StreamResourceInterface $streamResource Resource object
-     * @param string                  $operation One of RequestExecutorInterface::OPERATION_* consts
+     * @param string                  $operation One of OperationInterface::OPERATION_* consts
      *
      * @return void
      */
@@ -81,7 +81,7 @@ class AsyncSelector
      *                                     If string is provided, then it must be array of StreamResourceInterface.
      *                                     If $operation parameter is omitted then this argument must contain
      *                                     pairs [StreamResourceInterface, operation] for each element
-     * @param string                    $operation Operation, one of RequestExecutorInterface::OPERATION_* consts
+     * @param string                    $operation Operation, one of OperationInterface::OPERATION_* consts
      *
      * @return void
      * @throws \InvalidArgumentException
@@ -107,7 +107,7 @@ class AsyncSelector
      * Remove given socket from select list
      *
      * @param StreamResourceInterface $streamResource Stream resource object
-     * @param string                  $operation One of RequestExecutorInterface::OPERATION_* consts
+     * @param string                  $operation One of OperationInterface::OPERATION_* consts
      *
      * @return void
      */
@@ -126,7 +126,7 @@ class AsyncSelector
      * Remove all previously defined operations on this socket and adds socket into list of given operation
      *
      * @param StreamResourceInterface $streamResource Stream resource object
-     * @param string                  $operation One of RequestExecutorInterface::OPERATION_* consts
+     * @param string                  $operation One of OperationInterface::OPERATION_* consts
      *
      * @return void
      */
@@ -140,7 +140,7 @@ class AsyncSelector
     /**
      * Return socket objects for operations
      *
-     * @param string $operation One of RequestExecutorInterface::OPERATION_* consts
+     * @param string $operation One of OperationInterface::OPERATION_* consts
      *
      * @return resource[]|null List of socket resource
      */
@@ -163,7 +163,7 @@ class AsyncSelector
      * Get socket objects by resources and remove them from work list
      *
      * @param resource[] $resources Stream resources
-     * @param string     $operation One of RequestExecutorInterface::OPERATION_* consts
+     * @param string     $operation One of OperationInterface::OPERATION_* consts
      *
      * @return StreamResourceInterface[]
      */
@@ -194,8 +194,8 @@ class AsyncSelector
      */
     public function removeAllSocketOperations(StreamResourceInterface $streamResource)
     {
-        $opList = [ RequestExecutorInterface::OPERATION_READ,
-                    RequestExecutorInterface::OPERATION_WRITE  ];
+        $opList = [ OperationInterface::OPERATION_READ,
+                    OperationInterface::OPERATION_WRITE  ];
 
         foreach ($opList as $op) {
             $this->removeSocketOperation($streamResource, $op);

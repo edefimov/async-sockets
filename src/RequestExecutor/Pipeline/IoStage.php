@@ -58,9 +58,9 @@ class IoStage extends AbstractTimeAwareStage
     private function processIoOperation(OperationMetadata $operation)
     {
         switch ($operation->getOperation()->getType()) {
-            case RequestExecutorInterface::OPERATION_READ:
+            case OperationInterface::OPERATION_READ:
                 return $this->processReadIo($operation);
-            case RequestExecutorInterface::OPERATION_WRITE:
+            case OperationInterface::OPERATION_WRITE:
                 return $this->processWriteIo($operation);
             default:
                 return true;

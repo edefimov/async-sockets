@@ -15,9 +15,19 @@ namespace AsyncSockets\RequestExecutor;
 interface OperationInterface
 {
     /**
+     * Read operation
+     */
+    const OPERATION_READ = 'read';
+
+    /**
+     * Write operation
+     */
+    const OPERATION_WRITE = 'write';
+
+    /**
      * Return operation type
      *
-     * @return string One of RequestExecutorInterface::OPERATION_* consts
+     * @return string One of OPERATION_* consts
      */
     public function getType();
 }

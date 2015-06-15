@@ -11,7 +11,7 @@
 namespace Demo;
 
 use AsyncSockets\Exception\SocketException;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ChunkSocketResponse;
@@ -45,8 +45,8 @@ final class SimpleAsyncClient extends Command
             $selector = new AsyncSelector();
             $selector->addSocketOperationArray(
                 [
-                    [ $client, RequestExecutorInterface::OPERATION_WRITE ],
-                    [ $anotherClient, RequestExecutorInterface::OPERATION_WRITE ],
+                    [ $client, OperationInterface::OPERATION_WRITE ],
+                    [ $anotherClient, OperationInterface::OPERATION_WRITE ],
                 ]
             );
 
@@ -80,7 +80,7 @@ final class SimpleAsyncClient extends Command
                 foreach ($context->getWrite() as $socket) {
                     try {
                         $socket->write($data[spl_object_hash($socket)]['data']);
-                        $selector->changeSocketOperation($socket, RequestExecutorInterface::OPERATION_READ);
+                        $selector->changeSocketOperation($socket, OperationInterface::OPERATION_READ);
                     } catch (SocketException $e) {
                         $selector->removeAllSocketOperations($socket);
                         $aliveClients -= 1;
@@ -97,7 +97,7 @@ final class SimpleAsyncClient extends Command
                         $selector->removeAllSocketOperations($socket);
                     } else {
                         $data[spl_object_hash($socket)]['lastResponse'] = $response;
-                        $selector->addSocketOperation($socket, RequestExecutorInterface::OPERATION_READ);
+                        $selector->addSocketOperation($socket, OperationInterface::OPERATION_READ);
                     }
                 }
             } while ($numReadClient < $aliveClients);

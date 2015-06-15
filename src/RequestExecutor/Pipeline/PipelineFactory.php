@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
+use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
 
@@ -23,14 +23,14 @@ class PipelineFactory
      *
      * @param RequestExecutorInterface   $executor Request executor
      * @param EventCaller                $eventCaller Event caller
-     * @param LimitationDeciderInterface $limitationDecider Limitation decider
+     * @param LimitationSolverInterface $limitationDecider Limitation solver
      *
      * @return Pipeline
      */
     public function createPipeline(
         RequestExecutorInterface $executor,
         EventCaller $eventCaller,
-        LimitationDeciderInterface $limitationDecider
+        LimitationSolverInterface $limitationDecider
     ) {
         $selector        = $this->createSelector();
         $disconnectStage = $this->createDisconnectStage($executor, $eventCaller, $selector);

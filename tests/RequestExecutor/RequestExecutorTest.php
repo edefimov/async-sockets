@@ -18,8 +18,8 @@ use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
-use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
-use AsyncSockets\RequestExecutor\NoLimitationDecider;
+use AsyncSockets\RequestExecutor\LimitationSolverInterface;
+use AsyncSockets\RequestExecutor\NoLimitationSolver;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\ReadOperation;
@@ -147,7 +147,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             self::fail('Handler is not removed');
         };
 
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -167,7 +167,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $this->executor->setEventInvocationHandler($bag);
+        $this->executor->withEventHandler($bag);
         $this->executor->executeRequest();
     }
 
@@ -221,8 +221,8 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             }
         );
 
-        $this->executor->getSocketBag()->addSocket($mock, $operation);
-        $this->executor->setEventInvocationHandler(
+        $this->executor->socketBag()->addSocket($mock, $operation);
+        $this->executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::WRITE     => function (WriteEvent $event) {
@@ -260,7 +260,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             EventType::WRITE => EventType::READ,
         ];
 
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -305,7 +305,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
         };
 
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -345,7 +345,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
         };
 
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -365,7 +365,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         );
 
         $clone = clone $this->socket;
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $clone,
             $operation,
             [
@@ -401,7 +401,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             self::fail('Event ' . $event->getType() . ' shouldn\'t have been fired');
         };
 
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -410,7 +410,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => function (Event $event) {
-                        $event->getExecutor()->setLimitationDecider(new NoLimitationDecider());
+                        $event->getExecutor()->withLimitationSolver(new NoLimitationSolver());
                     },
                     $eventType              => $failHandler,
                     EventType::DISCONNECTED => $failHandler,
@@ -441,11 +441,11 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @expectedException \LogicException
+     * @expectedException \BadMethodCallException
      */
     public function testCantExecuteTwice(OperationInterface$operation, $eventType)
     {
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -497,7 +497,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->willThrowException(new \RuntimeException('Test passed', 354));
 
 
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $mock,
             $operation,
             [
@@ -521,7 +521,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      */
     public function testEventFireSequence(OperationInterface $operation, $eventType)
     {
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -538,7 +538,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $handlers = [
             EventType::INITIALIZE   => function (Event $event) use ($mock) {
                 $this->verifyEvent($event, $mock, 1);
-                $meta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
+                $meta = $this->executor->socketBag()->getSocketMetaData($this->socket);
                 self::assertNull(
                     $meta[ RequestExecutor::META_CONNECTION_START_TIME ],
                     'Connection start time must be null at this point'
@@ -554,7 +554,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             },
             EventType::CONNECTED    => function (Event $event) use ($mock) {
                 $this->verifyEvent($event, $mock, 2);
-                $meta = $this->executor->getSocketBag()->getSocketMetaData($this->socket);
+                $meta = $this->executor->socketBag()->getSocketMetaData($this->socket);
                 self::assertNotNull(
                     $meta[ RequestExecutor::META_CONNECTION_START_TIME ],
                     'Connection start time must not be null at this point'
@@ -588,7 +588,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->method('count')
             ->willReturnOnConsecutiveCalls(1, 2, 3, 4, 5);
 
-        $this->executor->setEventInvocationHandler(new CallbackEventHandler($handlers));
+        $this->executor->withEventHandler(new CallbackEventHandler($handlers));
 
         $this->executor->executeRequest();
     }
@@ -605,7 +605,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     public function testLimitationDecider(OperationInterface $operation)
     {
         for ($i = 0; $i < 10; $i++) {
-            $this->executor->getSocketBag()->addSocket(
+            $this->executor->socketBag()->addSocket(
                 !$i ? $this->socket : clone $this->socket,
                 $operation,
                 [
@@ -614,18 +614,18 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             );
         }
 
-        $decider = $this->getMock('AsyncSockets\RequestExecutor\NoLimitationDecider', [ 'decide' ]);
+        $decider = $this->getMock('AsyncSockets\RequestExecutor\NoLimitationSolver', [ 'decide' ]);
         $decider->expects(self::any())
             ->method('decide')
             ->willReturnOnConsecutiveCalls(
-                LimitationDeciderInterface::DECISION_OK,
-                LimitationDeciderInterface::DECISION_SKIP_CURRENT,
-                LimitationDeciderInterface::DECISION_PROCESS_SCHEDULED,
-                LimitationDeciderInterface::DECISION_OK,
+                LimitationSolverInterface::DECISION_OK,
+                LimitationSolverInterface::DECISION_SKIP_CURRENT,
+                LimitationSolverInterface::DECISION_PROCESS_SCHEDULED,
+                LimitationSolverInterface::DECISION_OK,
                 mt_rand(200, 500)
             );
 
-        $this->executor->setLimitationDecider($decider);
+        $this->executor->withLimitationSolver($decider);
         $this->executor->executeRequest();
     }
 
@@ -664,7 +664,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         );
 
 
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -677,7 +677,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $mock->expects(self::exactly(3))
             ->method('count');
 
-        $this->executor->setEventInvocationHandler(
+        $this->executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => [ $mock, 'count' ],
@@ -713,7 +713,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
 
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
@@ -726,7 +726,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $mock->expects(self::exactly(5))
             ->method('count');
 
-        $this->executor->setEventInvocationHandler(
+        $this->executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => [ $mock, 'count' ],
@@ -799,7 +799,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $meta[ RequestExecutor::META_CONNECTION_TIMEOUT ] = 1;
         }
 
-        $this->executor->getSocketBag()->addSocket($this->getSocketForEventType($eventType), $operation, $meta);
+        $this->executor->socketBag()->addSocket($this->getSocketForEventType($eventType), $operation, $meta);
 
         $handler = function (Event $event) use ($eventType) {
             $readWriteTypes = [ EventType::READ, EventType::WRITE ];
@@ -811,7 +811,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             }
         };
 
-        $this->executor->setEventInvocationHandler(
+        $this->executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => $handler,
@@ -868,7 +868,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             $meta[ RequestExecutor::META_CONNECTION_TIMEOUT ] = 1;
         }
 
-        $this->executor->getSocketBag()->addSocket($this->getSocketForEventType($eventType), $operation, $meta);
+        $this->executor->socketBag()->addSocket($this->getSocketForEventType($eventType), $operation, $meta);
 
         $handler = function (Event $event) use ($eventType) {
             $readWriteTypes = [ EventType::READ, EventType::WRITE ];
@@ -884,7 +884,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         $mock->expects(self::once())
             ->method('count');
 
-        $this->executor->setEventInvocationHandler(
+        $this->executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::INITIALIZE   => $handler,
@@ -913,7 +913,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     public function testLimitationDeciderEventsAreInvoked(OperationInterface $operation)
     {
         $mock = $this->getMock(
-            'AsyncSockets\RequestExecutor\ConstantLimitationDecider',
+            'AsyncSockets\RequestExecutor\ConstantLimitationSolver',
             [ 'decide', 'invokeEvent'],
             [ mt_rand(1, PHP_INT_MAX) ]
         );
@@ -921,10 +921,10 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $mock->expects(self::exactly(5)) // init, connected, operation, disconnect, finalize
             ->method('invokeEvent');
-        $mock->expects(self::any())->method('decide')->willReturn(LimitationDeciderInterface::DECISION_OK);
+        $mock->expects(self::any())->method('decide')->willReturn(LimitationSolverInterface::DECISION_OK);
 
-        $this->executor->setLimitationDecider($mock);
-        $this->executor->getSocketBag()->addSocket(
+        $this->executor->withLimitationSolver($mock);
+        $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [

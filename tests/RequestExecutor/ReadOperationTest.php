@@ -10,8 +10,8 @@
 
 namespace Tests\AsyncSockets\RequestExecutor;
 
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\ReadOperation;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
  * Class ReadOperationTest
@@ -38,7 +38,7 @@ class ReadOperationTest extends \PHPUnit_Framework_TestCase
             'Incorrect initial state for framePicker'
         );
         self::assertEquals(
-            RequestExecutorInterface::OPERATION_READ,
+            OperationInterface::OPERATION_READ,
             $this->operation->getType(),
             'Incorrect type for operation'
         );

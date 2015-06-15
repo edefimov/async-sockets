@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
- * Interface LimitationDeciderInterface. Allows to limit amount of requests processing at once
+ * Interface LimitationSolverInterface. Allows to limit amount of requests processing at once
  */
-interface LimitationDeciderInterface
+interface LimitationSolverInterface
 {
     /**
      * Schedule given socket request

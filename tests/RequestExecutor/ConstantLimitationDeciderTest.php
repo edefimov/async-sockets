@@ -12,10 +12,8 @@ namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
-use AsyncSockets\RequestExecutor\ConstantLimitationDecider;
-use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
-use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
-use AsyncSockets\RequestExecutor\RequestExecutor;
+use AsyncSockets\RequestExecutor\ConstantLimitationSolver;
+use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 
 /**
  * Class ConstantLimitationDeciderTest
@@ -30,7 +28,7 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
     /**
      * Decider object
      *
-     * @var ConstantLimitationDecider
+     * @var ConstantLimitationSolver
      */
     private $decider;
 
@@ -38,7 +36,7 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->decider = new ConstantLimitationDecider(self::TEST_LIMIT);
+        $this->decider = new ConstantLimitationSolver(self::TEST_LIMIT);
     }
 
     /**
@@ -59,13 +57,13 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
             );
             if ($i < self::TEST_LIMIT) {
                 self::assertEquals(
-                    LimitationDeciderInterface::DECISION_OK,
+                    LimitationSolverInterface::DECISION_OK,
                     $decision,
                     'Invalid decision in normal case'
                 );
             } else {
                 self::assertEquals(
-                    LimitationDeciderInterface::DECISION_PROCESS_SCHEDULED,
+                    LimitationSolverInterface::DECISION_PROCESS_SCHEDULED,
                     $decision,
                     'Invalid excessed decision'
                 );
@@ -83,7 +81,7 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
     {
         $mock    = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface');
         $socket  = $this->getMock('AsyncSockets\Socket\SocketInterface');
-        $decider = new ConstantLimitationDecider(2);
+        $decider = new ConstantLimitationSolver(2);
 
         $decider->initialize($mock);
         for ($i = 0; $i < self::TEST_LIMIT; $i++) {
@@ -92,7 +90,7 @@ class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
                 new Event($mock, $socket, null, EventType::INITIALIZE)
             );
             self::assertEquals(
-                LimitationDeciderInterface::DECISION_OK,
+                LimitationSolverInterface::DECISION_OK,
                 $decision,
                 'Invalid decision in normal case'
             );

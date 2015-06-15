@@ -11,7 +11,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
-use AsyncSockets\RequestExecutor\LimitationDeciderInterface;
+use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -21,9 +21,9 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 class ConnectStage extends AbstractTimeAwareStage
 {
     /**
-     * LimitationDeciderInterface
+     * LimitationSolverInterface
      *
-     * @var LimitationDeciderInterface
+     * @var LimitationSolverInterface
      */
     private $decider;
 
@@ -32,12 +32,12 @@ class ConnectStage extends AbstractTimeAwareStage
      *
      * @param RequestExecutorInterface   $executor Request executor
      * @param EventCaller                $eventCaller Event caller
-     * @param LimitationDeciderInterface $decider Limitation decider for running requests
+     * @param LimitationSolverInterface $decider Limitation solver for running requests
      */
     public function __construct(
         RequestExecutorInterface $executor,
         EventCaller $eventCaller,
-        LimitationDeciderInterface $decider
+        LimitationSolverInterface $decider
     ) {
         parent::__construct($executor, $eventCaller);
         $this->decider = $decider;
@@ -50,11 +50,11 @@ class ConnectStage extends AbstractTimeAwareStage
         $totalItems = count($operations);
         foreach ($operations as $item) {
             $decision = $this->decide($item, $totalItems);
-            if ($decision === LimitationDeciderInterface::DECISION_PROCESS_SCHEDULED) {
+            if ($decision === LimitationSolverInterface::DECISION_PROCESS_SCHEDULED) {
                 break;
-            } elseif ($decision === LimitationDeciderInterface::DECISION_SKIP_CURRENT) {
+            } elseif ($decision === LimitationSolverInterface::DECISION_SKIP_CURRENT) {
                 continue;
-            } elseif ($decision !== LimitationDeciderInterface::DECISION_OK) {
+            } elseif ($decision !== LimitationSolverInterface::DECISION_OK) {
                 throw new \LogicException('Unknown decision ' . $decision . ' received.');
             }
 
@@ -90,16 +90,16 @@ class ConnectStage extends AbstractTimeAwareStage
      * @param OperationMetadata $operationMetadata Operation to decide
      * @param int               $totalItems Total amount of pending operations
      *
-     * @return int One of LimitationDeciderInterface::DECISION_* consts
+     * @return int One of LimitationSolverInterface::DECISION_* consts
      */
     private function decide(OperationMetadata $operationMetadata, $totalItems)
     {
         if ($operationMetadata->isRunning()) {
-            return LimitationDeciderInterface::DECISION_SKIP_CURRENT;
+            return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
 
         $decision = $this->decider->decide($this->executor, $operationMetadata->getSocket(), $totalItems);
-        if ($decision !== LimitationDeciderInterface::DECISION_OK) {
+        if ($decision !== LimitationSolverInterface::DECISION_OK) {
             return $decision;
         }
 
@@ -109,10 +109,10 @@ class ConnectStage extends AbstractTimeAwareStage
             $meta[RequestExecutorInterface::META_REQUEST_COMPLETE]
         );
         if ($isSkippingThis) {
-            return LimitationDeciderInterface::DECISION_SKIP_CURRENT;
+            return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
 
-        return LimitationDeciderInterface::DECISION_OK;
+        return LimitationSolverInterface::DECISION_OK;
     }
 
     /**

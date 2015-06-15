@@ -9,7 +9,7 @@
  */
 namespace Tests\AsyncSockets\Socket;
 
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
@@ -211,8 +211,8 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     public function testChangeSocketOperation($operation, $countRead, $countWrite)
     {
         $this->selector->addSocketOperationArray([
-            [$this->socket, RequestExecutorInterface::OPERATION_READ],
-            [$this->socket, RequestExecutorInterface::OPERATION_WRITE],
+            [$this->socket, OperationInterface::OPERATION_READ],
+            [$this->socket, OperationInterface::OPERATION_WRITE],
         ]);
 
         $this->selector->changeSocketOperation($this->socket, $operation);
@@ -228,8 +228,8 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     {
         // form: operation, ready to read, ready to write
         return [
-            [RequestExecutorInterface::OPERATION_READ, 1, 0],
-            [RequestExecutorInterface::OPERATION_WRITE, 0, 1],
+            [OperationInterface::OPERATION_READ, 1, 0],
+            [OperationInterface::OPERATION_WRITE, 0, 1],
         ];
     }
 

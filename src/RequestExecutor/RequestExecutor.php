@@ -23,16 +23,16 @@ class RequestExecutor implements RequestExecutorInterface
     /**
      * Decider for request limitation
      *
-     * @var LimitationDeciderInterface
+     * @var LimitationSolverInterface
      */
-    private $decider;
+    private $solver;
 
     /**
      * EventHandlerInterface
      *
      * @var EventHandlerInterface
      */
-    private $eventInvocationHandler;
+    private $eventHandler;
 
     /**
      * Socket bag
@@ -67,15 +67,15 @@ class RequestExecutor implements RequestExecutorInterface
     }
 
     /** {@inheritdoc} */
-    public function getSocketBag()
+    public function socketBag()
     {
         return $this->socketBag;
     }
 
     /** {@inheritdoc} */
-    public function setEventInvocationHandler(EventHandlerInterface $handler = null)
+    public function withEventHandler(EventHandlerInterface $handler = null)
     {
-        $this->eventInvocationHandler = $handler;
+        $this->eventHandler = $handler;
     }
 
     /** {@inheritdoc} */
@@ -88,29 +88,29 @@ class RequestExecutor implements RequestExecutorInterface
     public function executeRequest()
     {
         if ($this->isExecuting()) {
-            throw new \LogicException('Request is already in progress');
+            throw new \BadMethodCallException('Request is already in progress');
         }
 
         $eventCaller   = new EventCaller($this);
-        $this->decider = $this->decider ?: new NoLimitationDecider();
-        if ($this->eventInvocationHandler) {
-            $eventCaller->addHandler($this->eventInvocationHandler);
+        $this->solver = $this->solver ?: new NoLimitationSolver();
+        if ($this->eventHandler) {
+            $eventCaller->addHandler($this->eventHandler);
         }
 
-        if ($this->decider instanceof EventHandlerInterface) {
-            $eventCaller->addHandler($this->decider);
+        if ($this->solver instanceof EventHandlerInterface) {
+            $eventCaller->addHandler($this->solver);
         }
 
-        $this->pipeline  = $this->pipelineFactory->createPipeline($this, $eventCaller, $this->decider);
+        $this->pipeline  = $this->pipelineFactory->createPipeline($this, $eventCaller, $this->solver);
 
         $eventCaller->addHandler($this->pipeline);
 
         try {
-            $this->decider->initialize($this);
+            $this->solver->initialize($this);
             $this->pipeline->process($this->socketBag, $eventCaller);
-            $this->decider->finalize($this);
+            $this->solver->finalize($this);
         } catch (\Exception $e) {
-            $this->decider->finalize($this);
+            $this->solver->finalize($this);
             $this->pipeline = null;
             throw $e;
         }
@@ -129,12 +129,12 @@ class RequestExecutor implements RequestExecutorInterface
     }
 
     /** {@inheritdoc} */
-    public function setLimitationDecider(LimitationDeciderInterface $decider = null)
+    public function withLimitationSolver(LimitationSolverInterface $solver)
     {
         if ($this->isExecuting()) {
-            throw new \BadMethodCallException('Can not change limitation decider during request processing');
+            throw new \BadMethodCallException('Can not change limitation solver during request processing');
         }
 
-        $this->decider = $decider;
+        $this->solver = $solver;
     }
 }

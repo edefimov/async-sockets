@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor;
 
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 
 /**
@@ -35,7 +35,7 @@ class WriteOperationTest extends \PHPUnit_Framework_TestCase
         self::assertFalse($this->operation->hasData(), 'Incorrect data initial state');
         self::assertNull($this->operation->getData(), 'Incorrect data initial state');
         self::assertEquals(
-            RequestExecutorInterface::OPERATION_WRITE,
+            OperationInterface::OPERATION_WRITE,
             $this->operation->getType(),
             'Incorrect type for operation'
         );
