@@ -37,11 +37,8 @@ class ServerSocket extends AbstractSocket
     }
 
     /** {@inheritdoc} */
-    protected function doReadData(
-        $socket,
-        FramePickerInterface $frame,
-        ChunkSocketResponse $previousResponse = null
-    ) {
+    protected function doReadData($socket, FramePickerInterface $frame)
+    {
         $client = stream_socket_accept($socket, 0, $peerName);
         if ($client === false) {
             throw new AcceptException($this, 'Can not accept client connection.');

@@ -9,10 +9,13 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\Event\Event;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
+use AsyncSockets\Socket\SocketResponse;
+use AsyncSockets\Socket\SocketResponseInterface;
 use AsyncSockets\Socket\StreamResourceInterface;
 
 /**
@@ -35,7 +38,7 @@ class OperationMetadata implements StreamResourceInterface
     private $metadata;
 
     /**
-     * Array of callables for this socket indexed by event name
+     * Event handler object
      *
      * @var EventHandlerInterface
      */
@@ -49,11 +52,11 @@ class OperationMetadata implements StreamResourceInterface
     private $isRunning;
 
     /**
-     * Previous response for this socket
+     * Current response data for this socket
      *
      * @var ChunkSocketResponse
      */
-    private $previousResponse;
+    private $responseData;
 
     /**
      * Operation to perform on socket
@@ -112,30 +115,35 @@ class OperationMetadata implements StreamResourceInterface
      */
     public function initialize()
     {
-        $this->isRunning        = false;
-        $this->previousResponse = null;
+        $this->isRunning    = false;
+        $this->responseData = '';
     }
 
     /**
-     * Return previous response
+     * Add part of response
      *
-     * @return ChunkSocketResponse
+     * @param SocketResponseInterface $responseChunk Chunk to add
+     *
+     * @return void
      */
-    public function getPreviousResponse()
+    public function addResponseChunk(SocketResponseInterface $responseChunk = null)
     {
-        return $this->previousResponse;
+        $this->responseData .= (string) $responseChunk;
     }
 
     /**
-     * Sets PreviousResponse
+     * Create response object from collected chunks
      *
-     * @param ChunkSocketResponse $previousResponse New value for PreviousResponse
+     * @param SocketResponseInterface|null $responseChunk Last chunk of whole response
      *
-     * @return ChunkSocketResponse
+     * @return SocketResponseInterface
      */
-    public function setPreviousResponse(ChunkSocketResponse $previousResponse = null)
+    public function createResponseFromChunks(SocketResponseInterface $responseChunk = null)
     {
-        $this->previousResponse = $previousResponse;
+        if ($responseChunk) {
+            $this->addResponseChunk($responseChunk);
+        }
+        return new SocketResponse($this->responseData);
     }
 
     /**
@@ -208,12 +216,16 @@ class OperationMetadata implements StreamResourceInterface
     }
 
     /**
-     * Return Subscribers
+     * Invoke handlers with given event
      *
-     * @return EventHandlerInterface|null
+     * @param Event $event Event object
+     *
+     * @return void
      */
-    public function getEventInvocationHandler()
+    public function invokeEvent(Event $event)
     {
-        return $this->handlers;
+        if ($this->handlers) {
+            $this->handlers->invokeEvent($event);
+        }
     }
 }

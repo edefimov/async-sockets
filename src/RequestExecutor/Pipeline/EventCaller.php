@@ -69,10 +69,7 @@ class EventCaller
      */
     public function callSocketSubscribers(OperationMetadata $operationMetadata, Event $event)
     {
-        $socketHandlers = $operationMetadata->getEventInvocationHandler();
-        if ($socketHandlers) {
-            $socketHandlers->invokeEvent($event);
-        }
+        $operationMetadata->invokeEvent($event);
 
         foreach ($this->handlers as $handler) {
             $handler->invokeEvent($event);

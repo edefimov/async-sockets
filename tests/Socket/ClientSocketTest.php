@@ -131,10 +131,11 @@ class ClientSocketTest extends AbstractSocketTest
             }
         );
 
-        $response = null;
+        $responseText = '';
         $this->socket->open('it has no meaning here');
         do {
-            $response = $this->socket->read(null, $response);
+            $response      = $this->socket->read(null);
+            $responseText .= (string) $response;
         } while ($response instanceof ChunkSocketResponse);
 
         self::assertInstanceOf('AsyncSockets\Socket\SocketResponse', $response);
@@ -144,7 +145,7 @@ class ClientSocketTest extends AbstractSocketTest
             'Final response must not be chunk'
         );
 
-        self::assertEquals($data, (string) $response, 'Received data is incorrect');
+        self::assertEquals($data, $responseText, 'Received data is incorrect');
     }
 
     /** {@inheritdoc} */

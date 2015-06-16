@@ -9,8 +9,6 @@
  */
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Frame\FramePickerInterface;
-
 /**
  * Class ChunkSocketResponse
  */
@@ -24,15 +22,21 @@ class ChunkSocketResponse extends AbstractSocketResponse
     private $previousChunk;
 
     /**
+     * Data from network for this object
+     *
+     * @var string
+     */
+    private $data;
+
+    /**
      * Constructor
      *
-     * @param FramePickerInterface      $frame Frame this data was created from
      * @param string              $data Data for this chunk
      * @param ChunkSocketResponse $previousChunk Previous chunk
      */
-    public function __construct(FramePickerInterface $frame, $data, ChunkSocketResponse $previousChunk = null)
+    public function __construct($data, ChunkSocketResponse $previousChunk = null)
     {
-        parent::__construct($frame, $data);
+        $this->data          = $data;
         $this->previousChunk = $previousChunk;
     }
 

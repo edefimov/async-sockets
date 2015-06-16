@@ -56,8 +56,8 @@ class AsyncSelector
         }
 
         return new SelectContext(
-            $this->popSocketsByResources($read ?: [], OperationInterface::OPERATION_READ),
-            $this->popSocketsByResources($write ?: [], OperationInterface::OPERATION_WRITE)
+            $this->popSocketsByResources((array) $read, OperationInterface::OPERATION_READ),
+            $this->popSocketsByResources((array) $write, OperationInterface::OPERATION_WRITE)
         );
     }
 

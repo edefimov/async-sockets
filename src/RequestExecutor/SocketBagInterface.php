@@ -19,9 +19,9 @@ interface SocketBagInterface extends \Countable
     /**
      * Add socket into this bag
      *
-     * @param SocketInterface                 $socket Socket to add
-     * @param OperationInterface              $operation Operation to perform on socket
-     * @param array                           $metadata Socket metadata information, which will be passed
+     * @param SocketInterface       $socket Socket to add
+     * @param OperationInterface    $operation Operation to perform on socket
+     * @param array                 $metadata Socket metadata information, which will be passed
      *                                   to setSocketMetaData during this call
      * @param EventHandlerInterface $eventHandlers Optional handlers for this socket
      *

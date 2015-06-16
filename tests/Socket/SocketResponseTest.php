@@ -34,7 +34,7 @@ class SocketResponseTest extends \PHPUnit_Framework_TestCase
      */
     protected function createResponse($data)
     {
-        return new SocketResponse($this->frame, $data);
+        return new SocketResponse($data);
     }
 
     /**
@@ -48,12 +48,5 @@ class SocketResponseTest extends \PHPUnit_Framework_TestCase
         $response = $this->createResponse($data);
         self::assertEquals($data, $response->getData(), 'Get data failed');
         self::assertEquals($data, (string) $response, 'String casting failed');
-    }
-
-    /** {@inheritdoc} */
-    protected function setUp()
-    {
-        parent::setUp();
-        $this->frame = $this->getMock('AsyncSockets\Frame\FramePickerInterface');
     }
 }

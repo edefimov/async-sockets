@@ -9,8 +9,6 @@
  */
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Frame\NullFramePicker;
-
 /**
  * Class AcceptResponse
  */
@@ -33,12 +31,11 @@ class AcceptResponse extends AbstractSocketResponse
     /**
      * AcceptResponse constructor.
      *
-     * @param string          $clientAddress Remote address
+     * @param string          $clientAddress Remote client address
      * @param SocketInterface $socket Remote socket
      */
     public function __construct($clientAddress, SocketInterface $socket)
     {
-        parent::__construct(new NullFramePicker(), $clientAddress);
         $this->clientAddress = $clientAddress;
         $this->socket        = $socket;
     }
@@ -47,7 +44,7 @@ class AcceptResponse extends AbstractSocketResponse
     /** {@inheritdoc} */
     public function getData()
     {
-        return $this->data;
+        return '';
     }
 
     /**

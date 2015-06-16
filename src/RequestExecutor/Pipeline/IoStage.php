@@ -84,10 +84,10 @@ class IoStage extends AbstractTimeAwareStage
 
         try {
             /** @var ReadOperation $operation */
-            $response = $socket->read($operation->getFramePicker(), $operationMetadata->getPreviousResponse());
+            $response = $socket->read($operation->getFramePicker());
             switch (true) {
                 case $response instanceof ChunkSocketResponse:
-                    $operationMetadata->setPreviousResponse($response);
+                    $operationMetadata->addResponseChunk($response);
                     return false;
                 case $response instanceof AcceptResponse:
                     $event = new AcceptEvent(
@@ -105,7 +105,7 @@ class IoStage extends AbstractTimeAwareStage
                         $this->executor,
                         $socket,
                         $context,
-                        $response
+                        $operationMetadata->createResponseFromChunks($response)
                     );
 
                     $this->callSocketSubscribers($operationMetadata, $event);

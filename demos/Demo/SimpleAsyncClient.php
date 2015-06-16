@@ -14,8 +14,8 @@ use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\AsyncSocketFactory;
-use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
+use AsyncSockets\Socket\SocketResponse;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -54,14 +54,14 @@ final class SimpleAsyncClient extends Command
                 spl_object_hash($client) => [
                     'address'      => 'tls://github.com:443',
                     'data'         => "GET / HTTP/1.1\nHost: github.com\n\n",
-                    'lastResponse' => null,
+                    'lastResponse' => '',
                 ],
 
 
                 spl_object_hash($anotherClient) => [
                     'address' => 'tls://packagist.org:443',
                     'data'    => "GET / HTTP/1.1\nHost: packagist.org\n\n",
-                    'lastResponse' => null,
+                    'lastResponse' => '',
                 ],
             ];
 
@@ -88,15 +88,15 @@ final class SimpleAsyncClient extends Command
                 }
 
                 foreach ($context->getRead() as $socket) {
-                    $response = $socket->read(null, $data[spl_object_hash($socket)]['lastResponse']);
+                    $response = $socket->read();
                     $hash     = spl_object_hash($socket);
-                    if (!($response instanceof ChunkSocketResponse)) {
+                    if ($response instanceof SocketResponse) {
                         $numReadClient += 1;
                         $output->writeln("<info>Response from {$data[$hash]['address']}</info>");
                         $output->writeln($response->getData() . "\n");
                         $selector->removeAllSocketOperations($socket);
                     } else {
-                        $data[spl_object_hash($socket)]['lastResponse'] = $response;
+                        $data[spl_object_hash($socket)]['lastResponse'] .= (string) $response;
                         $selector->addSocketOperation($socket, OperationInterface::OPERATION_READ);
                     }
                 }

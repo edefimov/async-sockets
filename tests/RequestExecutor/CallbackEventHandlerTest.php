@@ -12,7 +12,6 @@ namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
-use AsyncSockets\RequestExecutor\Metadata\HandlerBag;
 
 /**
  * Class CallbackEventHandlerTest

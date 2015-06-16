@@ -14,6 +14,23 @@ namespace AsyncSockets\Socket;
  */
 class SocketResponse extends AbstractSocketResponse
 {
+    /**
+     * Data from network for this object
+     *
+     * @var string
+     */
+    private $data;
+
+    /**
+     * SocketResponse constructor.
+     *
+     * @param string $data Data from network for this response
+     */
+    public function __construct($data)
+    {
+        $this->data = (string) $data;
+    }
+
     /** {@inheritdoc} */
     public function getData()
     {

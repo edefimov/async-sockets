@@ -12,7 +12,6 @@ namespace Tests\AsyncSockets\Event;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
-use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketResponse;
 use AsyncSockets\Socket\SocketResponseInterface;
@@ -28,15 +27,6 @@ class ReadEventTest extends IoEventTest
      * @var SocketResponse
      */
     protected $response;
-
-    /**
-     * Mocked framePicker
-     *
-     * @var FramePickerInterface
-     */
-    protected $frame;
-
-
 
     /** {@inheritdoc} */
     protected function createEvent($type)
@@ -83,14 +73,9 @@ class ReadEventTest extends IoEventTest
      */
     public function socketResponseDataProvider()
     {
-        static $mock;
-        if (!$mock) {
-            $mock = $this->getMock('AsyncSockets\Frame\FramePickerInterface');
-        }
-
         return [
-            [ new SocketResponse($mock, ''), false ],
-            [ new ChunkSocketResponse($mock, ''), true ],
+            [ new SocketResponse(''), false ],
+            [ new ChunkSocketResponse(''), true ],
         ];
     }
 
@@ -98,7 +83,6 @@ class ReadEventTest extends IoEventTest
     protected function setUp()
     {
         parent::setUp();
-        $this->frame    = $this->getMock('AsyncSockets\Frame\FramePickerInterface');
-        $this->response = new SocketResponse($this->frame, 'Test data');
+        $this->response = new SocketResponse('Test data');
     }
 }

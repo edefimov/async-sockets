@@ -45,16 +45,14 @@ interface SocketInterface extends StreamResourceInterface
     /**
      * Read data from this socket
      *
-     * @param FramePickerInterface      $frame Frame data to read, if null then read data until transfer is not complete
-     * @param ChunkSocketResponse $previousResponse Previous response, if there was one. If is specified, then
-     *      $framePicker parameter will be ignored and actual framePicker is extracted from response object
+     * @param FramePickerInterface $frame Frame data picker, if null then read data until transfer is not complete
      *
      * @return SocketResponseInterface
      * @throws NetworkSocketException
      *
      * @api
      */
-    public function read(FramePickerInterface $frame = null, ChunkSocketResponse $previousResponse = null);
+    public function read(FramePickerInterface $frame = null);
 
     /**
      * Write data to this socket

@@ -55,14 +55,11 @@ class ClientSocket extends AbstractSocket
     }
 
     /** {@inheritdoc} */
-    protected function doReadData(
-        $socket,
-        FramePickerInterface $frame,
-        ChunkSocketResponse $previousResponse = null
-    ) {
-        $result        = '';
-        $isDataChanged = false;
-        $isEndOfFrame  = false;
+    protected function doReadData($socket, FramePickerInterface $frame)
+    {
+        $result       = '';
+        $isEndOfFrame = false;
+
         do {
             if ($this->isFullFrameRead($socket, $frame)) {
                 $isEndOfFrame = true;
@@ -81,17 +78,14 @@ class ClientSocket extends AbstractSocket
                     $actualData = $this->readActualData($socket);
                     $result     = $this->getFrameProcessor()->processReadFrame($frame, $actualData, $result);
 
-                    $isDataChanged = true;
                     $isEndOfFrame = !($frame instanceof NullFramePicker) && $frame->isEof();
             }
         } while (!$isEndOfFrame);
 
         if ($isEndOfFrame) {
-            return new SocketResponse($frame, (string) $previousResponse . $result);
+            return new SocketResponse($result);
         } else {
-            return $isDataChanged || !$previousResponse ?
-                new ChunkSocketResponse($frame, $result, $previousResponse) :
-                $previousResponse;
+            return new ChunkSocketResponse($result);
         }
     }
 

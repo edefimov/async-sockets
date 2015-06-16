@@ -95,18 +95,13 @@ abstract class AbstractSocket implements SocketInterface
     /**
      * Perform reading data from socket
      *
-     * @param resource            $socket Socket resource
-     * @param FramePickerInterface      $frame Frame object to read
-     * @param ChunkSocketResponse $previousResponse Previous response from this socket
+     * @param resource             $socket Socket resource
+     * @param FramePickerInterface $frame Frame object to read
      *
      * @return SocketResponseInterface
      * @throws NetworkSocketException
      */
-    abstract protected function doReadData(
-        $socket,
-        FramePickerInterface $frame,
-        ChunkSocketResponse $previousResponse = null
-    );
+    abstract protected function doReadData($socket, FramePickerInterface $frame);
 
     /** {@inheritdoc} */
     public function open($address, $context = null)
@@ -141,13 +136,12 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $frame = null, ChunkSocketResponse $previousResponse = null)
+    public function read(FramePickerInterface $frame = null)
     {
         $this->setConnectedState();
-        $frame = $previousResponse ? $previousResponse->getFramePicker() : $frame;
         $frame = $frame ?: new NullFramePicker();
 
-        return $this->doReadData($this->resource, $frame, $previousResponse);
+        return $this->doReadData($this->resource, $frame);
     }
 
     /** {@inheritdoc} */

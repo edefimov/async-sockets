@@ -44,18 +44,6 @@ class ReadOperationTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    /**
-     * testSetData
-     *
-     * @return void
-     */
-    public function testSetFrame()
-    {
-        $frame = $this->getMock('AsyncSockets\Frame\FramePickerInterface');
-        $this->operation->setFramePicker($frame);
-        self::assertSame($frame, $this->operation->getFramePicker(), 'Frame is not set');
-    }
-
     /** {@inheritdoc} */
     protected function setUp()
     {

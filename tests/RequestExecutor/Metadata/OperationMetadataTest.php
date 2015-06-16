@@ -50,11 +50,6 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
         self::assertSame($this->socket, $this->operationMetadata->getSocket(), 'Unknown socket returned');
         self::assertSame($this->operation, $this->operationMetadata->getOperation(), 'Unknown operation returned');
         self::assertFalse($this->operationMetadata->isRunning(), 'Invalid initial running flag');
-        self::assertNull($this->operationMetadata->getPreviousResponse(), 'Invalid initial previous response');
-        self::assertNull(
-            $this->operationMetadata->getEventInvocationHandler(),
-            'Invalid handlers object'
-        );
     }
 
     /**
@@ -78,12 +73,35 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
      */
     public function testSetPreviousResponse()
     {
-        $response = $this->getMock('AsyncSockets\Socket\ChunkSocketResponse', [], [], '', false);
-        $this->operationMetadata->setPreviousResponse($response);
-        self::assertSame($response, $this->operationMetadata->getPreviousResponse(), 'Invalid response was set');
+        $response = $this->getMock(
+            'AsyncSockets\Socket\ChunkSocketResponse',
+            ['__toString'],
+            [],
+            '',
+            false
+        );
+        $response->expects(self::any())->method('__toString')->willReturn('x');
 
-        $this->operationMetadata->setPreviousResponse(null);
-        self::assertNull($this->operationMetadata->getPreviousResponse(), 'Response is not cleared');
+        $this->operationMetadata->addResponseChunk($response);
+        self::assertSame(
+            'x',
+            (string) $this->operationMetadata->createResponseFromChunks(),
+            'Invalid response was set'
+        );
+
+        $this->operationMetadata->initialize();
+        self::assertEmpty((string) $this->operationMetadata->createResponseFromChunks(), 'Response is not cleared');
+
+        $count = 10;
+        for ($i = 0; $i < $count; $i++) {
+            $this->operationMetadata->addResponseChunk(clone $response);
+        }
+
+        self::assertSame(
+            str_repeat('x', $count + 1),
+            (string) $this->operationMetadata->createResponseFromChunks($response),
+            'Invalid response was set'
+        );
     }
 
     /**
@@ -114,6 +132,30 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
             count($this->operationMetadata->getMetadata()),
             'Meta data shouldn\'t have been cleared'
         );
+    }
+
+    /**
+     * testInvokeEvent
+     *
+     * @return void
+     */
+    public function testInvokeEvent()
+    {
+        $event   = $this->getMock('AsyncSockets\Event\Event', [], [], '', false);
+        $handler = $this->getMockForAbstractClass(
+            'AsyncSockets\RequestExecutor\EventHandlerInterface',
+            [],
+            '',
+            true,
+            true,
+            true,
+            ['invokeEvent']
+        );
+
+        $handler->expects(self::once())->method('invokeEvent')->with($event);
+        $operation = new OperationMetadata($this->socket, $this->operation, [ ], $handler);
+
+        $operation->invokeEvent($event);
     }
 
     /**

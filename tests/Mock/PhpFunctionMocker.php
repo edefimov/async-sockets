@@ -234,7 +234,7 @@ MAGIC
      */
     private static function getFunctionDefinitionName($name)
     {
-        return preg_replace('#[^a-zA-Z0-9_]+#', '_', $name);
+        return preg_replace('#\W+#', '_', $name);
     }
 
     /**

@@ -50,16 +50,4 @@ class ReadOperation implements OperationInterface
     {
         return $this->framePicker;
     }
-
-    /**
-     * Sets FramePicker
-     *
-     * @param FramePickerInterface $framePicker New value for Frame
-     *
-     * @return void
-     */
-    public function setFramePicker(FramePickerInterface $framePicker)
-    {
-        $this->framePicker = $framePicker;
-    }
 }
