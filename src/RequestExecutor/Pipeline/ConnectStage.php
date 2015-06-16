@@ -58,27 +58,7 @@ class ConnectStage extends AbstractTimeAwareStage
                 throw new \LogicException('Unknown decision ' . $decision . ' received.');
             }
 
-            $socket = $item->getSocket();
-            $meta   = $item->getMetadata();
-            $event  = $this->createEvent($item, EventType::INITIALIZE);
-
-            try {
-                $this->callSocketSubscribers($item, $event);
-                $this->setSocketOperationTime($item, RequestExecutorInterface::META_CONNECTION_START_TIME);
-                $socket->setBlocking(false);
-
-                if (!$socket->getStreamResource()) {
-                    $socket->open(
-                        $meta[RequestExecutorInterface::META_ADDRESS],
-                        $this->getStreamContextFromMetaData($meta)
-                    );
-                }
-
-                $item->setRunning(true);
-            } catch (SocketException $e) {
-                $item->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
-                $this->callExceptionSubscribers($item, $e, $event);
-            }
+            $this->connectSocket($item);
         }
 
         return $this->getActiveOperations($operations);
@@ -155,5 +135,39 @@ class ConnectStage extends AbstractTimeAwareStage
         }
 
         return $result;
+    }
+
+    /**
+     * Start connecting process
+     *
+     * @param OperationMetadata $item Socket operation data
+     *
+     * @return void
+     */
+    private function connectSocket(OperationMetadata $item)
+    {
+        $item->initialize();
+
+        $socket = $item->getSocket();
+        $meta   = $item->getMetadata();
+        $event  = $this->createEvent($item, EventType::INITIALIZE);
+
+        try {
+            $this->callSocketSubscribers($item, $event);
+            $this->setSocketOperationTime($item, RequestExecutorInterface::META_CONNECTION_START_TIME);
+            $socket->setBlocking(false);
+
+            if (!$socket->getStreamResource()) {
+                $socket->open(
+                    $meta[ RequestExecutorInterface::META_ADDRESS ],
+                    $this->getStreamContextFromMetaData($meta)
+                );
+            }
+
+            $item->setRunning(true);
+        } catch (SocketException $e) {
+            $item->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
+            $this->callExceptionSubscribers($item, $e, $event);
+        }
     }
 }

@@ -17,34 +17,16 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 /**
  * Class TimeoutStage
  */
-class TimeoutStage extends AbstractStage
+class TimeoutStage extends AbstractTimeAwareStage
 {
     /** {@inheritdoc} */
     public function processStage(array $operations)
     {
         /** @var OperationMetadata[] $operations */
-        $result = [];
+        $result    = [ ];
+        $microTime = microtime(true);
         foreach ($operations as $key => $operation) {
-            $meta      = $operation->getMetadata();
-            $microTime = microtime(true);
-            $isTimeout =
-                (
-                    $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] === null &&
-                    $this->isSingleSocketTimeout(
-                        $microTime,
-                        $meta[RequestExecutorInterface::META_CONNECTION_TIMEOUT],
-                        $meta[RequestExecutorInterface::META_CONNECTION_START_TIME]
-                    )
-                ) || (
-                    $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] !== null &&
-                    $this->isSingleSocketTimeout(
-                        $microTime,
-                        $meta[RequestExecutorInterface::META_IO_TIMEOUT],
-                        $meta[RequestExecutorInterface::META_LAST_IO_START_TIME]
-                    )
-                );
-
-            if ($isTimeout) {
+            if ($this->isSingleSocketTimeout($operation, $microTime)) {
                 $event = $this->createEvent($operation, EventType::TIMEOUT);
                 try {
                     $this->callSocketSubscribers($operation, $event);
@@ -62,14 +44,16 @@ class TimeoutStage extends AbstractStage
     /**
      * Checks whether given params lead to timeout
      *
-     * @param double $microTime Current time with microseconds
-     * @param double $desiredTimeout Timeout from settings
-     * @param double $lastOperationTime Last operation timestamp
+     * @param OperationMetadata $operation Operation object
+     * @param double            $microTime Current time with microseconds
      *
      * @return bool True, if socket with this params in timeout, false otherwise
      */
-    private function isSingleSocketTimeout($microTime, $desiredTimeout, $lastOperationTime)
+    private function isSingleSocketTimeout(OperationMetadata $operation, $microTime)
     {
+        $desiredTimeout    = $this->timeoutSetting($operation);
+        $lastOperationTime = $this->timeSinceLastIo($operation);
+
         return ($desiredTimeout !== RequestExecutorInterface::WAIT_FOREVER) &&
                ($microTime - $lastOperationTime > $desiredTimeout);
     }

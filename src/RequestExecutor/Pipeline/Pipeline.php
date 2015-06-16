@@ -97,9 +97,15 @@ class Pipeline implements EventHandlerInterface
         $this->isRequestStopped        = false;
 
         try {
-            $this->processMainExecutionLoop($socketBag, $eventCaller);
+            $this->processMainExecutionLoop($socketBag);
         } catch (StopRequestExecuteException $e) {
             $this->isRequestStopInProgress = true;
+            $this->disconnectStage->processStage($socketBag->getItems());
+        } catch (SocketException $e) {
+            foreach ($socketBag->getItems() as $item) {
+                $eventCaller->callExceptionSubscribers($item, $e, null);
+            }
+
             $this->disconnectStage->processStage($socketBag->getItems());
         } catch (\Exception $e) {
             $this->emergencyShutdown($socketBag);
@@ -110,33 +116,20 @@ class Pipeline implements EventHandlerInterface
     /**
      * Start Pipeline cycle
      *
-     * @param SocketBag   $socketBag Socket bag
-     * @param EventCaller $eventCaller Event caller
+     * @param SocketBag $socketBag Socket bag
      *
      * @return void
      */
-    private function processMainExecutionLoop(SocketBag $socketBag, EventCaller $eventCaller)
+    private function processMainExecutionLoop(SocketBag $socketBag)
     {
-        foreach ($socketBag->getItems() as $item) {
-            $item->initialize();
-        }
-
         do {
-            try {
-                $activeOperations = $this->connectStage->processStage($socketBag->getItems());
-                if (!$activeOperations) {
-                    break;
-                }
+            $activeOperations = $this->connectStage->processStage($socketBag->getItems());
+            if (!$activeOperations) {
+                break;
+            }
 
-                foreach ($this->stages as $stage) {
-                    $activeOperations = $stage->processStage($activeOperations);
-                }
-            } catch (SocketException $e) {
-                foreach ($socketBag->getItems() as $item) {
-                    $eventCaller->callExceptionSubscribers($item, $e, null);
-                }
-
-                return;
+            foreach ($this->stages as $stage) {
+                $activeOperations = $stage->processStage($activeOperations);
             }
         } while (true);
     }

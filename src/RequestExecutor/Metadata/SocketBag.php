@@ -131,8 +131,7 @@ class SocketBag implements SocketBagInterface
     /** {@inheritdoc} */
     public function getSocketMetaData(SocketInterface $socket)
     {
-        $hash = $this->requireOperationKey($socket);
-        return $this->items[$hash]->getMetadata();
+        return $this->requireOperation($socket)->getMetadata();
     }
 
     /** {@inheritdoc} */
@@ -150,10 +149,8 @@ class SocketBag implements SocketBagInterface
             $key = [ $key => $value ];
         }
 
-        $key  = array_intersect_key($key, $writableKeys);
-        $hash = $this->requireOperationKey($socket);
-
-        $this->items[$hash]->setMetadata($key);
+        $key = array_intersect_key($key, $writableKeys);
+        $this->requireOperation($socket)->setMetadata($key);
     }
 
     /**
@@ -169,33 +166,21 @@ class SocketBag implements SocketBagInterface
     }
 
     /**
-     * Verifies that socket was added and return its key in storage
+     * Require operation metadata for given socket
      *
      * @param SocketInterface $socket Socket object
      *
-     * @return string
+     * @return OperationMetadata
      * @throws \OutOfBoundsException
      */
-    private function requireOperationKey(SocketInterface $socket)
+    private function requireOperation(SocketInterface $socket)
     {
         $hash = $this->getOperationStorageKey($socket);
         if (!isset($this->items[$hash])) {
             throw new \OutOfBoundsException('Trying to perform operation on not added socket.');
         }
 
-        return $hash;
-    }
-
-    /**
-     * Require operation metadata for given socket
-     *
-     * @param SocketInterface $socket Socket object
-     *
-     * @return OperationMetadata
-     */
-    private function requireOperation(SocketInterface $socket)
-    {
-        return $this->items[ $this->requireOperationKey($socket) ];
+        return $this->items[$hash];
     }
 
     /**

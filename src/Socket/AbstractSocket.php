@@ -119,6 +119,8 @@ abstract class AbstractSocket implements SocketInterface
         if (is_resource($this->resource)) {
             $result = true;
             $meta   = stream_get_meta_data($this->resource);
+
+            /** @noinspection TypeUnsafeComparisonInspection */
             if (isset($meta['blocked']) && $meta['blocked'] != $this->isBlocking) {
                 $this->setBlocking($this->isBlocking);
             }

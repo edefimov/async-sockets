@@ -79,18 +79,7 @@ class SelectStage extends AbstractTimeAwareStage
         $timeList  = [];
         $microtime = microtime(true);
         foreach ($activeOperations as $activeOperation) {
-            $meta    = $activeOperation->getMetadata();
-            $timeout = $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] === null ?
-                            $this->getSingleSocketTimeout(
-                                $microtime,
-                                $meta[RequestExecutorInterface::META_CONNECTION_TIMEOUT],
-                                $meta[RequestExecutorInterface::META_CONNECTION_START_TIME]
-                            ) :
-                            $this->getSingleSocketTimeout(
-                                $microtime,
-                                $meta[RequestExecutorInterface::META_IO_TIMEOUT],
-                                $meta[RequestExecutorInterface::META_LAST_IO_START_TIME]
-                            );
+            $timeout = $this->getSingleSocketTimeout($activeOperation, $microtime);
 
             if ($timeout > 0 || $timeout === null) {
                 $timeList[] = $timeout;
@@ -119,14 +108,16 @@ class SelectStage extends AbstractTimeAwareStage
     /**
      * Calculate timeout value for single socket operation
      *
+     * @param OperationMetadata $operation Operation object
      * @param double $microTime Current time with microseconds
-     * @param double $desiredTimeout Timeout from settings
-     * @param double $lastOperationTime Last operation timestamp
      *
      * @return double|null
      */
-    private function getSingleSocketTimeout($microTime, $desiredTimeout, $lastOperationTime)
+    private function getSingleSocketTimeout(OperationMetadata $operation, $microTime)
     {
+        $desiredTimeout    = $this->timeoutSetting($operation);
+        $lastOperationTime = $this->timeSinceLastIo($operation);
+
         if ($desiredTimeout === RequestExecutorInterface::WAIT_FOREVER) {
             return null;
         }

@@ -18,6 +18,49 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 abstract class AbstractTimeAwareStage extends AbstractStage
 {
     /**
+     * Return true, if connect time settings should be used for time operations, false otherwise
+     *
+     * @param OperationMetadata $operation Operation object
+     *
+     * @return bool
+     */
+    private function isUseConnectionTimeout(OperationMetadata $operation)
+    {
+        $meta = $operation->getMetadata();
+        return $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] === null;
+    }
+
+    /**
+     * Return timeout for current socket state
+     *
+     * @param OperationMetadata $operation Operation object
+     *
+     * @return double
+     */
+    protected function timeoutSetting(OperationMetadata $operation)
+    {
+        $meta = $operation->getMetadata();
+        return $this->isUseConnectionTimeout($operation) ?
+            $meta[ RequestExecutorInterface::META_CONNECTION_TIMEOUT ] :
+            $meta[ RequestExecutorInterface::META_IO_TIMEOUT ];
+    }
+
+    /**
+     * Return time since last I/O for current socket state
+     *
+     * @param OperationMetadata $operation Operation object
+     *
+     * @return double|null
+     */
+    protected function timeSinceLastIo(OperationMetadata $operation)
+    {
+        $meta = $operation->getMetadata();
+        return $this->isUseConnectionTimeout($operation) ?
+            $meta[ RequestExecutorInterface::META_CONNECTION_START_TIME ] :
+            $meta[ RequestExecutorInterface::META_LAST_IO_START_TIME ];
+    }
+
+    /**
      * Set start or finish time in metadata of the socket
      *
      * @param OperationMetadata $operationMetadata Socket meta data
