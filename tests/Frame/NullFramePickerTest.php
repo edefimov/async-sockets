@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Frame;
 
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
 
 /**
@@ -18,11 +19,14 @@ use AsyncSockets\Frame\NullFramePicker;
 class NullFramePickerTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * Test object
+     * Create framePicker for test
      *
-     * @var NullFramePicker
+     * @return FramePickerInterface
      */
-    private $frame;
+    protected function createFramePicker()
+    {
+        return new NullFramePicker();
+    }
 
     /**
      * testInitialState
@@ -31,30 +35,28 @@ class NullFramePickerTest extends \PHPUnit_Framework_TestCase
      */
     public function testInitialState()
     {
-        self::assertTrue($this->frame->isEof(), 'NullFramePicker::isEof must always return true');
-        self::assertEquals(
-            0,
-            $this->frame->findStartOfFrame('', 0, ''),
-            'NullFramePicker::findStartOfFrame must always return 0'
-        );
+        self::assertTrue($this->createFramePicker()->isEof(), 'NullFramePicker::isEof must always return true');
     }
 
     /**
-     * testEveryTimeReturnLength
+     * testPickUpEverything
      *
      * @param int $length Length of framePicker Length of framePicker
      *
      * @return void
      * @dataProvider frameSizeDataProvider
      */
-    public function testEveryTimeReturnLength($length)
+    public function testPickUpEverything($length)
     {
+        $picker    = $this->createFramePicker();
         $data      = str_repeat('x', $length);
-        $processed = $this->frame->handleData($data, $length, '');
+        $processed = $picker->pickUpData($data);
 
-        self::assertEquals($length, $processed);
-        self::assertTrue($this->frame->isEof(), 'Incorrect eof state');
-        self::assertEquals(0, $this->frame->findStartOfFrame($data, $length, ''), 'Incorrect start of framePicker');
+        $frame = $picker->createFrame();
+        self::assertEquals($length, strlen((string) $frame));
+        self::assertEquals($data, (string) $frame, 'Incorrect frame data');
+        self::assertEmpty($processed, 'Null frame must not leave any data after frame');
+        self::assertTrue($picker->isEof(), 'Incorrect eof state');
     }
 
     /**
@@ -69,12 +71,5 @@ class NullFramePickerTest extends \PHPUnit_Framework_TestCase
             $result[] = [mt_rand(1024, 4096)];
         }
         return $result;
-    }
-
-    /** {@inheritdoc} */
-    protected function setUp()
-    {
-        parent::setUp();
-        $this->frame = new NullFramePicker();
     }
 }

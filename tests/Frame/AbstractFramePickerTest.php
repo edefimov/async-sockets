@@ -22,16 +22,7 @@ abstract class AbstractFramePickerTest extends \PHPUnit_Framework_TestCase
      *
      * @return FramePickerInterface
      */
-    abstract protected function createFrame();
-
-    /**
-     * ensureStartOfFrameIsFound
-     *
-     * @param FramePickerInterface $frame Test object
-     *
-     * @return void
-     */
-    abstract protected function ensureStartOfFrameIsFound(FramePickerInterface $frame);
+    abstract protected function createFramePicker();
 
     /**
      * testInitialState
@@ -40,38 +31,10 @@ abstract class AbstractFramePickerTest extends \PHPUnit_Framework_TestCase
      */
     public function testInitialState()
     {
-        $frame = $this->createFrame();
+        $frame = $this->createFramePicker();
 
-        self::assertFalse($frame->isStarted(), 'Frame must not be started');
         self::assertFalse($frame->isEof(), 'Frame must not be finished');
 
         return $frame;
-    }
-
-    /**
-     * testHandleDataIfNotStarted
-     *
-     * @param FramePickerInterface $frame Test object
-     *
-     * @return void
-     * @depends testInitialState
-     */
-    public function testHandleDataIfNotStarted(FramePickerInterface $frame)
-    {
-        self::assertSame(0, $frame->handleData('test', 4, ''), 'Not started framePicker must return 0');
-    }
-
-    /**
-     * testStartedCorrectly
-     *
-     * @return void
-     * @depends testInitialState
-     */
-    public function testStartedCorrectly()
-    {
-        $frame = $this->createFrame();
-        $this->ensureStartOfFrameIsFound($frame);
-        self::assertTrue($frame->isStarted(), 'Frame must be started');
-        self::assertFalse($frame->isEof(), 'Frame must be started');
     }
 }

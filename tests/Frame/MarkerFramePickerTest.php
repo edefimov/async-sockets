@@ -10,7 +10,6 @@
 
 namespace Tests\AsyncSockets\Frame;
 
-use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\MarkerFramePicker;
 
 /**
@@ -33,93 +32,52 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
     private $endMarker;
 
     /** {@inheritdoc} */
-    protected function createFrame()
+    protected function createFramePicker()
     {
         $this->startMarker = base64_encode(md5(microtime(true)));
         $this->endMarker   = base64_encode(md5(microtime(true)));
         return new MarkerFramePicker($this->startMarker, $this->endMarker);
     }
 
-    /** {@inheritdoc} */
-    protected function ensureStartOfFrameIsFound(FramePickerInterface $frame)
-    {
-        $frame->findStartOfFrame($this->startMarker . 'aaaa', strlen($this->startMarker) + 4, '');
-    }
-
-    /** {@inheritdoc} */
-    public function testInitialState()
-    {
-        $frame = parent::testInitialState();
-
-        /** @var MarkerFramePicker $frame */
-        self::assertEquals($this->startMarker, $frame->getStartMarker(), 'Incorrect start marker');
-        self::assertEquals($this->endMarker, $frame->getEndMarker(), 'Incorrect end marker');
-
-        return $frame;
-    }
-
     /**
      * testSearchMarkerInString
      *
-     * @param string $start Start marker
-     * @param string $end End marker
-     * @param string $chunk Test data
-     * @param int    $expectedStart Expected result for findStartOfFrame
-     * @param int    $expectedEnd Expected result for handleData
-     * @param bool   $isEof Expected eof
+     * @param string   $start Start marker
+     * @param string   $end End marker
+     * @param string[] $chunks List of chunks
+     * @param string   $expectedFrame Expected data inside frame
+     * @param string   $afterFrame Expected data after frame
+     * @param bool     $isEof Expected eof
      *
      * @return void
      * @dataProvider stringDataProvider
      */
-    public function testSearchMarkerInString($start, $end, $chunk, $expectedStart, $expectedEnd, $isEof)
+    public function testSearchMarkerInString($start, $end, array $chunks, $expectedFrame, $afterFrame, $isEof)
     {
-        $frame = new MarkerFramePicker($start, $end);
+        $picker = new MarkerFramePicker($start, $end);
 
-        $actualStart = $frame->findStartOfFrame($chunk, strlen($chunk), '');
-        $actualEnd   = $frame->handleData($chunk, strlen($chunk), '');
-
-        self::assertSame($expectedStart, $actualStart, 'Incorrect start marker');
-        self::assertSame($expectedEnd, $actualEnd, 'Incorrect end marker');
-        self::assertEquals($isEof, $frame->isEof(), 'Incorrect eof');
-    }
-
-    /**
-     * testMarkerWillFoundOnBoundary
-     *
-     * @param string   $start Start marker
-     * @param string   $end End marker
-     * @param string[] $chunks 0 element is chunk, 1 element is data
-     * @param int      $expectedStart Expected result for findStartOfFrame
-     * @param int      $expectedEnd Expected result for handleData
-     * @param bool     $isEof Expected eof
-     *
-     * @return void
-     * @dataProvider stringBoundaryDataProvider
-     */
-    public function testMarkerWillFoundOnBoundary($start, $end, array $chunks, $expectedStart, $expectedEnd, $isEof)
-    {
-        $frame = new MarkerFramePicker($start, $end);
-
-        $actualStart = $frame->findStartOfFrame($chunks[0][0], strlen($chunks[0][0]), $chunks[0][1]);
-        $actualEnd   = null;
-        $middleStart = null;
-        foreach ($chunks as $pair) {
-            $middleStart = $frame->findStartOfFrame($pair[0], strlen($pair[0]), $pair[1]);
-            if ($actualStart === null && $middleStart !== null) {
-                $actualStart = $middleStart;
-                $middleStart = 0;
-            }
-            $actualEnd   = $frame->handleData($pair[0], strlen($pair[0]), $pair[1]);
+        $actualEnd = '';
+        foreach ($chunks as $chunk) {
+            $actualEnd = $picker->pickUpData($chunk);
         }
 
-        self::assertSame($expectedStart, $actualStart, 'Incorrect start marker');
-        self::assertSame($expectedEnd, $actualEnd, 'Incorrect end marker');
-        self::assertSame(
-            $expectedStart !== null ? 0 : null,
-            $middleStart,
-            'Incorrect intermediate start marker'
-        );
-        self::assertEquals($isEof, $frame->isEof(), 'Incorrect eof');
+        $frame = $picker->createFrame();
+        self::assertEquals($expectedFrame, $frame, 'Incorrect frame');
+        self::assertEquals($afterFrame, $actualEnd, 'Incorrect data after frame');
+        self::assertEquals($isEof, $picker->isEof(), 'Incorrect eof');
+        if ($isEof) {
+            self::assertNotInstanceOf(
+                'AsyncSockets\Frame\PartialFrame',
+                $frame,
+                'Ready frame must NOT be instance of PartialFrame'
+            );
+        } else {
+            self::assertInstanceOf(
+                'AsyncSockets\Frame\PartialFrame',
+                $frame,
+                'Unterminated frame must be instance of PartialFrame'
+            );
+        }
     }
 
     /**
@@ -129,147 +87,129 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
      */
     public function stringDataProvider()
     {
-        // start marker, end marker, chunk, expected start, expected handle length, is eof
+        // start marker, end marker, [ chunks ], expected frame, expected data after frame, is eof
         return [
-            ['<', '>', '<body>', strpos('<body>', '<'), strpos('<body>', '>')+1, true],
-            ['<', '>', '><body>', strpos('><body>', '<'), strpos('><body>', '>', 1)+1, true],
-            ['<', '>', 'no marker', null, 0, false],
-            [null, 'ker', 'no marker', 0, strpos('no marker', 'ker')+3, true],
-            ['<', '>', '<body', strpos('<body', '<'), strlen('<body'), false],
+            ['<', '>', ['<body>'], '<body>', '', true],
+            ['<', '>', ['><body>'], '<body>', '', true],
+            ['<', '>', ['no marker'], '', '', false],
+            [null, 'ker', ['no marker123'], 'no marker', '123', true],
+            ['<', '>', ['<body'], '<body', '', false],
 
             [
                 '<body>',
                 '</body>',
-                'unknown data <body>clear data</body>mystery data',
-                strpos('unknown data <body>clear data</body>mystery data', '<body>'),
-                strpos('unknown data <body>clear data</body>mystery data', '</body>') + 7,
+                ['unknown data <body>clear data</body>mystery data'],
+                '<body>clear data</body>',
+                'mystery data',
                 true
             ],
             [
                 '<body>',
                 '</body>',
-                'unknown data </body><body>clear data</body>mystery data',
-                strpos('unknown data </body><body>clear data</body>mystery data', '<body>'),
-                strpos('unknown data </body><body>clear data</body>mystery data', '</body>', 26) + 7,
+                ['unknown data </body><body>clear data</body>mystery data'],
+                '<body>clear data</body>',
+                'mystery data',
                 true
             ],
             [
                 '<body>',
                 '</body>',
-                'unknown data --- clear data --- mystery data',
-                null,
-                0,
+                ['unknown data --- clear data --- mystery data'],
+                '',
+                '',
                 false
             ],
             [
                 null,
                 '</body>',
-                'unknown data </body><body>clear data</body>mystery data',
-                0,
-                strpos('unknown data </body><body>clear data</body>mystery data', '</body>') + 7,
+                ['unknown data </body><body>clear data</body>mystery data'],
+                'unknown data </body>',
+                '<body>clear data</body>mystery data',
                 true
             ],
             [
                 '<body>',
                 '</body>',
-                'unknown data <body>clear data',
-                strpos('unknown data <body>clear data', '<body>'),
-                strlen('unknown data <body>clear data'),
+                ['unknown data <body>clear data'],
+                '<body>clear data',
+                '',
                 false
             ],
 
-            ['x', 'x', 'xbodyx', strpos('xbodyx', 'x'), strpos('xbodyx', 'x', 1)+1, true],
-            ['x', 'x', 'xxbodyx', strpos('xxbodyx', 'x'), strpos('xxbodyx', 'x', 1)+1, true],
-            ['x', 'x', 'no marker', null, 0, false],
-            ['x', 'x', 'xbody', strpos('xbody', 'x'), strlen('xbody'), false],
+            ['x', 'x', ['xbodyx'], 'xbodyx', '', true],
+            ['x', 'x', ['xxbodyx'], 'xx', 'bodyx', true],
+            ['x', 'x', ['no marker'], '', '', false],
+            ['x', 'x', ['xbody'], 'xbody', '', false],
 
             [
                 '<body>',
                 '<body>',
-                'unknown data <body>clear data<body>mystery data',
-                strpos('unknown data <body>clear data<body>mystery data', '<body>'),
-                strpos('unknown data <body>clear data<body>mystery data', '<body>', 19) + 6,
+                ['unknown data <body>clear data<body>mystery data'],
+                '<body>clear data<body>',
+                'mystery data',
                 true
             ],
             [
                 '<body>',
                 '<body>',
-                'unknown data <body><body>clear data</body>mystery data',
-                strpos('unknown data <body><body>clear data</body>mystery data', '<body>'),
-                strpos('unknown data <body><body>clear data</body>mystery data', '<body>', 19) + 6,
+                ['unknown data <body><body>clear data</body>mystery data'],
+                '<body><body>',
+                'clear data</body>mystery data',
                 true
             ],
             [
                 '<body>',
                 '<body>',
-                'unknown data --- clear data --- mystery data',
-                null,
-                0,
+                ['unknown data --- clear data --- mystery data'],
+                '',
+                '',
                 false
             ],
             [
                 '<body>',
                 '<body>',
-                'unknown data <body>clear data',
-                strpos('unknown data <body>clear data', '<body>'),
-                strlen('unknown data <body>clear data'),
+                ['unknown data <body>clear data'],
+                '<body>clear data',
+                '',
                 false
             ],
-        ];
-    }
 
-    /**
-     * stringBoundaryDataProvider
-     *
-     * @return array
-     */
-    public function stringBoundaryDataProvider()
-    {
-        // start marker, end marker, [ [chunk, data] ], expected start, expected handle length, is eof
-        return [
             [
                 '<',
                 '>',
-                [
-                    ['<bo', ''],
-                    ['dy>', '<bo']
-                ],
-                strpos('<bo', '<'),
-                strpos('dy>', '>') + 1,
+                ['<bo', 'dy>'],
+                '<body>',
+                '',
                 true,
             ],
             [
                 '<',
                 '>',
                 [
-                    ['><bo', ''],
-                    ['dy>', '><bo']
+                    '><bo', 'dy>'
                 ],
-                strpos('><bo', '<'),
-                strpos('dy>', '>', 1) + 1,
+                '<body>',
+                '',
                 true,
             ],
             [
                 '<',
                 '>',
                 [
-                    ['no marker', ''],
-                    ['no marker', 'no marker'],
-                    ['no marker', 'no markerno marker'],
+                    'no marker', 'no marker', 'no marker',
                 ],
-                null,
-                0,
+                '',
+                '',
                 false,
             ],
             [
                 null,
                 'ker',
                 [
-                    ['no mar', ''],
-                    ['ker', 'no mar'],
+                    'no mar', 'ker',
                 ],
-                0,
-                0 + 3,
+                'no marker',
+                '',
                 true,
             ],
 
@@ -277,12 +217,10 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
                 '<',
                 '>',
                 [
-                    ['<body', ''],
-                    ['-param', '<body'],
-                    ['key="something"', '<body-param'],
+                    '<body', '-param', ' key="something"',
                 ],
-                strpos('<body', '<'),
-                strlen('key="something"'),
+                '<body-param key="something"',
+                '',
                 false,
             ],
 
@@ -291,23 +229,20 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
                 '<body>',
                 '</body>',
                 [
-                    ['unknown data <body>', ''],
-                    ['clear data</body>mystery data', 'unknown data <body>'],
+                    'unknown data <body>', 'clear data</body>mystery data',
                 ],
-                strpos('unknown data <body>', '<body>'),
-                strpos('clear data</body>mystery data', '</body>') + 7,
+                '<body>clear data</body>',
+                'mystery data',
                 true
             ],
             [
                 '<body>',
                 '</body>',
                 [
-                    ['unknown data </body><bo', ''],
-                    ['dy>clear data</bo', 'unknown data </body><bo'],
-                    ['dy>mystery data', 'unknown data </body><body>clear data</bo']
+                    'unknown data </body><bo', 'dy>clear data</bo', 'dy>mystery data',
                 ],
-                -3,
-                -4 + 7,
+                '<body>clear data</body>',
+                'mystery data',
                 true
             ],
 
@@ -315,33 +250,30 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
                 '<body>',
                 '</body>',
                 [
-                    ['unknown data -', ''],
-                    ['-- clear data --- mystery data', 'unknown data -'],
+                    'unknown data -', '-- clear data --- mystery data',
                 ],
-                null,
-                0,
+                '',
+                '',
                 false
             ],
             [
                 null,
                 '</body>',
                 [
-                    ['unknown data </body', ''],
-                    ['><body>clear data</body>mystery data', 'unknown data </body'],
+                    'unknown data </body', '><body>clear data</body>mystery data',
                 ],
-                0,
-                -6 + 7,
+                'unknown data </body>',
+                '<body>clear data</body>mystery data',
                 true
             ],
             [
                 '<body>',
                 '</body>',
                 [
-                    ['unknown data <', ''],
-                    ['body>clear data', 'unknown data <'],
+                    'unknown data <', 'body>clear data',
                 ],
-                -1,
-                strlen('body>clear data'),
+                '<body>clear data',
+                '',
                 false
             ],
         ];

@@ -37,7 +37,7 @@ class ServerSocket extends AbstractSocket
     }
 
     /** {@inheritdoc} */
-    protected function doReadData($socket, FramePickerInterface $frame)
+    protected function doReadData($socket, FramePickerInterface $picker)
     {
         $client = stream_socket_accept($socket, 0, $peerName);
         if ($client === false) {

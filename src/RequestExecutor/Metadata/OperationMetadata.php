@@ -10,9 +10,8 @@
 namespace AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\Event\Event;
-use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\Socket\ChunkSocketResponse;
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\SocketResponse;
 use AsyncSockets\Socket\SocketResponseInterface;
@@ -54,7 +53,7 @@ class OperationMetadata implements StreamResourceInterface
     /**
      * Current response data for this socket
      *
-     * @var ChunkSocketResponse
+     * @var string
      */
     private $responseData;
 

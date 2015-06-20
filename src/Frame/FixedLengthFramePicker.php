@@ -22,13 +22,6 @@ class FixedLengthFramePicker extends AbstractFramePicker
     private $length;
 
     /**
-     * Number of processed bytes
-     *
-     * @var int
-     */
-    private $processedLength;
-
-    /**
      * FixedLengthFramePicker constructor.
      *
      * @param int $length Length of data for this framePicker
@@ -36,38 +29,30 @@ class FixedLengthFramePicker extends AbstractFramePicker
     public function __construct($length)
     {
         parent::__construct();
-        $this->length          = (int) $length;
-        $this->processedLength = 0;
-    }
-
-    /**
-     * Return Length
-     *
-     * @return int
-     */
-    public function getLength()
-    {
-        return $this->length;
+        $this->length = (int) $length;
     }
 
     /** {@inheritdoc} */
-    protected function doHandleData($chunk, $lenChunk, $data)
+    protected function doHandleData($chunk, &$buffer)
     {
-        $result = min(
-            [ $this->length - $this->processedLength, $lenChunk ]
-        );
+        $chunkLength   = strlen($chunk);
+        $dataLength    = min($this->length - strlen($buffer), $chunkLength);
+        $buffer       .= substr($chunk, 0, $dataLength);
+        $isEndReached  = strlen($buffer) === $this->length;
 
-        $this->processedLength += $result;
-        if ($this->processedLength === $this->length) {
+        if ($isEndReached) {
             $this->setFinished(true);
+            return substr($chunk, $dataLength);
         }
 
-        return $result;
+        return '';
     }
 
     /** {@inheritdoc} */
-    protected function doFindStartOfFrame($chunk, $lenChunk, $data)
+    protected function doCreateFrame($buffer)
     {
-        return 0;
+        return $this->isEof() ?
+            new Frame($buffer) :
+            new PartialFrame($buffer);
     }
 }

@@ -96,12 +96,12 @@ abstract class AbstractSocket implements SocketInterface
      * Perform reading data from socket
      *
      * @param resource             $socket Socket resource
-     * @param FramePickerInterface $frame Frame object to read
+     * @param FramePickerInterface $picker Frame picker object
      *
      * @return SocketResponseInterface
      * @throws NetworkSocketException
      */
-    abstract protected function doReadData($socket, FramePickerInterface $frame);
+    abstract protected function doReadData($socket, FramePickerInterface $picker);
 
     /** {@inheritdoc} */
     public function open($address, $context = null)

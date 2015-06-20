@@ -14,7 +14,6 @@ use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
-use AsyncSockets\Socket\Assistant\FrameProcessor;
 
 /**
  * Class ClientSocket
@@ -22,16 +21,15 @@ use AsyncSockets\Socket\Assistant\FrameProcessor;
 class ClientSocket extends AbstractSocket
 {
     /**
-     * Frame processor
+     * Unhandled portion of data at the end of framePicker
      *
-     * @var FrameProcessor
+     * @var string
      */
-    private $frameProcessor;
+    private $unhandledData = '';
 
     /** {@inheritdoc} */
     public function close()
     {
-        $this->frameProcessor = null;
         parent::close();
     }
 
@@ -55,13 +53,12 @@ class ClientSocket extends AbstractSocket
     }
 
     /** {@inheritdoc} */
-    protected function doReadData($socket, FramePickerInterface $frame)
+    protected function doReadData($socket, FramePickerInterface $picker)
     {
-        $result       = '';
         $isEndOfFrame = false;
 
         do {
-            if ($this->isFullFrameRead($socket, $frame)) {
+            if ($this->isFullFrameRead($socket, $picker)) {
                 $isEndOfFrame = true;
                 break;
             }
@@ -70,37 +67,23 @@ class ClientSocket extends AbstractSocket
             $rawData = stream_socket_recvfrom($socket, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
             switch (true) {
                 case $rawData === '':
-                    $isEndOfFrame = $frame instanceof NullFramePicker || $isEndOfFrame;
+                    $isEndOfFrame = $picker instanceof NullFramePicker || $isEndOfFrame;
                     break 2;
                 case $rawData === false:
                     break 2;
                 default:
-                    $actualData = $this->readActualData($socket);
-                    $result     = $this->getFrameProcessor()->processReadFrame($frame, $actualData, $result);
+                    $actualData          = $this->readActualData($socket);
+                    $this->unhandledData = $picker->pickUpData($this->unhandledData . $actualData);
 
-                    $isEndOfFrame = !($frame instanceof NullFramePicker) && $frame->isEof();
+                    $isEndOfFrame = !($picker instanceof NullFramePicker) && $picker->isEof();
             }
         } while (!$isEndOfFrame);
 
         if ($isEndOfFrame) {
-            return new SocketResponse($result);
+            return new SocketResponse((string) $picker->createFrame());
         } else {
-            return new ChunkSocketResponse($result);
+            return new ChunkSocketResponse((string) $picker->createFrame());
         }
-    }
-
-    /**
-     * Return FrameProcessor object
-     *
-     * @return FrameProcessor
-     */
-    private function getFrameProcessor()
-    {
-        if (!$this->frameProcessor) {
-            $this->frameProcessor = new FrameProcessor();
-        }
-
-        return $this->frameProcessor;
     }
 
     /**

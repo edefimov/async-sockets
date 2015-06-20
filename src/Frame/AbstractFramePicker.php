@@ -15,13 +15,6 @@ namespace AsyncSockets\Frame;
 abstract class AbstractFramePicker implements FramePickerInterface
 {
     /**
-     * Flag whether this framePicker is started
-     *
-     * @var bool
-     */
-    private $isStarted;
-
-    /**
      * Flag, whether framePicker is finished
      *
      * @var bool
@@ -29,77 +22,63 @@ abstract class AbstractFramePicker implements FramePickerInterface
     private $isFinished;
 
     /**
+     * Frame with data for this picker
+     *
+     * @var FrameInterface
+     */
+    private $frame;
+
+    /**
+     * Collected data for this frame
+     *
+     * @var string
+     */
+    private $buffer;
+
+    /**
      * AbstractFramePicker constructor.
      */
     public function __construct()
     {
-        $this->isStarted  = false;
         $this->isFinished = false;
-    }
-
-    /** {@inheritdoc} */
-    public function isStarted()
-    {
-        return $this->isStarted;
+        $this->buffer     = '';
     }
 
     /** {@inheritdoc} */
     public function isEof()
     {
-        return $this->isStarted && $this->isFinished;
+        return $this->isFinished;
     }
 
     /** {@inheritdoc} */
-    public function findStartOfFrame($chunk, $lenChunk, $data)
+    public function pickUpData($chunk)
     {
-        if ($this->isStarted) {
-            return 0;
+        if ($this->isFinished) {
+            return $chunk;
         }
 
-        $result = $this->doFindStartOfFrame($chunk, $lenChunk, $data);
-
-        if ($result !== null) {
-            $this->isStarted = true;
-        }
-
-        return $result;
+        $this->frame = null;
+        return $this->doHandleData($chunk, $this->buffer);
     }
-
-    /** {@inheritdoc} */
-    public function handleData($chunk, $lenChunk, $data)
-    {
-        if (!$this->isStarted || $this->isFinished) {
-            return 0;
-        }
-
-        return $this->doHandleData($chunk, $lenChunk, $data);
-    }
-
-    /**
-     * Determines start of this framePicker
-     *
-     * @param string $chunk Part of data, before calling this method
-     * @param int    $lenChunk Length if chunk
-     * @param string $data Data, collected from socket till this moment, excluding $chunk
-     *
-     * @return int|null Offset in $chunk where this framePicker starts.
-     *                  Can be negative if beginning of this framePicker was before current chunk.
-     *                  If null, then there is no start framePicker in given chunk
-     */
-    abstract protected function doFindStartOfFrame($chunk, $lenChunk, $data);
 
     /**
      * Process raw network data. Data should be used to determine end of this concrete framePicker
      *
-     * @param string $chunk Part of data, before calling this method
-     * @param int    $lenChunk Length if chunk
-     * @param string $data Data, collected from socket till this moment, excluding $chunk, and beginning from
-     *                      start of this framePicker
+     * @param string $chunk Chunk read from socket
+     * @param string &$buffer Pointer to internal buffer for collecting data
      *
-     * @return int Length of processed data. Unprocessed data will be passed on next call to this function.
-     *             If negative value is returned, then framePicker data will be truncated to returned length
+     * @return string Unprocessed data after the end of frame
      */
-    abstract protected function doHandleData($chunk, $lenChunk, $data);
+    abstract protected function doHandleData($chunk, &$buffer);
+
+    /**
+     * Create frame for picked up data
+     *
+     * @param string $buffer Buffer with collected data
+     *
+     * @return FrameInterface
+     */
+    abstract protected function doCreateFrame($buffer);
 
     /**
      * Sets finished flag
@@ -111,5 +90,15 @@ abstract class AbstractFramePicker implements FramePickerInterface
     protected function setFinished($isFinished)
     {
         $this->isFinished = $isFinished;
+    }
+
+    /** {@inheritdoc} */
+    public function createFrame()
+    {
+        if (!$this->frame) {
+            $this->frame = $this->doCreateFrame($this->buffer);
+        }
+
+        return $this->frame;
     }
 }

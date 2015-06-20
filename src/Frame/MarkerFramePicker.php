@@ -33,7 +33,7 @@ class MarkerFramePicker extends AbstractFramePicker
      *
      * @var int
      */
-    private $offsetForEndMarker;
+    private $startPos;
 
     /**
      * MarkerFramePicker constructor.
@@ -44,79 +44,64 @@ class MarkerFramePicker extends AbstractFramePicker
     public function __construct($startMarker, $endMarker)
     {
         parent::__construct();
-        $this->startMarker        = $startMarker;
-        $this->endMarker          = $endMarker;
-        $this->offsetForEndMarker = 0;
+        $this->startMarker = $startMarker;
+        $this->endMarker   = $endMarker;
     }
 
-    /** {@inheritdoc} */
-    protected function doFindStartOfFrame($chunk, $lenChunk, $data)
+    /**
+     * Find start of data in frame
+     *
+     * @param string $buffer Collected data for frame
+     *
+     * @return bool True if start of frame is found
+     */
+    protected function resolveStartOfFrame($buffer)
     {
+        if ($this->startPos !== null) {
+            return true;
+        }
+
         if ($this->startMarker === null) {
-            return 0;
+            $this->startPos = 0;
+            return true;
         }
 
-        $pos = $this->findMarker($this->startMarker, $chunk, $data);
-        if ($pos !== null) {
-            $this->offsetForEndMarker = $pos + strlen($this->startMarker);
-            return $pos;
+        $pos = strpos($buffer, $this->startMarker);
+        if ($pos !== false) {
+            $this->startPos = $pos;
+            return true;
         }
 
-        return null;
-    }
-
-    /**
-     * Return StartMarker
-     *
-     * @return string|null
-     */
-    public function getStartMarker()
-    {
-        return $this->startMarker;
-    }
-
-    /**
-     * Return EndMarker
-     *
-     * @return string
-     */
-    public function getEndMarker()
-    {
-        return $this->endMarker;
+        return false;
     }
 
     /** {@inheritdoc} */
-    protected function doHandleData($chunk, $lenChunk, $data)
+    protected function doHandleData($chunk, &$buffer)
     {
-        $pos                      = $this->findMarker($this->endMarker, $chunk, $data, $this->offsetForEndMarker);
-        $this->offsetForEndMarker = 0;
-        if ($pos === null) {
-            return $lenChunk;
+        $buffer .= $chunk;
+        if (!$this->resolveStartOfFrame($buffer)) {
+            return '';
+        }
+
+        $pos = strpos($buffer, $this->endMarker, $this->startPos + strlen($this->startMarker));
+        if ($pos === false) {
+            return '';
         }
 
         $this->setFinished(true);
-        return $pos + strlen($this->endMarker);
+        $result = substr($buffer, $pos + strlen($this->endMarker));
+        $buffer = substr($buffer, $this->startPos, $pos + strlen($this->endMarker) - $this->startPos);
+        return $result !== false ? $result : '';
     }
 
-    /**
-     * Search marker in data
-     *
-     * @param string $marker Marker to search
-     * @param string $chunk Read chunk
-     * @param string $data All data except chunk
-     * @param int    $offset Offset to start marker from
-     *
-     * @return int|null
-     */
-    private function findMarker($marker, $chunk, $data, $offset = 0)
+    /** {@inheritdoc} */
+    protected function doCreateFrame($buffer)
     {
-        $lenMarker = strlen($marker);
-        $lastPart  = (string) substr($data, -$lenMarker, $lenMarker);
-        $pos       = strpos($lastPart . $chunk, $marker, $offset);
-        if ($pos !== false) {
-            return $lastPart ? $pos - $lenMarker : $pos;
+        if ($this->isEof()) {
+            return new Frame($buffer);
         }
 
-        return null;
+        $data = $this->startPos === null ? '' : substr($buffer, $this->startPos);
+        return new PartialFrame($data);
     }
 }

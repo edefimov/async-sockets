@@ -15,11 +15,12 @@ namespace AsyncSockets\Frame;
  */
 final class NullFramePicker implements FramePickerInterface
 {
-    /** {@inheritdoc} */
-    public function isStarted()
-    {
-        return true;
-    }
+    /**
+     * Data buffer
+     *
+     * @var string
+     */
+    private $buffer;
 
     /** {@inheritdoc} */
     public function isEof()
@@ -28,14 +29,15 @@ final class NullFramePicker implements FramePickerInterface
     }
 
     /** {@inheritdoc} */
-    public function handleData($chunk, $lenChunk, $data)
+    public function pickUpData($chunk)
     {
-        return $lenChunk;
+        $this->buffer .= $chunk;
+        return '';
     }
 
     /** {@inheritdoc} */
-    public function findStartOfFrame($chunk, $lenChunk, $data)
+    public function createFrame()
     {
-        return 0;
+        return new Frame($this->buffer);
     }
 }
