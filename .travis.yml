@@ -6,13 +6,20 @@ php:
   - 5.6
   - 7.0
   - nightly
+  - hhvm
+
+env:
+  - ASYNC_SOCKETS_CONFIG=tests/travis/config.yaml
 
 before_install:
   - composer self-update
   - mkdir -p build/logs
+  - mkdir -p build/cache
   - wget https://scrutinizer-ci.com/ocular.phar
 
-install: composer install --prefer-source --dev
+install:
+  - composer install --prefer-source --dev
+  - php tests/console.php async_sockets:test:warmup --configuration=$ASYNC_SOCKETS_CONFIG
 
 before_script:
   - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then PHPUNIT_FLAGS_1="--coverage-clover ./build/logs/clover-with-eventdispatcher.xml"; else PHPUNIT_FLAGS_1=""; fi
@@ -30,3 +37,4 @@ matrix:
   allow_failures:
       - php: 7.0
       - php: nightly
+      - php: hhvm

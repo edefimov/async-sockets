@@ -11,11 +11,12 @@
 namespace Tests\AsyncSockets\Frame;
 
 use AsyncSockets\Frame\FramePickerInterface;
+use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
 
 /**
  * Class AbstractFramePickerTest
  */
-abstract class AbstractFramePickerTest extends \PHPUnit_Framework_TestCase
+abstract class AbstractFramePickerTest extends AbstractTestCase
 {
     /**
      * Create framePicker for test

@@ -1,2 +1,5 @@
+build/
 vendor/
+/config.yaml
 phpunit.xml
+

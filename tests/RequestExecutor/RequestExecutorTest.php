@@ -123,7 +123,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     protected function tearDown()
     {
         parent::tearDown();
-        PhpFunctionMocker::getPhpFunctionMocker('time')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
@@ -654,7 +653,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             self::fail($event->getType() . ' mustn\'t have been called');
         };
 
-        PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
         $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
         $streamSelect->setCallable(
@@ -713,7 +711,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             return $time++;
         };
 
-        PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
 
         $this->executor->socketBag()->addSocket(
@@ -786,7 +783,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 return $time++;
             };
 
-            PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
             PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
 
             $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
@@ -855,7 +851,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 return $time++;
             };
 
-            PhpFunctionMocker::getPhpFunctionMocker('time')->setCallable($timeGenerator);
             PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable($timeGenerator);
 
             $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');

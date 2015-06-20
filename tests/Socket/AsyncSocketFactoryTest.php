@@ -100,10 +100,4 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     {
         $this->factory = new AsyncSocketFactory();
     }
-
-    /** {@inheritdoc} */
-    protected function tearDown()
-    {
-        PhpFunctionMocker::getPhpFunctionMocker('interface_exists')->restoreNativeHandler();
-    }
 }

@@ -8,10 +8,13 @@
  * with this source code in the file LICENSE.
  */
 
-use Composer\Autoload\ClassLoader;
+require_once __DIR__ . '/autoload.php';
 
-/** @var ClassLoader $classLoader */
-$classLoader = require_once __DIR__ . '/../vendor/autoload.php';
-$classLoader->addPsr4('Tests\\AsyncSockets\\', __DIR__);
+use Tests\AsyncSockets\Application\Configuration;
 
-Tests\AsyncSockets\Mock\PhpFunctionMocker::bootstrap($classLoader);
+$configuration = new Configuration(
+    __DIR__ . '/..',
+    getenv('ASYNC_SOCKETS_CONFIG') ?: 'config.yaml'
+);
+
+include $configuration->cacheDir() . '/phpmocker/autoload.php';

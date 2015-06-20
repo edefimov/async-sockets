@@ -1,0 +1,197 @@
+stringDataProvider:
+    -
+        start: '<'
+        end: '>'
+        chunks: ['<body>']
+        expectedFrame: '<body>'
+        afterFrame: ''
+        isEof: true
+    -
+        start: '<'
+        end: '>'
+        chunks: ['><body>']
+        expectedFrame: '<body>'
+        afterFrame: ''
+        isEof: true
+    -
+        start: '<'
+        end: '>'
+        chunks: ['no marker']
+        expectedFrame: ''
+        afterFrame: ''
+        isEof: false
+    -
+        start: ~
+        end: ker
+        chunks: ['no marker123']
+        expectedFrame: 'no marker'
+        afterFrame: '123'
+        isEof: true
+    -
+        start: '<'
+        end: '>'
+        chunks: ['<body']
+        expectedFrame: '<body'
+        afterFrame: ''
+        isEof: false
+    -
+        start: '<body>'
+        end: '</body>'
+        chunks: ['unknown data <body>clear data</body>mystery data']
+        expectedFrame: '<body>clear data</body>'
+        afterFrame: 'mystery data'
+        isEof: true
+    -
+        start: '<body>'
+        end: '</body>'
+        chunks: ['unknown data </body><body>clear data</body>mystery data']
+        expectedFrame: '<body>clear data</body>'
+        afterFrame: 'mystery data'
+        isEof: true
+    -
+        start: '<body>'
+        end: '</body>'
+        chunks: ['unknown data --- clear data --- mystery data']
+        expectedFrame: ''
+        afterFrame: ''
+        isEof: false
+    -
+        start: ~
+        end: '</body>'
+        chunks: ['unknown data </body><body>clear data</body>mystery data']
+        expectedFrame: 'unknown data </body>'
+        afterFrame: '<body>clear data</body>mystery data'
+        isEof: true
+    -
+        start: '<body>'
+        end: '</body>'
+        chunks: ['unknown data <body>clear data']
+        expectedFrame: '<body>clear data'
+        afterFrame: ''
+        isEof: false
+    -
+        start: 'x'
+        end: 'x'
+        chunks: ['xbodyx']
+        expectedFrame: 'xbodyx'
+        afterFrame: ''
+        isEof: true
+    -
+        start: 'x'
+        end: 'x'
+        chunks: ['xxbodyx']
+        expectedFrame: 'xx'
+        afterFrame: 'bodyx'
+        isEof: true
+    -
+        start: 'x'
+        end: 'x'
+        chunks: ['no marker']
+        expectedFrame: ''
+        afterFrame: ''
+        isEof: false
+    -
+        start: 'x'
+        end: 'x'
+        chunks: ['xbody']
+        expectedFrame: 'xbody'
+        afterFrame: ''
+        isEof: false
+    -
+        start: '<body>'
+        end: '<body>'
+        chunks: ['unknown data <body>clear data<body>mystery data']
+        expectedFrame: '<body>clear data<body>'
+        afterFrame: 'mystery data'
+        isEof: true
+    -
+        start: '<body>'
+        end: '<body>'
+        chunks: ['unknown data <body><body>clear data</body>mystery data']
+        expectedFrame: '<body><body>'
+        afterFrame: 'clear data</body>mystery data'
+        isEof: true
+    -
+        start: '<body>'
+        end: '<body>'
+        chunks: ['unknown data --- clear data --- mystery data']
+        expectedFrame: ''
+        afterFrame: ''
+        isEof: false
+    -
+        start: '<body>'
+        end: '<body>'
+        chunks: ['unknown data <body>clear data']
+        expectedFrame: '<body>clear data'
+        afterFrame: ''
+        isEof: false
+    -
+        start: '<'
+        end: '>'
+        chunks: ['<bo', 'dy>']
+        expectedFrame: '<body>'
+        afterFrame: ''
+        isEof: true
+    -
+        start: '<'
+        end: '>'
+        chunks: ['><bo', 'dy>']
+        expectedFrame: '<body>'
+        afterFrame: ''
+        isEof: true
+    -
+        start: '<'
+        end: '>'
+        chunks: ['no marker', 'no marker', 'no marker']
+        expectedFrame: ''
+        afterFrame: ''
+        isEof: false
+    -
+        start: ~
+        end: 'ker'
+        chunks: ['no mar', 'ker']
+        expectedFrame: 'no marker'
+        afterFrame: ''
+        isEof: true
+    -
+        start: '<'
+        end: '>'
+        chunks: ['<body', '-param', ' key="something"']
+        expectedFrame: '<body-param key="something"'
+        afterFrame: ''
+        isEof: false
+    -
+        start: '<body>'
+        end: '</body>'
+        chunks: ['unknown data <body>', 'clear data</body>mystery data']
+        expectedFrame: '<body>clear data</body>'
+        afterFrame: 'mystery data'
+        isEof: true
+    -
+        start: '<body>'
+        end: '</body>'
+        chunks: ['unknown data </body><bo', 'dy>clear data</bo', 'dy>mystery data']
+        expectedFrame: '<body>clear data</body>'
+        afterFrame: 'mystery data'
+        isEof: true
+    -
+        start: '<body>'
+        end: '</body>'
+        chunks: ['unknown data -', '-- clear data --- mystery data']
+        expectedFrame: ''
+        afterFrame: ''
+        isEof: false
+    -
+        start: ~
+        end: '</body>'
+        chunks: ['unknown data </body', '><body>clear data</body>mystery data']
+        expectedFrame: 'unknown data </body>'
+        afterFrame: '<body>clear data</body>mystery data'
+        isEof: true
+    -
+        start: '<body>'
+        end: '</body>'
+        chunks: ['unknown data <', 'body>clear data']
+        expectedFrame: '<body>clear data'
+        afterFrame: ''
+        isEof: false

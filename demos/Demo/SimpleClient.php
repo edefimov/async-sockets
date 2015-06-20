@@ -38,7 +38,7 @@ final class SimpleClient extends Command
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
             $client->open('tls://github.com:443');
             $client->write("GET / HTTP/1.1\nHost: github.com\n\n");
-            $response = $client->read()->getData();
+            $response = $client->read()->data();
             $client->close();
 
             $output->writeln((string) $response);

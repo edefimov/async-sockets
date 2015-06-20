@@ -125,7 +125,7 @@ class SimpleServer extends Command
             $this->clientHandlers = new CallbackEventHandler(
                 [
                     EventType::READ => function (ReadEvent $event) {
-                        $request  = $event->getFrame()->getData();
+                        $request  = $event->getFrame()->data();
                         $path     = $this->extractPath($request);
                         $response = $this->generateResponse($path);
 
