@@ -13,8 +13,6 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\SocketInterface;
-use AsyncSockets\Socket\SocketResponse;
-use AsyncSockets\Socket\SocketResponseInterface;
 use AsyncSockets\Socket\StreamResourceInterface;
 
 /**
@@ -51,13 +49,6 @@ class OperationMetadata implements StreamResourceInterface
     private $isRunning;
 
     /**
-     * Current response data for this socket
-     *
-     * @var string
-     */
-    private $responseData;
-
-    /**
      * Operation to perform on socket
      *
      * @var OperationInterface
@@ -67,9 +58,9 @@ class OperationMetadata implements StreamResourceInterface
     /**
      * OperationMetadata constructor.
      *
-     * @param SocketInterface                 $socket Socket object
-     * @param OperationInterface               $operation Operation to perform on socket
-     * @param array                           $metadata Metadata
+     * @param SocketInterface       $socket Socket object
+     * @param OperationInterface    $operation Operation to perform on socket
+     * @param array                 $metadata Metadata
      * @param EventHandlerInterface $handlers Handlers for this socket
      */
     public function __construct(
@@ -114,35 +105,7 @@ class OperationMetadata implements StreamResourceInterface
      */
     public function initialize()
     {
-        $this->isRunning    = false;
-        $this->responseData = '';
-    }
-
-    /**
-     * Add part of response
-     *
-     * @param SocketResponseInterface $responseChunk Chunk to add
-     *
-     * @return void
-     */
-    public function addResponseChunk(SocketResponseInterface $responseChunk = null)
-    {
-        $this->responseData .= (string) $responseChunk;
-    }
-
-    /**
-     * Create response object from collected chunks
-     *
-     * @param SocketResponseInterface|null $responseChunk Last chunk of whole response
-     *
-     * @return SocketResponseInterface
-     */
-    public function createResponseFromChunks(SocketResponseInterface $responseChunk = null)
-    {
-        if ($responseChunk) {
-            $this->addResponseChunk($responseChunk);
-        }
-        return new SocketResponse($this->responseData);
+        $this->isRunning = false;
     }
 
     /**

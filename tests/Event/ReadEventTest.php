@@ -12,9 +12,9 @@ namespace Tests\AsyncSockets\Event;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
-use AsyncSockets\Socket\ChunkSocketResponse;
-use AsyncSockets\Socket\SocketResponse;
-use AsyncSockets\Socket\SocketResponseInterface;
+use AsyncSockets\Frame\Frame;
+use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\PartialFrame;
 
 /**
  * Class ReadEventTest
@@ -22,16 +22,16 @@ use AsyncSockets\Socket\SocketResponseInterface;
 class ReadEventTest extends IoEventTest
 {
     /**
-     * Response for event
+     * Frame for event
      *
-     * @var SocketResponse
+     * @var FrameInterface
      */
-    protected $response;
+    protected $frame;
 
     /** {@inheritdoc} */
     protected function createEvent($type)
     {
-        return new ReadEvent($this->executor, $this->socket, $this->context, $this->response);
+        return new ReadEvent($this->executor, $this->socket, $this->context, $this->frame);
     }
 
     /** {@inheritdoc} */
@@ -45,7 +45,7 @@ class ReadEventTest extends IoEventTest
     {
         $event = parent::testGetters();
         /** @var ReadEvent $event */
-        self::assertSame($this->response, $event->getResponse());
+        self::assertSame($this->frame, $event->getFrame());
         self::assertFalse($event->isPartial());
         return $event;
     }
@@ -53,16 +53,16 @@ class ReadEventTest extends IoEventTest
     /**
      * testIsPartial
      *
-     * @param SocketResponseInterface $response Response object
-     * @param bool                    $isPartial Is response actually partial
+     * @param FrameInterface $frame Frame object
+     * @param bool           $isPartial Is response actually partial
      *
      * @return void
      * @dataProvider socketResponseDataProvider
      */
-    public function testIsPartial(SocketResponseInterface $response, $isPartial)
+    public function testIsPartial(FrameInterface $frame, $isPartial)
     {
-        $event = new ReadEvent($this->executor, $this->socket, $this->context, $response);
-        self::assertSame($response, $event->getResponse());
+        $event = new ReadEvent($this->executor, $this->socket, $this->context, $frame);
+        self::assertSame($frame, $event->getFrame());
         self::assertSame($isPartial, $event->isPartial());
     }
 
@@ -74,8 +74,8 @@ class ReadEventTest extends IoEventTest
     public function socketResponseDataProvider()
     {
         return [
-            [ new SocketResponse(''), false ],
-            [ new ChunkSocketResponse(''), true ],
+            [ new Frame(''), false ],
+            [ new PartialFrame(''), true ],
         ];
     }
 
@@ -83,6 +83,6 @@ class ReadEventTest extends IoEventTest
     protected function setUp()
     {
         parent::setUp();
-        $this->response = new SocketResponse('Test data');
+        $this->frame = new Frame('Test data');
     }
 }

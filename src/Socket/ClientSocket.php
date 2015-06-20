@@ -14,6 +14,7 @@ use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Frame\PartialFrame;
 
 /**
  * Class ClientSocket
@@ -58,6 +59,7 @@ class ClientSocket extends AbstractSocket
         $isEndOfFrame = false;
 
         do {
+            $picker->pickUpData($this->unhandledData);
             if ($this->isFullFrameRead($socket, $picker)) {
                 $isEndOfFrame = true;
                 break;
@@ -65,25 +67,23 @@ class ClientSocket extends AbstractSocket
 
             // work-around https://bugs.php.net/bug.php?id=52602
             $rawData = stream_socket_recvfrom($socket, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
-            switch (true) {
-                case $rawData === '':
-                    $isEndOfFrame = $picker instanceof NullFramePicker || $isEndOfFrame;
-                    break 2;
-                case $rawData === false:
-                    break 2;
-                default:
-                    $actualData          = $this->readActualData($socket);
-                    $this->unhandledData = $picker->pickUpData($this->unhandledData . $actualData);
-
-                    $isEndOfFrame = !($picker instanceof NullFramePicker) && $picker->isEof();
+            if ($rawData === false || $rawData === '') {
+                $isEndOfFrame = ($rawData === '' && $picker instanceof NullFramePicker) || $isEndOfFrame;
+                break;
             }
+
+            $actualData          = $this->readActualData($socket);
+            $this->unhandledData = $picker->pickUpData($actualData);
+
+            $isEndOfFrame = !($picker instanceof NullFramePicker) && $picker->isEof();
         } while (!$isEndOfFrame);
 
-        if ($isEndOfFrame) {
-            return new SocketResponse((string) $picker->createFrame());
-        } else {
-            return new ChunkSocketResponse((string) $picker->createFrame());
+        $frame = $picker->createFrame();
+        if (!$isEndOfFrame) {
+            $frame = new PartialFrame($frame);
         }
+
+        return $frame;
     }
 
     /**
@@ -125,7 +125,7 @@ class ClientSocket extends AbstractSocket
             if ($frame->isEof()) {
                 return true;
             } else {
-                throw new FrameSocketException($frame, $this, 'Failed to receive desired framePicker.');
+                throw new FrameSocketException($frame, $this, 'Failed to receive desired frame.');
             }
         }
 

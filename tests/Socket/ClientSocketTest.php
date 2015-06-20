@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
-use AsyncSockets\Socket\ChunkSocketResponse;
+use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\Socket\ClientSocket;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
@@ -86,7 +86,7 @@ class ClientSocketTest extends AbstractSocketTest
         );
 
         $this->socket->open('it has no meaning here');
-        $retString = $this->socket->read()->getData();
+        $retString = $this->socket->read()->data();
         self::assertEquals($testString, $retString, 'Unexpected result was read');
     }
 
@@ -136,14 +136,7 @@ class ClientSocketTest extends AbstractSocketTest
         do {
             $response      = $this->socket->read(null);
             $responseText .= (string) $response;
-        } while ($response instanceof ChunkSocketResponse);
-
-        self::assertInstanceOf('AsyncSockets\Socket\SocketResponse', $response);
-        self::assertNotInstanceOf(
-            'AsyncSockets\Socket\ChunkSocketResponse',
-            $response,
-            'Final response must not be chunk'
-        );
+        } while ($response instanceof PartialFrame);
 
         self::assertEquals($data, $responseText, 'Received data is incorrect');
     }

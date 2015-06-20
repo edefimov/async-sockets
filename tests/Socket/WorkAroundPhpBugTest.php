@@ -14,9 +14,9 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
-use AsyncSockets\RequestExecutor\RequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ClientSocket;
 
 /**
@@ -65,7 +65,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
                         $event->nextIsRead();
                     },
                     EventType::READ => function (ReadEvent $event) {
-                        $output = strtolower($event->getResponse()->getData());
+                        $output = strtolower($event->getFrame()->data());
                         $meta   = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
                         self::assertTrue(
                             strpos($output, '</html>') !== false,
@@ -104,6 +104,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->executor = new RequestExecutor();
+        $factory        = new AsyncSocketFactory();
+        $this->executor = $factory->createRequestExecutor();
     }
 }

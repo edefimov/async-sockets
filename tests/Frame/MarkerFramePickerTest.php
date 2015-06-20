@@ -65,19 +65,6 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
         self::assertEquals($expectedFrame, $frame, 'Incorrect frame');
         self::assertEquals($afterFrame, $actualEnd, 'Incorrect data after frame');
         self::assertEquals($isEof, $picker->isEof(), 'Incorrect eof');
-        if ($isEof) {
-            self::assertNotInstanceOf(
-                'AsyncSockets\Frame\PartialFrame',
-                $frame,
-                'Ready frame must NOT be instance of PartialFrame'
-            );
-        } else {
-            self::assertInstanceOf(
-                'AsyncSockets\Frame\PartialFrame',
-                $frame,
-                'Unterminated frame must be instance of PartialFrame'
-            );
-        }
     }
 
     /**
@@ -85,7 +72,7 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
      *
      * @return array
      */
-    public function stringDataProvider()
+    public function stringDataProvider($methodName)
     {
         // start marker, end marker, [ chunks ], expected frame, expected data after frame, is eof
         return [

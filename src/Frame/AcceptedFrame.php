@@ -7,12 +7,14 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-namespace AsyncSockets\Socket;
+namespace AsyncSockets\Frame;
+
+use AsyncSockets\Socket\SocketInterface;
 
 /**
- * Class AcceptResponse
+ * Class AcceptedFrame
  */
-class AcceptResponse extends AbstractSocketResponse
+class AcceptedFrame implements FrameInterface
 {
     /**
      * Client address, if available
@@ -40,11 +42,16 @@ class AcceptResponse extends AbstractSocketResponse
         $this->socket        = $socket;
     }
 
+    /** {@inheritdoc} */
+    public function data()
+    {
+        return $this->clientAddress;
+    }
 
     /** {@inheritdoc} */
-    public function getData()
+    public function __toString()
     {
-        return '';
+        return $this->clientAddress;
     }
 
     /**

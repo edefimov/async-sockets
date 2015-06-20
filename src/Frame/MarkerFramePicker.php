@@ -102,6 +102,6 @@ class MarkerFramePicker extends AbstractFramePicker
         }
 
         $data = $this->startPos === null ? '' : substr($buffer, $this->startPos);
-        return new PartialFrame($data);
+        return new Frame($data);
     }
 }

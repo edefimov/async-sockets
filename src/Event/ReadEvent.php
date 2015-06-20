@@ -9,10 +9,10 @@
  */
 namespace AsyncSockets\Event;
 
+use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\ChunkSocketResponse;
 use AsyncSockets\Socket\SocketInterface;
-use AsyncSockets\Socket\SocketResponseInterface;
 
 /**
  * Class ReadEvent
@@ -22,45 +22,45 @@ class ReadEvent extends IoEvent
     /**
      * Data read from network
      *
-     * @var SocketResponseInterface|null
+     * @var FrameInterface
      */
-    private $response;
+    private $frame;
 
     /**
      * Constructor
      *
      * @param RequestExecutorInterface $executor Request executor object
-     * @param SocketInterface          $socket   Socket for this request
-     * @param mixed                    $context  Any optional user data for event
-     * @param SocketResponseInterface  $response Network data for read operation
+     * @param SocketInterface          $socket Socket for this request
+     * @param mixed                    $context Any optional user data for event
+     * @param FrameInterface           $frame Network data for read operation
      */
     public function __construct(
         RequestExecutorInterface $executor,
         SocketInterface $socket,
         $context,
-        SocketResponseInterface $response = null
+        FrameInterface $frame
     ) {
         parent::__construct($executor, $socket, $context, EventType::READ);
-        $this->response = $response;
+        $this->frame = $frame;
     }
 
     /**
-     * Return Response
+     * Return response frame
      *
-     * @return SocketResponseInterface|null Null means that response was not received
+     * @return FrameInterface
      */
-    public function getResponse()
+    public function getFrame()
     {
-        return $this->response;
+        return $this->frame;
     }
 
     /**
-     * Return true, if response in this event is partial
+     * Return true, if frame in this event is partial
      *
      * @return bool
      */
     public function isPartial()
     {
-        return $this->response instanceof ChunkSocketResponse;
+        return $this->frame instanceof PartialFrame;
     }
 }

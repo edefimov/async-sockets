@@ -133,7 +133,7 @@ class RequestExecutorClient extends Command
         $socket  = $event->getSocket();
         $meta    = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
 
-        $context['response'] = $event->getResponse()->getData();
+        $context['response'] = $event->getFrame()->getData();
 
         $this->output->writeln("<info>{$meta[RequestExecutorInterface::META_ADDRESS]}  read " .
              number_format(strlen($context['response']), 0, ',', ' ') . ' bytes</info>');

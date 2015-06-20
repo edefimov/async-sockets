@@ -15,12 +15,12 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\AcceptException;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\Frame\AcceptedFrame;
+use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\AcceptResponse;
-use AsyncSockets\Socket\ChunkSocketResponse;
 
 /**
  * Class IoStage
@@ -86,10 +86,9 @@ class IoStage extends AbstractTimeAwareStage
             /** @var ReadOperation $operation */
             $response = $socket->read($operation->getFramePicker());
             switch (true) {
-                case $response instanceof ChunkSocketResponse:
-                    $operationMetadata->addResponseChunk($response);
+                case $response instanceof PartialFrame:
                     return false;
-                case $response instanceof AcceptResponse:
+                case $response instanceof AcceptedFrame:
                     $event = new AcceptEvent(
                         $this->executor,
                         $socket,
@@ -105,7 +104,7 @@ class IoStage extends AbstractTimeAwareStage
                         $this->executor,
                         $socket,
                         $context,
-                        $operationMetadata->createResponseFromChunks($response)
+                        $response
                     );
 
                     $this->callSocketSubscribers($operationMetadata, $event);
@@ -117,7 +116,7 @@ class IoStage extends AbstractTimeAwareStage
             $this->callExceptionSubscribers(
                 $operationMetadata,
                 $e,
-                $event ?: new ReadEvent($this->executor, $socket, $context)
+                $event ?: new ReadEvent($this->executor, $socket, $context, new PartialFrame(''))
             );
 
             return true;

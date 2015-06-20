@@ -51,8 +51,6 @@ class FixedLengthFramePicker extends AbstractFramePicker
     /** {@inheritdoc} */
     protected function doCreateFrame($buffer)
     {
-        return $this->isEof() ?
-            new Frame($buffer) :
-            new PartialFrame($buffer);
+        return new Frame($buffer);
     }
 }

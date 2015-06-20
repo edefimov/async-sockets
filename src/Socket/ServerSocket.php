@@ -11,6 +11,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\AcceptException;
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\FramePickerInterface;
 
 /**
@@ -44,7 +45,7 @@ class ServerSocket extends AbstractSocket
             throw new AcceptException($this, 'Can not accept client connection.');
         }
 
-        return new AcceptResponse(
+        return new AcceptedFrame(
             $peerName ?: '',
             new AcceptedSocket($client)
         );

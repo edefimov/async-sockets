@@ -10,8 +10,36 @@
 namespace AsyncSockets\Frame;
 
 /**
- * Class SocketResponse
+ * Class Frame
  */
-class Frame extends AbstractFrame
+class Frame implements FrameInterface
 {
+    /**
+     * Data from network for this object
+     *
+     * @var string
+     */
+    private $data;
+
+    /**
+     * SocketResponse constructor.
+     *
+     * @param string $data Data from network for this response
+     */
+    public function __construct($data)
+    {
+        $this->data = (string) $data;
+    }
+
+    /** {@inheritdoc} */
+    public function data()
+    {
+        return $this->data;
+    }
+
+    /** {@inheritdoc} */
+    public function __toString()
+    {
+        return $this->data();
+    }
 }

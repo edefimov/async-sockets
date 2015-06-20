@@ -67,44 +67,6 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * testSetPreviousResponse
-     *
-     * @return void
-     */
-    public function testSetPreviousResponse()
-    {
-        $response = $this->getMock(
-            'AsyncSockets\Socket\ChunkSocketResponse',
-            ['__toString'],
-            [],
-            '',
-            false
-        );
-        $response->expects(self::any())->method('__toString')->willReturn('x');
-
-        $this->operationMetadata->addResponseChunk($response);
-        self::assertSame(
-            'x',
-            (string) $this->operationMetadata->createResponseFromChunks(),
-            'Invalid response was set'
-        );
-
-        $this->operationMetadata->initialize();
-        self::assertEmpty((string) $this->operationMetadata->createResponseFromChunks(), 'Response is not cleared');
-
-        $count = 10;
-        for ($i = 0; $i < $count; $i++) {
-            $this->operationMetadata->addResponseChunk(clone $response);
-        }
-
-        self::assertSame(
-            str_repeat('x', $count + 1),
-            (string) $this->operationMetadata->createResponseFromChunks($response),
-            'Invalid response was set'
-        );
-    }
-
-    /**
      * testGetSetMetadata
      *
      * @param string|array $key Key in metadata

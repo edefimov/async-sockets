@@ -11,6 +11,7 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
 
@@ -93,12 +94,12 @@ abstract class AbstractSocket implements SocketInterface
     abstract protected function isConnected($socket);
 
     /**
-     * Perform reading data from socket
+     * Perform reading data from socket and fill $picker
      *
      * @param resource             $socket Socket resource
      * @param FramePickerInterface $picker Frame picker object
      *
-     * @return SocketResponseInterface
+     * @return FrameInterface
      * @throws NetworkSocketException
      */
     abstract protected function doReadData($socket, FramePickerInterface $picker);
@@ -136,12 +137,12 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $frame = null)
+    public function read(FramePickerInterface $picker = null)
     {
         $this->setConnectedState();
-        $frame = $frame ?: new NullFramePicker();
+        $picker = $picker ?: new NullFramePicker();
 
-        return $this->doReadData($this->resource, $frame);
+        return $this->doReadData($this->resource, $picker);
     }
 
     /** {@inheritdoc} */

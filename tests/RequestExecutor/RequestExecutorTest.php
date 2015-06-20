@@ -92,16 +92,16 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $this->socket->expects(self::any())->method('read')->willReturnCallback(function () {
             $mock = $this->getMockForAbstractClass(
-                'AsyncSockets\Socket\SocketResponseInterface',
+                'AsyncSockets\Frame\FrameInterface',
                 [ ],
                 '',
                 false,
                 true,
                 true,
-                [ 'getData', '__toString' ]
+                [ 'data', '__toString' ]
             );
 
-            $mock->expects(self::any())->method('getData')->willReturn('');
+            $mock->expects(self::any())->method('data')->willReturn('');
             $mock->expects(self::any())->method('__toString')->willReturn('');
             return $mock;
         });
@@ -191,10 +191,13 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             true,
             true,
             true,
-            [ $method, 'createSocketResource', 'isConnected' ]
+            array_unique([ $method, 'createSocketResource', 'isConnected', 'read' ])
         );
 
         $mock->expects(self::any())->method('isConnected')->willReturn($method === 'close');
+        $mock->expects(self::any())->method('read')->willReturn(
+            $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface')
+        );
         if ($method !== 'close') {
             $mock
                 ->expects(self::once())
@@ -1028,7 +1031,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 $mock->expects(self::any())->method('read')->willReturnCallback(
                     function () {
                         $mock = $this->getMock(
-                            'AsyncSockets\Socket\AcceptResponse',
+                            'AsyncSockets\Frame\AcceptedFrame',
                             [ 'getClientSocket', 'getClientAddress' ],
                             [ ],
                             '',

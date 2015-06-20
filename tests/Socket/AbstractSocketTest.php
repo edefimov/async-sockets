@@ -117,7 +117,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
 
         $this->socket->open('it has no meaning here');
         self::assertInstanceOf(
-            'AsyncSockets\Socket\SocketResponseInterface',
+            'AsyncSockets\Frame\FrameInterface',
             $this->socket->read(),
             'Strange response'
         );
@@ -301,7 +301,7 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
 
         $mock->expects(self::any())->method('doReadData')->willReturnCallback(
             function () {
-                $mock = $this->getMockForAbstractClass('AsyncSockets\Socket\SocketResponseInterface');
+                $mock = $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface');
                 return $mock;
             }
         );

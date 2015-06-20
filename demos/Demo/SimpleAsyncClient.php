@@ -11,11 +11,11 @@
 namespace Demo;
 
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
-use AsyncSockets\Socket\SocketResponse;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -88,15 +88,15 @@ final class SimpleAsyncClient extends Command
                 }
 
                 foreach ($context->getRead() as $socket) {
-                    $response = $socket->read();
+                    $frame = $socket->read();
                     $hash     = spl_object_hash($socket);
-                    if ($response instanceof SocketResponse) {
+                    if (!($frame instanceof PartialFrame)) {
                         $numReadClient += 1;
                         $output->writeln("<info>Response from {$data[$hash]['address']}</info>");
-                        $output->writeln($response->getData() . "\n");
+                        $output->writeln($frame->data() . "\n");
                         $selector->removeAllSocketOperations($socket);
                     } else {
-                        $data[spl_object_hash($socket)]['lastResponse'] .= (string) $response;
+                        $data[spl_object_hash($socket)]['lastResponse'] .= (string) $frame;
                         $selector->addSocketOperation($socket, OperationInterface::OPERATION_READ);
                     }
                 }
