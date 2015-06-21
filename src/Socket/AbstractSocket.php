@@ -10,10 +10,12 @@
 
 namespace AsyncSockets\Socket;
 
+use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Socket\Io\DisconnectedIo;
+use AsyncSockets\Socket\Io\IoInterface;
 
 /**
  * Class AbstractSocket
@@ -21,29 +23,24 @@ use AsyncSockets\Frame\NullFramePicker;
 abstract class AbstractSocket implements SocketInterface
 {
     /**
-     * Socket buffer size
+     * Tcp socket type
      */
-    const SOCKET_BUFFER_SIZE = 8192;
+    const SOCKET_TYPE_TCP = 'tcp';
 
     /**
-     * Amount of attempts to set data
+     * Udp socket type
      */
-    const SEND_ATTEMPTS = 10;
+    const SOCKET_TYPE_UDP = 'udp';
 
     /**
-     * Delay for select operation, microseconds
+     * Unix socket type
      */
-    const SELECT_DELAY = 25000;
+    const SOCKET_TYPE_UNIX = 'unix';
 
     /**
-     * Disconnected state
+     * Unknown type of socket
      */
-    const STATE_DISCONNECTED = 0;
-
-    /**
-     * Connected state
-     */
-    const STATE_CONNECTED = 1;
+    const SOCKET_TYPE_UNKNOWN = '';
 
     /**
      * This socket resource
@@ -53,18 +50,26 @@ abstract class AbstractSocket implements SocketInterface
     private $resource;
 
     /**
-     * Socket state
-     *
-     * @var int
-     */
-    private $state;
-
-    /**
      * Flag whether this socket is blocking
      *
      * @var bool
      */
     private $isBlocking = true;
+
+    /**
+     * I/O interface
+     *
+     * @var IoInterface
+     */
+    private $ioInterface;
+
+    /**
+     * AbstractSocket constructor.
+     */
+    public function __construct()
+    {
+        $this->setDisconnectedState();
+    }
 
     /**
      * Destructor
@@ -85,24 +90,13 @@ abstract class AbstractSocket implements SocketInterface
     abstract protected function createSocketResource($address, $context);
 
     /**
-     * Check whether given socket resource is connected
+     * Create I/O interface for socket
      *
-     * @param resource $socket Socket resource to check
+     * @param string $type Type of this socket, one of SOCKET_TYPE_* consts
      *
-     * @return bool
+     * @return IoInterface
      */
-    abstract protected function isConnected($socket);
-
-    /**
-     * Perform reading data from socket and fill $picker
-     *
-     * @param resource             $socket Socket resource
-     * @param FramePickerInterface $picker Frame picker object
-     *
-     * @return FrameInterface
-     * @throws NetworkSocketException
-     */
-    abstract protected function doReadData($socket, FramePickerInterface $picker);
+    abstract protected function createIoInterface($type);
 
     /** {@inheritdoc} */
     public function open($address, $context = null)
@@ -120,6 +114,10 @@ abstract class AbstractSocket implements SocketInterface
             if (isset($meta['blocked']) && $meta['blocked'] != $this->isBlocking) {
                 $this->setBlocking($this->isBlocking);
             }
+
+            $this->ioInterface = $this->createIoInterface(
+                $this->resolveSocketType()
+            );
         }
 
         return $result;
@@ -128,7 +126,7 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function close()
     {
-        $this->state = self::STATE_DISCONNECTED;
+        $this->setDisconnectedState();
         if ($this->resource) {
             stream_socket_shutdown($this->resource, STREAM_SHUT_RDWR);
             fclose($this->resource);
@@ -139,41 +137,24 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function read(FramePickerInterface $picker = null)
     {
-        $this->setConnectedState();
         $picker = $picker ?: new NullFramePicker();
-
-        return $this->doReadData($this->resource, $picker);
+        try {
+            return $this->ioInterface->read($picker);
+        } catch (ConnectionException $e) {
+            $this->setDisconnectedState();
+            throw $e;
+        }
     }
 
     /** {@inheritdoc} */
     public function write($data)
     {
-        $this->setConnectedState();
-
-        $result       = 0;
-        $dataLength   = strlen($data);
-        $microseconds = self::SELECT_DELAY;
-        $attempts     = self::SEND_ATTEMPTS;
-
-        do {
-            $write    = [ $this->resource ];
-            $nomatter = null;
-            $select   = stream_select($nomatter, $write, $nomatter, 0, $microseconds);
-            $this->throwNetworkSocketExceptionIf($select === false, 'Failed to send data.');
-
-            $bytesWritten = $write ? $this->writeActualData($data) : 0;
-            $attempts     = $bytesWritten === 0 ? $attempts - 1 : self::SEND_ATTEMPTS;
-
-            $this->throwNetworkSocketExceptionIf(
-                !$attempts && $result !== $dataLength,
-                'Failed to send data.'
-            );
-
-            $data = substr($data, $bytesWritten);
-            $result += $bytesWritten;
-        } while ($result < $dataLength && $data !== false);
-
-        return $result;
+        try {
+            return $this->ioInterface->write($data);
+        } catch (ConnectionException $e) {
+            $this->setDisconnectedState();
+            throw $e;
+        }
     }
 
     /** {@inheritdoc} */
@@ -181,10 +162,12 @@ abstract class AbstractSocket implements SocketInterface
     {
         if (is_resource($this->resource)) {
             $result = stream_set_blocking($this->resource, $isBlocking ? 1 : 0);
-            $this->throwNetworkSocketExceptionIf(
-                $result === false,
-                'Failed to switch ' . ($isBlocking ? '' : 'non-') . 'blocking mode.'
-            );
+            if ($result === false) {
+                throw new NetworkSocketException(
+                    $this,
+                    'Failed to switch ' . ($isBlocking ? '' : 'non-') . 'blocking mode.'
+                );
+            }
         } else {
             $result = true;
         }
@@ -201,77 +184,39 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /**
-     * Throw network operation exception
+     * Get current socket type
      *
-     * @param bool   $condition Condition, which must evaluates to true for throwing exception
-     * @param string $message Exception message
-     *
-     * @return void
-     * @throws NetworkSocketException
+     * @return string One of SOCKET_TYPE_* consts
      */
-    protected function throwNetworkSocketExceptionIf($condition, $message)
+    private function resolveSocketType()
     {
-        if ($condition) {
-            throw new NetworkSocketException($this, $message);
+        $info = stream_get_meta_data($this->resource);
+        if (!isset($info['stream_type'])) {
+            return self::SOCKET_TYPE_UNKNOWN;
         }
+
+        $parts = explode('/', $info['stream_type']);
+        $map   = [
+            'tcp'  => self::SOCKET_TYPE_TCP,
+            'udp'  => self::SOCKET_TYPE_UDP,
+            'unix' => self::SOCKET_TYPE_UNIX,
+        ];
+        foreach ($parts as $part) {
+            if (preg_match('#^(tcp|udp|unix)_socket$#', $part, $pockets)) {
+                return $map[$pockets[1]];
+            }
+        }
+
+        return self::SOCKET_TYPE_UNKNOWN;
     }
 
     /**
-     * Writes given data to socket
-     *
-     * @param string $data Data to write
-     *
-     * @return int Amount of written bytes
-     */
-    private function writeActualData($data)
-    {
-        $test = stream_socket_sendto($this->resource, '');
-        $this->throwNetworkSocketExceptionIf($test !== 0, 'Failed to send data.');
-
-        $written = fwrite($this->resource, $data, strlen($data));
-        $this->throwNetworkSocketExceptionIf($written === false, 'Failed to send data.');
-
-        if ($written === 0) {
-            $this->throwExceptionIfNotConnected('Remote connection has been lost.');
-        }
-
-        return $written;
-    }
-
-    /**
-     * Verify, that we are in connected state
+     * Set disconnected state for socket
      *
      * @return void
      */
-    private function setConnectedState()
+    private function setDisconnectedState()
     {
-        if (!is_resource($this->resource)) {
-            $message = $this->state === self::STATE_CONNECTED ?
-                'Connection was unexpectedly closed.' :
-                'Can not start io operation on uninitialized socket.';
-            $this->throwNetworkSocketExceptionIf(true, $message);
-        }
-
-        if ($this->state !== self::STATE_CONNECTED) {
-            $this->throwExceptionIfNotConnected('Connection refused.');
-
-            $this->state = self::STATE_CONNECTED;
-        }
-    }
-
-    /**
-     * Checks that we are in connected state
-     *
-     * @param string $message Message to pass in exception
-     *
-     * @return void
-     * @throws NetworkSocketException
-     */
-    final protected function throwExceptionIfNotConnected($message)
-    {
-        $this->throwNetworkSocketExceptionIf(
-            !$this->isConnected($this->resource),
-            $message
-        );
+        $this->ioInterface = new DisconnectedIo($this);
     }
 }

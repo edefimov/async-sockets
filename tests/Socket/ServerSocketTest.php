@@ -9,7 +9,6 @@
  */
 namespace Tests\AsyncSockets\Socket;
 
-use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Socket\ServerSocket;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
@@ -57,48 +56,6 @@ class ServerSocketTest extends AbstractSocketTest
         $this->socket->open('php://temp');
     }
 
-    /**
-     * testExceptionWillBeThrownOnAcceptFail
-     *
-     * @return void
-     * @expectedException \AsyncSockets\Exception\AcceptException
-     * @expectedExceptionMessage Can not accept client connection.
-     */
-    public function testExceptionWillBeThrownOnAcceptFail()
-    {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_accept');
-        $mocker->setCallable(function () {
-            return false;
-        });
-
-        $this->socket->open('php://temp');
-        $this->socket->read();
-    }
-
-    /**
-     * testResponseStructureIsValid
-     *
-     * @return void
-     */
-    public function testResponseStructureIsValid()
-    {
-        $actualPeerName = '127.0.0.1:12345';
-
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_accept');
-        $mocker->setCallable(function ($socket, $timeout, &$peerName) use ($actualPeerName) {
-            $peerName = $actualPeerName;
-            return fopen('php://temp', 'rw');
-        });
-
-        $this->socket->open('php://temp');
-        $frame = $this->socket->read();
-
-        /** @var AcceptedFrame $frame */
-        self::assertInstanceOf('AsyncSockets\Frame\AcceptedFrame', $frame, 'Invalid frame created');
-        self::assertEquals($actualPeerName, (string) $frame, 'Invalid frame data');
-        self::assertInstanceOf('AsyncSockets\Socket\AcceptedSocket', $frame->getClientSocket(), 'Invalid socket');
-    }
-
     /** {@inheritdoc} */
     protected function createSocketInterface()
     {
@@ -114,6 +71,14 @@ class ServerSocketTest extends AbstractSocketTest
         $mocker->setCallable(function () {
             return fopen('php://temp', 'rw');
         });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->setCallable(
+            function ($resource) {
+                $data = \stream_get_meta_data($resource);
+                $data['stream_type'] = 'tcp_socket';
+                return $data;
+            }
+        );
     }
 
     /** {@inheritdoc} */
@@ -121,6 +86,6 @@ class ServerSocketTest extends AbstractSocketTest
     {
         parent::tearDown();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_server')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_accept')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->restoreNativeHandler();
     }
 }

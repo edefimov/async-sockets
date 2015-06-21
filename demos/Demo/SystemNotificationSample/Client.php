@@ -69,7 +69,7 @@ class Client
 
         $executor = $factory->createRequestExecutor();
 
-        $this->registerPackagistSocket($executor, $client, 60, 0.001, 2);
+        $this->registerPackagistSocket($executor, $client, 60, 60, 2);
 
         $executor->socketBag()->addSocket(
             $anotherClient,
@@ -139,31 +139,11 @@ class Client
     /**
      * Disconnect event
      *
-     * @param Event $event Event object
-     *
      * @return void
      */
-    public function onPackagistDisconnect(Event $event)
+    public function onPackagistDisconnect()
     {
         $this->output->writeln('Packagist socket has disconnected');
-
-        $context  = $event->getContext();
-        $socket   = $event->getSocket();
-        $executor = $event->getExecutor();
-        $meta     = $executor->socketBag()->getSocketMetaData($socket);
-
-        $isTryingOneMoreTime = isset($context[ 'attempts' ]) &&
-                               $context[ 'attempts' ] - 1 > 0 &&
-                               $meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ];
-        if ($isTryingOneMoreTime) {
-            $this->output->writeln('Trying to get data one more time');
-
-            $context['attempts'] -= 1;
-
-            // automatically try one more time
-            $executor->socketBag()->removeSocket($socket);
-            $this->registerPackagistSocket($executor, $socket, 30, 30, 1);
-        }
     }
 
     /**

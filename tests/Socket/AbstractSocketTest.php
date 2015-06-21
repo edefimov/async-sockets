@@ -57,7 +57,9 @@ class AbstractSocketTest extends AbstractTestCase
     {
         PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->setCallable(
             function ($resource) {
-                return \stream_get_meta_data($resource) + [ 'blocked' => true ];
+                $data = \stream_get_meta_data($resource) + [ 'blocked' => true ];
+                $data['stream_type'] = 'tcp_socket';
+                return $data;
             }
         );
 
@@ -70,61 +72,6 @@ class AbstractSocketTest extends AbstractTestCase
 
         $this->socket->setBlocking(false);
         $this->socket->open('php://temp');
-    }
-
-    /**
-     * testWritePartialContent
-     *
-     * @return void
-     */
-    public function testWritePartialContent()
-    {
-        $testString = "GET / HTTP/1.1\nHost: github.com\n\n";
-        $counter    = 0;
-        $retString  = '';
-
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fwrite');
-        $mocker->setCallable(function ($handle, $data) use ($testString, &$counter, &$retString) {
-            if ($data && $counter < strlen($testString)) {
-                ++$counter;
-                $retString .= $data[0];
-                return 1;
-            }
-
-            return 0;
-        });
-
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto');
-        $mocker->setCallable(function ($handle, $data) {
-            return strlen($data);
-        });
-
-        $this->socket->open('it has no meaning here');
-        $this->socket->write($testString);
-        self::assertEquals($testString, $retString, 'Unexpected result was read');
-    }
-
-    /**
-     * testIoFailures
-     *
-     * @param array      $methodCalls Method calls on socket: [methodName, arguments]
-     * @param callable[] $mocks PHP functions to mock
-     * @param string     $exceptionMessage Exception message to test
-     *
-     * @return void
-     * @dataProvider ioDataProvider
-     * @expectedException \AsyncSockets\Exception\NetworkSocketException
-     */
-    public function testIoFailures(array $methodCalls, array $mocks, $exceptionMessage = '')
-    {
-        $this->setExpectedException('AsyncSockets\Exception\NetworkSocketException', $exceptionMessage);
-        foreach ($mocks as $name => $callable) {
-            PhpFunctionMocker::getPhpFunctionMocker($name)->setCallable($callable);
-        }
-
-        foreach ($methodCalls as $methodCall) {
-            call_user_func_array([$this->socket, $methodCall[0]], $methodCall[1]);
-        }
     }
 
     /**
@@ -151,109 +98,6 @@ class AbstractSocketTest extends AbstractTestCase
 
         /** @var SocketInterface $object */
         $object->__destruct();
-    }
-
-    /**
-     * ioDataProvider
-     *
-     * @return array
-     */
-    public function ioDataProvider()
-    {
-        $falseFunction = function () {
-            return false;
-        };
-
-        // data for testing read/write. Format:
-        // method, arguments, mock functions
-        return [
-            // testReadFailureIfNoResource
-            [
-                [
-                    ['read', []],
-                ],
-                [],
-                'Can not start io operation on uninitialized socket.'
-            ],
-
-            // testWriteFailureIfNoResource
-            [
-                [
-                    ['write', ['no matter']],
-                ],
-                [
-
-                ],
-                'Can not start io operation on uninitialized socket.'
-            ],
-
-            // testExceptionWillBeThrownOnWriteError
-            [
-                [
-                    ['open', ['no matter']],
-                    ['write', ['some data to write']],
-                ],
-                [
-                    'stream_select' => $falseFunction,
-                ],
-                'Failed to send data.'
-            ],
-
-            // testWriteSocketSendToFail
-            [
-                [
-                    ['open', ['no matter']],
-                    ['write', ['some data to write']],
-                ],
-                [
-                    'stream_select' => function () {
-                        return 1;
-                    },
-                    'stream_socket_sendto' => function () {
-                        return -1;
-                    }
-                ],
-                'Failed to send data.'
-            ],
-
-            // testActualWritingFail
-            [
-                [
-                    ['open', ['no matter']],
-                    ['write', ['some data to write']],
-                ],
-                [
-                    'stream_select' => function () {
-                        return 1;
-                    },
-                    'fwrite' => $falseFunction,
-                    'stream_socket_sendto' => function ($handle, $data) {
-                        return strlen($data);
-                    }
-                ],
-                'Failed to send data.'
-            ],
-
-            // testWriteFailByAttempts
-            [
-                [
-                    ['open', ['no matter']],
-                    ['write', ['some data to write']],
-                ],
-                [
-                    'stream_select' => function () {
-                        return 1;
-                    },
-                    'fwrite' => function () {
-                        return 0;
-                    },
-                    'stream_socket_sendto' => function ($handle, $data) {
-                        return strlen($data);
-                    }
-                ],
-                'Failed to send data.'
-            ]
-        ];
     }
 
     /**

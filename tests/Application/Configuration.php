@@ -44,11 +44,10 @@ class Configuration
             throw new \RuntimeException("Configuration file {$fileName} is invalid");
         }
 
-        $this->config = (isset($this->config['tests']) ? $this->config['tests'] : []) +
-            [
-                'cache_dir' => 'build/cache',
-                'source_dir' => 'src'
-            ];
+        $this->config = (
+                            isset($this->config['tests']) ?
+                                $this->config['tests'] : []
+                        ) + [ 'cache_dir' => 'build/cache', 'source_dir' => 'src' ];
 
         if (isset($this->config['cache_dir'][0]) && $this->config['cache_dir'][0] !== '/') {
             $this->config['cache_dir'] = $this->libraryRoot . '/' . $this->config['cache_dir'];

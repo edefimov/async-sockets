@@ -10,30 +10,14 @@
 
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\Frame\NullFramePicker;
-use AsyncSockets\Frame\PartialFrame;
+use AsyncSockets\Socket\Io\TcpClientIo;
 
 /**
  * Class ClientSocket
  */
 class ClientSocket extends AbstractSocket
 {
-    /**
-     * Unhandled portion of data at the end of framePicker
-     *
-     * @var string
-     */
-    private $unhandledData = '';
-
-    /** {@inheritdoc} */
-    public function close()
-    {
-        parent::close();
-    }
-
     /** {@inheritdoc} */
     protected function createSocketResource($address, $context)
     {
@@ -54,90 +38,13 @@ class ClientSocket extends AbstractSocket
     }
 
     /** {@inheritdoc} */
-    protected function doReadData($socket, FramePickerInterface $picker)
+    protected function createIoInterface($type)
     {
-        $isEndOfFrame = false;
-        $this->unhandledData = $picker->pickUpData($this->unhandledData);
-
-        do {
-            if ($this->isFullFrameRead($socket, $picker)) {
-                $isEndOfFrame = true;
-                break;
-            }
-
-            // work-around https://bugs.php.net/bug.php?id=52602
-            $rawData = stream_socket_recvfrom($socket, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
-            if ($rawData === false || $rawData === '') {
-                $isEndOfFrame = ($rawData === '' && $picker instanceof NullFramePicker) || $isEndOfFrame;
-                break;
-            }
-
-            $actualData          = $this->readActualData($socket);
-            $this->unhandledData = $picker->pickUpData($this->unhandledData . $actualData);
-        } while (!$isEndOfFrame);
-
-        $frame = $picker->createFrame();
-        if (!$isEndOfFrame) {
-            $frame = new PartialFrame($frame);
+        switch ($type) {
+            case self::SOCKET_TYPE_TCP:
+                return new TcpClientIo($this);
+            default:
+                throw new \LogicException("Unsupported socket resource type {$type}");
         }
-
-        return $frame;
-    }
-
-    /**
-     * Read actual data from socket
-     *
-     * @param resource $socket Socket resource object
-     *
-     * @return string
-     */
-    private function readActualData($socket)
-    {
-        $data = fread($socket, self::SOCKET_BUFFER_SIZE);
-        $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
-
-        if ($data === '') {
-            $this->throwExceptionIfNotConnected('Remote connection has been lost.');
-        }
-
-        return $data;
-    }
-
-    /**
-     * Checks whether all framePicker data is read
-     *
-     * @param resource       $socket Socket resource object
-     * @param FramePickerInterface $picker Frame object to check
-     *
-     * @return bool
-     * @throws FrameSocketException If socket data is ended and framePicker eof is not reached
-     */
-    private function isFullFrameRead($socket, FramePickerInterface $picker)
-    {
-        if ($picker->isEof() && !($picker instanceof NullFramePicker)) {
-            return true;
-        }
-
-        $read     = [ $socket ];
-        $nomatter = null;
-        $select   = stream_select($read, $nomatter, $nomatter, 0, self::SELECT_DELAY);
-        $this->throwNetworkSocketExceptionIf($select === false, 'Failed to read data.');
-
-        if ($select === 0) {
-            if ($picker->isEof()) {
-                return true;
-            } else {
-                throw new FrameSocketException($picker, $this, 'Failed to receive desired picker.');
-            }
-        }
-
-        return false;
-    }
-
-    /** {@inheritdoc} */
-    protected function isConnected($socket)
-    {
-        $name = stream_socket_get_name($socket, true);
-        return $name !== false;
     }
 }

@@ -16,6 +16,7 @@ use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\AcceptException;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Frame\AcceptedFrame;
+use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\OperationInterface;
@@ -116,7 +117,7 @@ class IoStage extends AbstractTimeAwareStage
             $this->callExceptionSubscribers(
                 $operationMetadata,
                 $e,
-                $event ?: new ReadEvent($this->executor, $socket, $context, new PartialFrame(''))
+                $event ?: new ReadEvent($this->executor, $socket, $context, new PartialFrame(new Frame('')))
             );
 
             return true;

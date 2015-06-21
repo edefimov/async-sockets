@@ -50,7 +50,7 @@ final class SimpleAsyncClient extends Command
                 ]
             );
 
-            $data = [
+            $socketContext = [
                 spl_object_hash($client) => [
                     'address'      => 'tls://github.com:443',
                     'data'         => "GET / HTTP/1.1\nHost: github.com\n\n",
@@ -68,42 +68,103 @@ final class SimpleAsyncClient extends Command
             $numReadClient = 0;
             $aliveClients  = 2;
 
-            foreach ([$client, $anotherClient] as $socket) {
-                /** @var SocketInterface $socket */
-                $item = $data[spl_object_hash($socket)];
-                $socket->open($item['address']);
-                $socket->setBlocking(false);
-            }
+            $this->openConnection([$client, $anotherClient], $socketContext);
 
             do {
-                $context = $selector->select(5);
-                foreach ($context->getWrite() as $socket) {
-                    try {
-                        $socket->write($data[spl_object_hash($socket)]['data']);
-                        $selector->changeSocketOperation($socket, OperationInterface::OPERATION_READ);
-                    } catch (SocketException $e) {
-                        $selector->removeAllSocketOperations($socket);
-                        $aliveClients -= 1;
-                    }
-                }
+                $selectContext = $selector->select(5);
+                $aliveClients -= $this->writeDataToSockets(
+                    $selectContext->getWrite(),
+                    $socketContext,
+                    $selector
+                );
 
-                foreach ($context->getRead() as $socket) {
-                    $frame = $socket->read();
-                    $hash     = spl_object_hash($socket);
-                    if (!($frame instanceof PartialFrame)) {
-                        $numReadClient += 1;
-                        $output->writeln("<info>Response from {$data[$hash]['address']}</info>");
-                        $output->writeln($frame->data() . "\n");
-                        $selector->removeAllSocketOperations($socket);
-                    } else {
-                        $data[spl_object_hash($socket)]['lastResponse'] .= (string) $frame;
-                        $selector->addSocketOperation($socket, OperationInterface::OPERATION_READ);
-                    }
-                }
+                $numReadClient += $this->readDataFromSockets(
+                    $output,
+                    $selectContext->getRead(),
+                    $socketContext,
+                    $selector
+                );
             } while ($numReadClient < $aliveClients);
 
         } catch (SocketException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
         }
+    }
+
+    /**
+     * Open connection
+     *
+     * @param SocketInterface[] $sockets List of sockets
+     * @param array             $data Socket context
+     *
+     * @return void
+     */
+    private function openConnection(array $sockets, array $data)
+    {
+        foreach ($sockets as $socket) {
+            /** @var SocketInterface $socket */
+            $item = $data[ spl_object_hash($socket) ];
+            $socket->open($item[ 'address' ]);
+            $socket->setBlocking(false);
+        }
+    }
+
+    /**
+     * writeDataToSockets
+     *
+     * @param SocketInterface[] $sockets List of sockets to write data
+     * @param array             $data Socket data context
+     * @param AsyncSelector     $selector Selector object
+     *
+     * @return int Number of clients with errors
+     */
+    protected function writeDataToSockets(array $sockets, array $data, AsyncSelector $selector)
+    {
+        $result = 0;
+        foreach ($sockets as $socket) {
+            try {
+                $socket->write($data[ spl_object_hash($socket) ][ 'data' ]);
+                $selector->changeSocketOperation($socket, OperationInterface::OPERATION_READ);
+            } catch (SocketException $e) {
+                $selector->removeAllSocketOperations($socket);
+                $result += 1;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Read data from sockets
+     *
+     * @param OutputInterface   $output Output interface
+     * @param SocketInterface[] $sockets List of sockets ready to read
+     * @param array             &$data Socket context
+     * @param AsyncSelector     $selector Selector
+     *
+     * @return int Amount of processed clients
+     */
+    protected function readDataFromSockets(
+        OutputInterface $output,
+        array $sockets,
+        array &$data,
+        AsyncSelector $selector
+    ) {
+        $result = 0;
+        foreach ($sockets as $socket) {
+            $frame = $socket->read();
+            $hash  = spl_object_hash($socket);
+            if (!($frame instanceof PartialFrame)) {
+                $result += 1;
+                $output->writeln("<info>Response from {$data[$hash]['address']}</info>");
+                $output->writeln($frame->data() . "\n");
+                $selector->removeAllSocketOperations($socket);
+            } else {
+                $data[ spl_object_hash($socket) ][ 'lastResponse' ] .= (string) $frame;
+                $selector->addSocketOperation($socket, OperationInterface::OPERATION_READ);
+            }
+        }
+
+        return $result;
     }
 }

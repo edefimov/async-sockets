@@ -9,10 +9,8 @@
  */
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Exception\AcceptException;
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Frame\AcceptedFrame;
-use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Socket\Io\TcpServerIo;
 
 /**
  * Class ServerSocket
@@ -38,23 +36,13 @@ class ServerSocket extends AbstractSocket
     }
 
     /** {@inheritdoc} */
-    protected function doReadData($socket, FramePickerInterface $picker)
+    protected function createIoInterface($type)
     {
-        $client = stream_socket_accept($socket, 0, $peerName);
-        if ($client === false) {
-            throw new AcceptException($this, 'Can not accept client connection.');
+        switch ($type) {
+            case self::SOCKET_TYPE_TCP:
+                return new TcpServerIo($this);
+            default:
+                throw new \LogicException("Unsupported socket resource type {$type}");
         }
-
-        return new AcceptedFrame(
-            $peerName ?: '',
-            new AcceptedSocket($client)
-        );
-    }
-
-    /** {@inheritdoc} */
-    protected function isConnected($socket)
-    {
-        // server socket is always connected
-        return true;
     }
 }

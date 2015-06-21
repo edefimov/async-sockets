@@ -190,12 +190,15 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             true,
             true,
             true,
-            array_unique([ $method, 'createSocketResource', 'isConnected', 'read' ])
+            array_unique([ $method, 'createSocketResource', 'createIoInterface', 'isConnected', 'read' ])
         );
 
         $mock->expects(self::any())->method('isConnected')->willReturn($method === 'close');
         $mock->expects(self::any())->method('read')->willReturn(
             $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface')
+        );
+        $mock->expects(self::any())->method('createIoInterface')->willReturn(
+            $this->getMockForAbstractClass('AsyncSockets\Socket\Io\IoInterface')
         );
         if ($method !== 'close') {
             $mock
@@ -1016,11 +1019,19 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
     {
         switch ($eventType) {
             case EventType::ACCEPT:
-                $mock = $this->getMock('AsyncSockets\Socket\ServerSocket', ['read', 'createSocketResource' , 'write']);
+                $mock = $this->getMock(
+                    'AsyncSockets\Socket\ServerSocket',
+                    ['read', 'createSocketResource' , 'write', 'createIoInterface']
+                );
 
                 $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
                     function () {
                         return fopen('php://temp', 'rw');
+                    }
+                );
+                $mock->expects(self::any())->method('createIoInterface')->willReturnCallback(
+                    function () {
+                        return $this->getMockForAbstractClass('AsyncSockets\Socket\Io\IoInterface');
                     }
                 );
                 $mock->expects(self::any())->method('read')->willReturnCallback(

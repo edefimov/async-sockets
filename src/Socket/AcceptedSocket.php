@@ -30,6 +30,7 @@ class AcceptedSocket extends ClientSocket
      */
     public function __construct($acceptedResource)
     {
+        parent::__construct();
         $this->acceptedResource = $acceptedResource;
     }
 

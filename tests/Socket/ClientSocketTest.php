@@ -89,6 +89,14 @@ class ClientSocketTest extends AbstractSocketTest
         $mocker->setCallable(function () {
             return fopen('php://temp', 'rw');
         });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->setCallable(
+            function ($resource) {
+                $data = \stream_get_meta_data($resource);
+                $data['stream_type'] = 'tcp_socket';
+                return $data;
+            }
+        );
     }
 
     /** {@inheritdoc} */
@@ -96,6 +104,7 @@ class ClientSocketTest extends AbstractSocketTest
     {
         parent::tearDown();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->restoreNativeHandler();
     }
 
     /** {@inheritdoc} */
@@ -266,6 +275,38 @@ class ClientSocketTest extends AbstractSocketTest
     }
 
     /**
+     * testWritePartialContent
+     *
+     * @return void
+     */
+    public function testWritePartialContent()
+    {
+        $testString = "GET / HTTP/1.1\nHost: github.com\n\n";
+        $counter    = 0;
+        $retString  = '';
+
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fwrite');
+        $mocker->setCallable(function ($handle, $data) use ($testString, &$counter, &$retString) {
+            if ($data && $counter < strlen($testString)) {
+                ++$counter;
+                $retString .= $data[0];
+                return 1;
+            }
+
+            return 0;
+        });
+
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto');
+        $mocker->setCallable(function ($handle, $data) {
+            return strlen($data);
+        });
+
+        $this->socket->open('it has no meaning here');
+        $this->socket->write($testString);
+        self::assertEquals($testString, $retString, 'Unexpected result was read');
+    }
+
+    /**
      * sequentialDataProvider
      *
      * @param string $targetMethod Target test method
@@ -275,118 +316,5 @@ class ClientSocketTest extends AbstractSocketTest
     public function sequentialDataProvider($targetMethod)
     {
         return $this->dataProviderFromYaml(__DIR__, __CLASS__, __FUNCTION__, $targetMethod);
-    }
-
-    /** {@inheritdoc} */
-    public function ioDataProvider()
-    {
-        $falseFunction = function () {
-            return false;
-        };
-
-        return array_merge(
-            parent::ioDataProvider(),
-            [
-                // testExceptionWillBeThrownOnReadError
-                [
-                    [
-                        ['open', ['no matter']],
-                        ['read', []],
-                    ],
-                    [
-                        'stream_select' => $falseFunction,
-                    ],
-                    'Failed to read data.'
-                ],
-
-                // testActualReadingFail
-                [
-                    [
-                        ['open', ['no matter']],
-                        ['read', []],
-                    ],
-                    [
-                        'stream_select' => function () {
-                            return 1;
-                        },
-                        'fread' => $falseFunction,
-                        'stream_socket_recvfrom' => function () {
-                            return 'x';
-                        }
-                    ],
-                    'Failed to read data.'
-                ],
-
-                // testLossConnectionOnReading
-                [
-                    [
-                        ['open', ['no matter']],
-                        ['read', []],
-                    ],
-                    [
-                        'stream_select' => function () {
-                            return 1;
-                        },
-                        'fread' => function () use ($falseFunction) {
-                            PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
-                                $falseFunction
-                            );
-                            return '';
-                        },
-                        'stream_socket_recvfrom' => function () {
-                            return 'x';
-                        }
-                    ],
-                    'Remote connection has been lost.'
-                ],
-
-                // testConnectionRefusedOnRead
-                [
-                    [
-                        ['open', ['no matter']],
-                        ['read', []],
-                    ],
-                    [
-                        'stream_socket_get_name' => $falseFunction
-                    ],
-                    'Connection refused.'
-                ],
-
-                // testConnectionRefusedOnWrite
-                [
-                    [
-                        ['open', ['no matter']],
-                        ['write', ['some data to write']],
-                    ],
-                    [
-                        'stream_socket_get_name' => $falseFunction
-                    ],
-                    'Connection refused.'
-                ],
-
-                // testLossConnectionOnWriting
-                [
-                    [
-                        ['open', ['no matter']],
-                        ['write', ['some data to write']],
-                    ],
-                    [
-                        'stream_select' => function () {
-                            return 1;
-                        },
-                        'fwrite' => function () use ($falseFunction) {
-                            PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
-                                $falseFunction
-                            );
-                            return 0;
-                        },
-                        'stream_socket_sendto' => function ($handle, $data) {
-                            return strlen($data);
-                        }
-                    ],
-                    'Remote connection has been lost.'
-                ],
-            ]
-        );
     }
 }

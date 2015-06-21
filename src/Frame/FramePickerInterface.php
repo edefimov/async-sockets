@@ -27,7 +27,6 @@ interface FramePickerInterface
      * @param string $chunk Chunk read from socket
      *
      * @return string Unprocessed data after end of frame
-     * @see findStartOfFrame
      */
     public function pickUpData($chunk);
 
