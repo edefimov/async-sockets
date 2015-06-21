@@ -32,7 +32,7 @@ class TcpClientIo extends AbstractIo
     const STATE_CONNECTED = 1;
 
     /**
-     * Unhandled portion of data at the end of framePicker
+     * Unhandled portion of data at the end of frame
      *
      * @var string
      */
@@ -49,10 +49,11 @@ class TcpClientIo extends AbstractIo
     public function read(FramePickerInterface $picker)
     {
         $this->setConnectedState();
+        $unhandledData = $picker->pickUpData($this->unhandledData);
 
         $isEndOfFrame        = false;
         $resource            = $this->socket->getStreamResource();
-        $this->unhandledData = $picker->pickUpData($this->unhandledData);
+        $this->unhandledData = $unhandledData;
         do {
             if ($this->isFullFrameRead($resource, $picker)) {
                 $isEndOfFrame = true;
