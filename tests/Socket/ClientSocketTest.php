@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
+use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\Socket\ClientSocket;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
@@ -20,14 +21,14 @@ use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 class ClientSocketTest extends AbstractSocketTest
 {
     /**
-     * testExceptionWillBeThrowsOnCreateFail
+     * testExceptionWillBeThrowsOnCreateFailWithErrNo
      *
      * @return void
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionCode 500
      * @expectedExceptionMessage Tested socket creation
      */
-    public function testExceptionWillBeThrowsOnCreateFail()
+    public function testExceptionWillBeThrowsOnCreateFailWithErrNo()
     {
         $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client');
         $mocker->setCallable(function ($remoteSocket, &$errno, &$errstr) {
@@ -38,6 +39,45 @@ class ClientSocketTest extends AbstractSocketTest
         });
 
         $this->socket->open('php://temp');
+    }
+
+    /**
+     * testExceptionWillBeThrowsOnCreateFail
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\NetworkSocketException
+     */
+    public function testExceptionWillBeThrowsOnCreateFail()
+    {
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client');
+        $mocker->setCallable(function ($remoteSocket, &$errno, &$errstr) {
+            $errno  = 0;
+            $errstr = '';
+            return false;
+        });
+
+        $this->socket->open('php://temp');
+    }
+
+    /**
+     * testNothingHappenIfNotSelected
+     *
+     * @return void
+     */
+    public function testNothingHappenIfNotSelected()
+    {
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
+        $mocker->setCallable(function () {
+            return 0;
+        });
+
+        $this->socket->open('it has no meaning here');
+        $frame = $this->socket->read();
+        self::assertInstanceOf(
+            'AsyncSockets\Frame\FrameInterface',
+            $frame,
+            'Strange response'
+        );
     }
 
     /** {@inheritdoc} */
@@ -91,6 +131,38 @@ class ClientSocketTest extends AbstractSocketTest
     }
 
     /**
+     * testExceptionWillBeThrownIfFrameNotCollected
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\FrameSocketException
+     */
+    public function testExceptionWillBeThrownIfFrameNotCollected()
+    {
+        $picker = $this->getMock(
+            'AsyncSockets\Frame\FramePickerInterface',
+            ['isEof', 'pickUpData', 'createFrame']
+        );
+
+        $picker->expects(self::any())->method('isEof')->willReturn(false);
+        $picker->expects(self::any())->method('pickUpData')->willReturnCallback(function ($data) {
+            return $data;
+        });
+        $picker->expects(self::any())->method('createFrame')->willReturnCallback(function ($data) {
+            return $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface');
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(
+            function () {
+                return 0;
+            }
+        );
+
+        $this->socket->open('it has no meaning here');
+        $this->socket->read($picker);
+        self::fail('Exception was not thrown');
+    }
+
+    /**
      * testChunkReading
      *
      * @return void
@@ -139,6 +211,70 @@ class ClientSocketTest extends AbstractSocketTest
         } while ($response instanceof PartialFrame);
 
         self::assertEquals($data, $responseText, 'Received data is incorrect');
+    }
+
+    /**
+     * testUnhandledDataFromFirstFrameWillBePassedToSecond
+     *
+     * @param int      $frames Number of frames
+     * @param int[]    $lengths Length for frames
+     * @param string[] $chunks Chunks with data
+     * @param string[] $expectedFrames Expected data in frames
+     *
+     * @dataProvider sequentialDataProvider
+     */
+    public function testUnhandledDataFromFirstFrameWillBePassedToSecond(
+        $frames,
+        array $lengths,
+        array $chunks,
+        array $expectedFrames
+    ) {
+        $index = 0;
+        $freadMock = $this->getMock('\Countable', ['count']);
+        $freadMock->expects(self::exactly(count($chunks)))->method('count')->willReturnCallback(
+            function () use (&$index, $chunks) {
+                return $chunks[$index++];
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(function () {
+            return 1;
+        });
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable([$freadMock, 'count']);
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () use (&$index, $chunks) {
+                return $chunks[$index];
+            }
+        );
+
+        $pickers = [];
+        for ($i = 0; $i < $frames; $i++) {
+            $pickers[] = new FixedLengthFramePicker($lengths[$i]);
+        }
+
+        $frameResponse = [];
+        $this->socket->open('php://temp');
+        while ($pickers) {
+            $currentPicker   = array_shift($pickers);
+            $frameResponse[] = $this->socket->read($currentPicker);
+        }
+
+        self::assertGreaterThanOrEqual(count($expectedFrames), count($frameResponse), 'Too few frames received');
+        foreach ($expectedFrames as $key => $expectedFrame) {
+            self::assertEquals($expectedFrame, (string) $frameResponse[$key], "Frame at {$key} index is invalid");
+        }
+    }
+
+    /**
+     * sequentialDataProvider
+     *
+     * @param string $targetMethod Target test method
+     *
+     * @return array[]
+     */
+    public function sequentialDataProvider($targetMethod)
+    {
+        return $this->dataProviderFromYaml(__DIR__, __CLASS__, __FUNCTION__, $targetMethod);
     }
 
     /** {@inheritdoc} */

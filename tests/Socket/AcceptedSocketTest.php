@@ -24,6 +24,16 @@ class AcceptedSocketTest extends ClientSocketTest
     }
 
     /**
+     * testExceptionWillBeThrowsOnCreateFailWithErrNo
+     *
+     * @return void
+     */
+    public function testExceptionWillBeThrowsOnCreateFailWithErrNo()
+    {
+        // not applicable for AcceptedSocket
+    }
+
+    /**
      * testExceptionWillBeThrowsOnCreateFail
      *
      * @return void

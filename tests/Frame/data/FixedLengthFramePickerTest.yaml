@@ -1,0 +1,37 @@
+frameDataProvider:
+    - #0
+        length: 16
+        chunks: ['0123456789012345']
+        expectedFrame: '0123456789012345'
+        afterFrame: ''
+        isEof: true
+    - #1
+        length: 10
+        chunks: ['0123456789012345']
+        expectedFrame: '0123456789'
+        afterFrame: '012345'
+        isEof: true
+    - #2
+        length: 16
+        chunks: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5']
+        expectedFrame: '0123456789012345'
+        afterFrame: ''
+        isEof: true
+    - #3
+        length: 10
+        chunks:  ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5']
+        expectedFrame: '0123456789'
+        afterFrame: '5'
+        isEof: true
+    - #4
+        length: 10
+        chunks:  ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '012345']
+        expectedFrame: '0123456789'
+        afterFrame: '012345'
+        isEof: true
+    - #5
+        length: 10
+        chunks:  ['0', '1', '2', '3', '4', '5']
+        expectedFrame: '012345'
+        afterFrame: ''
+        isEof: false

@@ -25,7 +25,7 @@ class FrameTest extends \PHPUnit_Framework_TestCase
      *
      * @return FrameInterface
      */
-    protected function createResponse($data)
+    protected function createFrame($data)
     {
         return new Frame($data);
     }
@@ -38,7 +38,7 @@ class FrameTest extends \PHPUnit_Framework_TestCase
     public function testGetData()
     {
         $data  = md5(microtime());
-        $frame = $this->createResponse($data);
+        $frame = $this->createFrame($data);
         self::assertEquals($data, $frame->data(), 'Get data failed');
         self::assertEquals($data, (string) $frame, 'String casting failed');
     }

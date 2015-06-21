@@ -11,7 +11,6 @@
 namespace Tests\AsyncSockets\Frame;
 
 use AsyncSockets\Frame\FixedLengthFramePicker;
-use AsyncSockets\Frame\FramePickerInterface;
 
 /**
  * Class FixedLengthFramePickerTest
@@ -25,94 +24,46 @@ class FixedLengthFramePickerTest extends AbstractFramePickerTest
     }
 
     /**
-     * testGetters
+     * testFrameProcessing
      *
-     * @param int $length Length of framePicker
-     *
-     * @return void
-     * @dataProvider frameSizeDataProvider
-     */
-    public function testGetters($length)
-    {
-        $frame  = new FixedLengthFramePicker($length);
-
-        self::assertFalse($frame->isEof(), 'Incorrect eof state');
-    }
-
-    /**
-     * testProcessingByFullLength
-     *
-     * @param int $length Length of framePicker Length of framePicker
+     * @param int      $length Length of framePicker Length of framePicker
+     * @param string[] $chunks Chunks with data
+     * @param string   $expectedFrame Data in frame after processing
+     * @param string   $afterFrame Expected data in the end of frame
+     * @param bool     $isEof Eof marker
      *
      * @return void
-     * @depends testGetters
-     * @dataProvider frameSizeDataProvider
+     * @dataProvider frameDataProvider
      */
-    public function testProcessingByFullLength($length)
-    {
-        $picker      = new FixedLengthFramePicker($length);
-        $data        = str_repeat('x', $length);
-        $unprocessed = $picker->pickUpData($data);
-        self::assertEquals($length, strlen((string) $picker->createFrame()));
-        self::assertEmpty($unprocessed);
-        self::assertTrue($picker->isEof(), 'Incorrect eof state');
-    }
-
-    /**
-     * testProcessMoreThanSize
-     *
-     * @param int $length Length of framePicker Length of framePicker
-     *
-     * @return void
-     * @depends testGetters
-     * @dataProvider frameSizeDataProvider
-     */
-    public function testProcessMoreThanSize($length)
-    {
-        $picker      = new FixedLengthFramePicker($length);
-        $chunk       = str_repeat('y', $length);
-        $afterFrame  = str_repeat('x', $length);
-        $unprocessed = $picker->pickUpData($chunk . $afterFrame);
-
-        self::assertEquals($length, strlen((string) $picker->createFrame()), 'Frame length is wrong');
-        self::assertEquals($chunk, (string) $picker->createFrame(), 'Incorrect data inside frame');
-        self::assertEquals($afterFrame, $unprocessed, 'Incorrect data at the end of frame');
-        self::assertTrue($picker->isEof(), 'Incorrect eof state');
-    }
-
-    /**
-     * testOverfill
-     *
-     * @param int $length Length of framePicker Length of framePicker
-     *
-     * @return void
-     * @depends testGetters
-     * @dataProvider frameSizeDataProvider
-     */
-    public function testOverfill($length)
+    public function testFrameProcessing($length, array $chunks, $expectedFrame, $afterFrame, $isEof)
     {
         $picker = new FixedLengthFramePicker($length);
-        $chunk = str_repeat('y', $length);
 
-        for ($i = 0; $i < 5; $i++) {
+        $unprocessed = '';
+        foreach ($chunks as $chunk) {
             $unprocessed = $picker->pickUpData($chunk);
-            self::assertEquals($i === 0 ? '' : $chunk, $unprocessed, 'Processed more than framePicker size');
         }
 
-        self::assertTrue($picker->isEof(), 'Incorrect eof state');
+        $frame = $picker->createFrame();
+        self::assertEquals($expectedFrame, (string) $frame, 'Incorrect frame');
+        self::assertEquals($afterFrame, $unprocessed, 'Incorrect data after frame');
+        self::assertEquals($isEof, $picker->isEof(), 'Incorrect eof state');
     }
 
     /**
-     * frameSizeDataProvider
+     * frameDataProvider
+     *
+     * @param string $targetMethod Target test method
      *
      * @return array
      */
-    public function frameSizeDataProvider()
+    public function frameDataProvider($targetMethod)
     {
-        $result = [];
-        for ($i = 0; $i < 5; $i++) {
-            $result[] = [mt_rand(1024, 4096)];
-        }
-        return $result;
+        return $this->dataProviderFromYaml(
+            __DIR__,
+            __CLASS__,
+            __FUNCTION__,
+            $targetMethod
+        );
     }
 }

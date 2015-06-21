@@ -70,11 +70,11 @@ class PhpFunctionMocker extends AbstractPhpMocker
     /**
      * Set new callable for php function
      *
-     * @param \Closure $function New function
+     * @param callable $function New function
      *
      * @return void
      */
-    public function setCallable(\Closure $function)
+    public function setCallable($function)
     {
         $this->callable = $function;
     }

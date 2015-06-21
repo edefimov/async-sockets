@@ -78,6 +78,7 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
     {
         return $this->dataProviderFromYaml(
             __DIR__,
+            __CLASS__,
             __FUNCTION__,
             $methodName
         );

@@ -58,7 +58,7 @@ abstract class AbstractFramePicker implements FramePickerInterface
         }
 
         $this->frame = null;
-        return $this->doHandleData($chunk, $this->buffer);
+        return (string) $this->doHandleData($chunk, $this->buffer);
     }
 
     /**

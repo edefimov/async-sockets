@@ -17,4 +17,18 @@ $configuration = new Configuration(
     getenv('ASYNC_SOCKETS_CONFIG') ?: 'config.yaml'
 );
 
-include $configuration->cacheDir() . '/phpmocker/autoload.php';
+$cacheFile = $configuration->cacheDir() . '/phpmocker/autoload.php';
+if (!is_file($cacheFile)) {
+    throw new RuntimeException(
+        <<<MESSAGE
+Can not find php mocker cache files. Did you forget to run
+
+php tests/console.php async_sockets:test:warmup
+
+?
+
+MESSAGE
+    );
+}
+
+include_once $cacheFile;

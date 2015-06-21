@@ -57,9 +57,9 @@ class ClientSocket extends AbstractSocket
     protected function doReadData($socket, FramePickerInterface $picker)
     {
         $isEndOfFrame = false;
+        $this->unhandledData = $picker->pickUpData($this->unhandledData);
 
         do {
-            $picker->pickUpData($this->unhandledData);
             if ($this->isFullFrameRead($socket, $picker)) {
                 $isEndOfFrame = true;
                 break;
@@ -73,9 +73,7 @@ class ClientSocket extends AbstractSocket
             }
 
             $actualData          = $this->readActualData($socket);
-            $this->unhandledData = $picker->pickUpData($actualData);
-
-            $isEndOfFrame = !($picker instanceof NullFramePicker) && $picker->isEof();
+            $this->unhandledData = $picker->pickUpData($this->unhandledData . $actualData);
         } while (!$isEndOfFrame);
 
         $frame = $picker->createFrame();
@@ -109,23 +107,27 @@ class ClientSocket extends AbstractSocket
      * Checks whether all framePicker data is read
      *
      * @param resource       $socket Socket resource object
-     * @param FramePickerInterface $frame Frame object to check
+     * @param FramePickerInterface $picker Frame object to check
      *
      * @return bool
      * @throws FrameSocketException If socket data is ended and framePicker eof is not reached
      */
-    private function isFullFrameRead($socket, FramePickerInterface $frame)
+    private function isFullFrameRead($socket, FramePickerInterface $picker)
     {
+        if ($picker->isEof() && !($picker instanceof NullFramePicker)) {
+            return true;
+        }
+
         $read     = [ $socket ];
         $nomatter = null;
         $select   = stream_select($read, $nomatter, $nomatter, 0, self::SELECT_DELAY);
         $this->throwNetworkSocketExceptionIf($select === false, 'Failed to read data.');
 
         if ($select === 0) {
-            if ($frame->isEof()) {
+            if ($picker->isEof()) {
                 return true;
             } else {
-                throw new FrameSocketException($frame, $this, 'Failed to receive desired frame.');
+                throw new FrameSocketException($picker, $this, 'Failed to receive desired picker.');
             }
         }
 

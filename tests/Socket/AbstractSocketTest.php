@@ -12,6 +12,7 @@ namespace Tests\AsyncSockets\Socket;
 
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
+use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
 
 /**
  * Class AbstractSocketTest
@@ -19,7 +20,7 @@ use Tests\AsyncSockets\Mock\PhpFunctionMocker;
  * @SuppressWarnings("unused")
  * @SuppressWarnings("TooManyMethods")
  */
-class AbstractSocketTest extends \PHPUnit_Framework_TestCase
+class AbstractSocketTest extends AbstractTestCase
 {
     /**
      * SocketInterface
@@ -101,26 +102,6 @@ class AbstractSocketTest extends \PHPUnit_Framework_TestCase
         $this->socket->open('it has no meaning here');
         $this->socket->write($testString);
         self::assertEquals($testString, $retString, 'Unexpected result was read');
-    }
-
-    /**
-     * testNothingHappenIfNotSelected
-     *
-     * @return void
-     */
-    public function testNothingHappenIfNotSelected()
-    {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-        $mocker->setCallable(function () {
-            return 0;
-        });
-
-        $this->socket->open('it has no meaning here');
-        self::assertInstanceOf(
-            'AsyncSockets\Frame\FrameInterface',
-            $this->socket->read(),
-            'Strange response'
-        );
     }
 
     /**

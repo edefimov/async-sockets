@@ -18,30 +18,30 @@ use AsyncSockets\Socket\SocketInterface;
 class FrameSocketException extends NetworkSocketException
 {
     /**
-     * Failed framePicker
+     * Failed FramePicker
      *
      * @var FramePickerInterface
      */
-    private $frame;
+    private $picker;
 
     /**
      * Construct the exception.
      *
-     * @param FramePickerInterface  $frame Corrupted framePicker
+     * @param FramePickerInterface  $picker Corrupted framePicker
      * @param SocketInterface $socket Socket object
      * @param string          $message The Exception message to throw.
      * @param int             $code The Exception code.
      * @param \Exception      $previous The previous exception used for the exception chaining.
      */
     public function __construct(
-        FramePickerInterface $frame,
+        FramePickerInterface $picker,
         SocketInterface $socket,
         $message = '',
         $code = 0,
         \Exception $previous = null
     ) {
         parent::__construct($socket, $message, $code, $previous);
-        $this->frame = $frame;
+        $this->picker = $picker;
     }
 
     /**
@@ -49,8 +49,8 @@ class FrameSocketException extends NetworkSocketException
      *
      * @return FramePickerInterface
      */
-    public function getFrame()
+    public function getFramePicker()
     {
-        return $this->frame;
+        return $this->picker;
     }
 }

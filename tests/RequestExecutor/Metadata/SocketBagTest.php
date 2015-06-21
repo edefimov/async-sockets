@@ -42,7 +42,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     private $executor;
 
     /**
-     * MOcked operation
+     * Mocked operation
      *
      * @var OperationInterface
      */
@@ -55,12 +55,14 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
      */
     public function testAddSocket()
     {
+        self::assertCount(0, $this->bag, 'Incorrect initial count');
         $this->bag->addSocket(
             $this->socket,
             $this->operation,
             [ ],
             $this->getMock('AsyncSockets\RequestExecutor\EventHandlerInterface')
         );
+        self::assertCount(1, $this->bag, 'Count haven\'t changed');
     }
 
     /**

@@ -11,7 +11,6 @@
 namespace Tests\AsyncSockets\Socket;
 
 use AsyncSockets\Socket\AsyncSocketFactory;
-use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
 /**
  * Class AsyncSocketFactoryTest
