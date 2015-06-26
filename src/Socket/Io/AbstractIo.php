@@ -9,7 +9,10 @@
  */
 namespace AsyncSockets\Socket\Io;
 
+use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -63,5 +66,38 @@ abstract class AbstractIo implements IoInterface
         if ($condition) {
             throw new NetworkSocketException($this->socket, $message);
         }
+    }
+
+    /**
+     * Checks whether all framePicker data is read
+     *
+     * @param resource       $socket Socket resource object
+     * @param FramePickerInterface $picker Frame object to check
+     *
+     * @return bool
+     * @throws FrameSocketException If socket data is ended and framePicker eof is not reached
+     */
+    protected function isFullFrameRead($socket, FramePickerInterface $picker)
+    {
+        if ($picker->isEof() && !($picker instanceof NullFramePicker)) {
+            return true;
+        }
+
+        $read     = [ $socket ];
+        $nomatter = null;
+        $select   = stream_select($read, $nomatter, $nomatter, 0, self::SELECT_DELAY);
+        if ($select === false) {
+            throw new NetworkSocketException($this->socket, 'Failed to read data.');
+        }
+
+        if ($select === 0) {
+            if ($picker->isEof()) {
+                return true;
+            } else {
+                throw new FrameSocketException($picker, $this->socket, 'Failed to receive desired picker.');
+            }
+        }
+
+        return false;
     }
 }

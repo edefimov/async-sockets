@@ -37,7 +37,7 @@ class PipelineFactory
         return new Pipeline(
             new ConnectStage($executor, $eventCaller, $limitationDecider),
             [
-                new GetExcludedOperationsStage(
+                new ExcludedOperationsStage(
                     $executor,
                     $eventCaller,
                     [

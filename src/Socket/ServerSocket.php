@@ -11,6 +11,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Socket\Io\TcpServerIo;
+use AsyncSockets\Socket\Io\UdpServerIo;
 
 /**
  * Class ServerSocket
@@ -20,11 +21,12 @@ class ServerSocket extends AbstractSocket
     /** {@inheritdoc} */
     protected function createSocketResource($address, $context)
     {
+        $type = parse_url($address, PHP_URL_SCHEME);
         $resource = stream_socket_server(
             $address,
             $errno,
             $errstr,
-            STREAM_SERVER_BIND | STREAM_SERVER_LISTEN,
+            $this->getServerFlagsByType($type),
             $context
         );
 
@@ -35,12 +37,33 @@ class ServerSocket extends AbstractSocket
         return $resource;
     }
 
+    /**
+     * Return flags for connection
+     *
+     * @param string $scheme Socket type being created
+     *
+     * @return int
+     */
+    private function getServerFlagsByType($scheme)
+    {
+        $connectionLessMap = [
+            'udp' => 1,
+            'udg' => 1,
+        ];
+
+        return isset($connectionLessMap[ $scheme ]) ?
+            STREAM_SERVER_BIND :
+            STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
+    }
+
     /** {@inheritdoc} */
-    protected function createIoInterface($type)
+    protected function createIoInterface($type, $address)
     {
         switch ($type) {
             case self::SOCKET_TYPE_TCP:
                 return new TcpServerIo($this);
+            case self::SOCKET_TYPE_UDP:
+                return new UdpServerIo($this);
             default:
                 throw new \LogicException("Unsupported socket resource type {$type}");
         }

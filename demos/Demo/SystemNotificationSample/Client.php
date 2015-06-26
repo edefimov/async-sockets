@@ -9,7 +9,6 @@
  */
 namespace Demo\SystemNotificationSample;
 
-use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\WriteEvent;

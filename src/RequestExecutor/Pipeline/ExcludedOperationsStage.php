@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
- * Class GetExcludedOperationsStage
+ * Class ExcludedOperationsStage
  */
-class GetExcludedOperationsStage extends AbstractStage
+class ExcludedOperationsStage extends AbstractStage
 {
     /**
      * Stages for processing successful operations

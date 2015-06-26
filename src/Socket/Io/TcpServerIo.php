@@ -10,7 +10,6 @@
 namespace AsyncSockets\Socket\Io;
 
 use AsyncSockets\Exception\AcceptException;
-use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\AcceptedSocket;
@@ -18,7 +17,7 @@ use AsyncSockets\Socket\AcceptedSocket;
 /**
  * Class TcpServerIo
  */
-class TcpServerIo extends AbstractIo
+class TcpServerIo extends AbstractServerIo
 {
     /** {@inheritdoc} */
     public function read(FramePickerInterface $picker)
@@ -32,11 +31,5 @@ class TcpServerIo extends AbstractIo
             $peerName ?: '',
             new AcceptedSocket($client)
         );
-    }
-
-    /** {@inheritdoc} */
-    public function write($data)
-    {
-        throw new NetworkSocketException($this->socket, 'Can not write data to tcp server socket.');
     }
 }

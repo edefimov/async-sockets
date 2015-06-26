@@ -12,6 +12,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Socket\Io\TcpClientIo;
+use AsyncSockets\Socket\Io\UdpClientIo;
 
 /**
  * Class ClientSocket
@@ -38,11 +39,13 @@ class ClientSocket extends AbstractSocket
     }
 
     /** {@inheritdoc} */
-    protected function createIoInterface($type)
+    protected function createIoInterface($type, $address)
     {
         switch ($type) {
             case self::SOCKET_TYPE_TCP:
                 return new TcpClientIo($this);
+            case self::SOCKET_TYPE_UDP:
+                return new UdpClientIo($this, $address);
             default:
                 throw new \LogicException("Unsupported socket resource type {$type}");
         }

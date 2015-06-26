@@ -51,7 +51,7 @@ class TcpServerIoTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
-     * @expectedExceptionMessage Can not write data to tcp server socket.
+     * @expectedExceptionMessage Can not write data to tcp/udp server socket.
      */
     public function testCantWriteToServerSocket()
     {

@@ -12,8 +12,10 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
+use AsyncSockets\Socket\UdpClientSocket;
 
 /**
  * Class SelectStageAbstract
@@ -43,9 +45,15 @@ class SelectStage extends AbstractTimeAwareStage
     /** {@inheritdoc} */
     public function processStage(array $operations)
     {
+        $this->initLastIoOperationInfo($operations);
+        $udpOperations = $this->findConnectionLessSockets($operations);
+        if ($udpOperations) {
+            // do not perform actual select, since these operations must be processed immediately
+            return $udpOperations;
+        }
+
         /** @var OperationMetadata[] $operations */
         foreach ($operations as $operation) {
-            $this->setSocketOperationTime($operation, RequestExecutorInterface::META_LAST_IO_START_TIME);
             $this->selector->addSocketOperation(
                 $operation,
                 $operation->getOperation()->getType()
@@ -67,6 +75,21 @@ class SelectStage extends AbstractTimeAwareStage
     }
 
     /**
+     * Initialize information about last I/O operation
+     *
+     * @param OperationMetadata[] $operations List of operations to apply
+     *
+     * @return void
+     */
+    private function initLastIoOperationInfo(array $operations)
+    {
+        /** @var OperationMetadata[] $operations */
+        foreach ($operations as $operation) {
+            $this->setSocketOperationTime($operation, RequestExecutorInterface::META_LAST_IO_START_TIME);
+        }
+    }
+
+    /**
      * Calculate selector timeout according to given array of active socket keys
      *
      * @param OperationMetadata[] $activeOperations Active socket keys
@@ -78,28 +101,28 @@ class SelectStage extends AbstractTimeAwareStage
         $result    = [ 'sec' => 0, 'microsec' => 0 ];
         $timeList  = [];
         $microtime = microtime(true);
-        foreach ($activeOperations as $activeOperation) {
-            $timeout = $this->getSingleSocketTimeout($activeOperation, $microtime);
 
-            if ($timeout > 0 || $timeout === null) {
+        $hasInfiniteTimeout = false;
+        foreach ($activeOperations as $activeOperation) {
+            $timeout            = $this->getSingleSocketTimeout($activeOperation, $microtime);
+            $hasInfiniteTimeout = $hasInfiniteTimeout || $timeout === null;
+            if ($timeout > 0) {
                 $timeList[] = $timeout;
             }
         }
 
+        $timeList = array_filter($timeList);
         if ($timeList) {
-            $timeList = array_filter($timeList);
-            if ($timeList) {
-                $timeout = min($timeList);
-                $result = [
-                    'sec'      => (int) floor($timeout),
-                    'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000,
-                ];
-            } else {
-                $result = [
-                    'sec'      => null,
-                    'microsec' => null,
-                ];
-            }
+            $timeout = min($timeList);
+            $result = [
+                'sec'      => (int) floor($timeout),
+                'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000,
+            ];
+        } elseif ($hasInfiniteTimeout) {
+            $result = [
+                'sec'      => null,
+                'microsec' => null,
+            ];
         }
 
         return $result;
@@ -125,5 +148,27 @@ class SelectStage extends AbstractTimeAwareStage
         return $lastOperationTime === null ?
             $desiredTimeout :
             $desiredTimeout - ($microTime - $lastOperationTime);
+    }
+
+    /**
+     * Find operations with UdpClientSocket and return them as result
+     *
+     * @param OperationMetadata[] $operations List of all operations
+     *
+     * @return OperationMetadata[] List of udp "clients"
+     */
+    private function findConnectionLessSockets(array $operations)
+    {
+        $result = [];
+        foreach ($operations as $operation) {
+            $isWithoutConnection = $operation->getSocket() instanceof UdpClientSocket &&
+                                   $operation->getOperation() instanceof ReadOperation;
+
+            if ($isWithoutConnection) {
+                $result[] = $operation;
+            }
+        }
+
+        return $result;
     }
 }

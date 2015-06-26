@@ -93,17 +93,21 @@ abstract class AbstractSocket implements SocketInterface
      * Create I/O interface for socket
      *
      * @param string $type Type of this socket, one of SOCKET_TYPE_* consts
+     * @param string $address Address passed to open method
      *
      * @return IoInterface
      */
-    abstract protected function createIoInterface($type);
+    abstract protected function createIoInterface($type, $address);
 
     /** {@inheritdoc} */
     public function open($address, $context = null)
     {
         $this->close();
 
-        $this->resource = $this->createSocketResource($address, $context ?: stream_context_get_default());
+        $this->resource = $this->createSocketResource(
+            $address,
+            $context ?: stream_context_get_default()
+        );
 
         $result = false;
         if (is_resource($this->resource)) {
@@ -116,7 +120,8 @@ abstract class AbstractSocket implements SocketInterface
             }
 
             $this->ioInterface = $this->createIoInterface(
-                $this->resolveSocketType()
+                $this->resolveSocketType(),
+                $address
             );
         }
 
