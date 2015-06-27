@@ -31,7 +31,7 @@ class WarmupCommand extends Command
                 null,
                 InputOption::VALUE_OPTIONAL,
                 'Path to config file relative to library root dir',
-                'config.yaml'
+                'config.yml'
             );
     }
 

@@ -11,7 +11,7 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Socket\Io\TcpClientIo;
+use AsyncSockets\Socket\Io\StreamedClientIo;
 use AsyncSockets\Socket\Io\UdpClientIo;
 
 /**
@@ -42,8 +42,12 @@ class ClientSocket extends AbstractSocket
     protected function createIoInterface($type, $address)
     {
         switch ($type) {
+            case self::SOCKET_TYPE_UNIX:
+                return new StreamedClientIo($this);
             case self::SOCKET_TYPE_TCP:
-                return new TcpClientIo($this);
+                return new StreamedClientIo($this);
+            case self::SOCKET_TYPE_UDG:
+                return new UdpClientIo($this, null);
             case self::SOCKET_TYPE_UDP:
                 return new UdpClientIo($this, $address);
             default:

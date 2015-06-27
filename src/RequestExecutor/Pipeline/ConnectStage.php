@@ -157,12 +157,10 @@ class ConnectStage extends AbstractTimeAwareStage
             $this->setSocketOperationTime($item, RequestExecutorInterface::META_CONNECTION_START_TIME);
             $socket->setBlocking(false);
 
-            if (!$socket->getStreamResource()) {
-                $socket->open(
-                    $meta[ RequestExecutorInterface::META_ADDRESS ],
-                    $this->getStreamContextFromMetaData($meta)
-                );
-            }
+            $socket->open(
+                $meta[ RequestExecutorInterface::META_ADDRESS ],
+                $this->getStreamContextFromMetaData($meta)
+            );
 
             $item->setRunning(true);
         } catch (SocketException $e) {

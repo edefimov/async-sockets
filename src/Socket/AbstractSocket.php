@@ -38,6 +38,11 @@ abstract class AbstractSocket implements SocketInterface
     const SOCKET_TYPE_UNIX = 'unix';
 
     /**
+     * Unix datagram socket type
+     */
+    const SOCKET_TYPE_UDG = 'udg';
+
+    /**
      * Unknown type of socket
      */
     const SOCKET_TYPE_UNKNOWN = '';
@@ -204,10 +209,13 @@ abstract class AbstractSocket implements SocketInterface
         $map   = [
             'tcp'  => self::SOCKET_TYPE_TCP,
             'udp'  => self::SOCKET_TYPE_UDP,
+            'udg'  => self::SOCKET_TYPE_UDG,
             'unix' => self::SOCKET_TYPE_UNIX,
         ];
+
+        $regexp = '#^('. implode('|', array_keys($map)) . ')_socket$#';
         foreach ($parts as $part) {
-            if (preg_match('#^(tcp|udp|unix)_socket$#', $part, $pockets)) {
+            if (preg_match($regexp, $part, $pockets)) {
                 return $map[$pockets[1]];
             }
         }

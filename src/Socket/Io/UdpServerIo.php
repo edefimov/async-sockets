@@ -14,6 +14,7 @@ use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\UdpClientSocket;
 
 /**
@@ -21,6 +22,25 @@ use AsyncSockets\Socket\UdpClientSocket;
  */
 class UdpServerIo extends AbstractIo
 {
+    /**
+     * Flag whether it is local file socket
+     *
+     * @var bool
+     */
+    private $isLocalIo;
+
+    /**
+     * UdpServerIo constructor.
+     *
+     * @param SocketInterface $socket Socket object
+     * @param bool            $isLocal Flag, whether it is local socket
+     */
+    public function __construct(SocketInterface $socket, $isLocal)
+    {
+        parent::__construct($socket);
+        $this->isLocalIo = $isLocal;
+    }
+
     /** {@inheritdoc} */
     public function read(FramePickerInterface $picker)
     {
@@ -31,7 +51,7 @@ class UdpServerIo extends AbstractIo
             $remoteAddress
         );
 
-        if (!$remoteAddress) {
+        if (!$remoteAddress && !$this->isLocalIo) {
             if ($data) {
                 stream_socket_recvfrom(
                     $this->socket->getStreamResource(),
@@ -41,7 +61,7 @@ class UdpServerIo extends AbstractIo
             throw new AcceptException($this->socket, 'Can not accept client.');
         }
 
-        $reader = new UdpClientIo($this->socket, $remoteAddress);
+        $reader = new UdpClientIo($this->socket, $this->isLocalIo ? null : $remoteAddress);
         return new AcceptedFrame(
             $remoteAddress,
             new UdpClientSocket(

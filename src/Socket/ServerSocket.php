@@ -10,7 +10,7 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Socket\Io\TcpServerIo;
+use AsyncSockets\Socket\Io\StreamedServerIo;
 use AsyncSockets\Socket\Io\UdpServerIo;
 
 /**
@@ -21,7 +21,7 @@ class ServerSocket extends AbstractSocket
     /** {@inheritdoc} */
     protected function createSocketResource($address, $context)
     {
-        $type = parse_url($address, PHP_URL_SCHEME);
+        $type     = $this->getSocketScheme($address);
         $resource = stream_socket_server(
             $address,
             $errno,
@@ -35,6 +35,23 @@ class ServerSocket extends AbstractSocket
         }
 
         return $resource;
+    }
+
+    /**
+     * Return socket scheme
+     *
+     * @param string $address Address in form scheme://host:port
+     *
+     * @return string|null
+     */
+    private function getSocketScheme($address)
+    {
+        $pos = strpos($address, '://');
+        if ($pos === false) {
+            return null;
+        }
+
+        return substr($address, 0, $pos);
     }
 
     /**
@@ -60,10 +77,14 @@ class ServerSocket extends AbstractSocket
     protected function createIoInterface($type, $address)
     {
         switch ($type) {
+            case self::SOCKET_TYPE_UNIX:
+                return new StreamedServerIo($this);
             case self::SOCKET_TYPE_TCP:
-                return new TcpServerIo($this);
+                return new StreamedServerIo($this);
+            case self::SOCKET_TYPE_UDG:
+                return new UdpServerIo($this, true);
             case self::SOCKET_TYPE_UDP:
-                return new UdpServerIo($this);
+                return new UdpServerIo($this, false);
             default:
                 throw new \LogicException("Unsupported socket resource type {$type}");
         }

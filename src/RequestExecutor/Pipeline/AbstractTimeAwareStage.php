@@ -24,10 +24,10 @@ abstract class AbstractTimeAwareStage extends AbstractStage
      *
      * @return bool
      */
-    private function isUseConnectionTimeout(OperationMetadata $operation)
+    protected function hasConnected(OperationMetadata $operation)
     {
         $meta = $operation->getMetadata();
-        return $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] === null;
+        return $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] !== null;
     }
 
     /**
@@ -40,7 +40,7 @@ abstract class AbstractTimeAwareStage extends AbstractStage
     protected function timeoutSetting(OperationMetadata $operation)
     {
         $meta = $operation->getMetadata();
-        return $this->isUseConnectionTimeout($operation) ?
+        return !$this->hasConnected($operation) ?
             $meta[ RequestExecutorInterface::META_CONNECTION_TIMEOUT ] :
             $meta[ RequestExecutorInterface::META_IO_TIMEOUT ];
     }
@@ -55,7 +55,7 @@ abstract class AbstractTimeAwareStage extends AbstractStage
     protected function timeSinceLastIo(OperationMetadata $operation)
     {
         $meta = $operation->getMetadata();
-        return $this->isUseConnectionTimeout($operation) ?
+        return !$this->hasConnected($operation) ?
             $meta[ RequestExecutorInterface::META_CONNECTION_START_TIME ] :
             $meta[ RequestExecutorInterface::META_LAST_IO_START_TIME ];
     }

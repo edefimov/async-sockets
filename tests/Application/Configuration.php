@@ -34,7 +34,7 @@ class Configuration
      * Configuration constructor.
      *
      * @param string $libraryRoot Root directory
-     * @param string $fileName Path to config.yaml relative to library root
+     * @param string $fileName Path to config.yml relative to library root
      */
     public function __construct($libraryRoot, $fileName)
     {

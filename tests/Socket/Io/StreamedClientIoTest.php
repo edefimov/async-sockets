@@ -11,18 +11,18 @@
 namespace Tests\AsyncSockets\Socket\Io;
 
 use AsyncSockets\Socket\ClientSocket;
-use AsyncSockets\Socket\Io\TcpClientIo;
+use AsyncSockets\Socket\Io\StreamedClientIo;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
 /**
- * Class TcpClientIoTest
+ * Class StreamedClientIoTest
  */
-class TcpClientIoTest extends \PHPUnit_Framework_TestCase
+class StreamedClientIoTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Test object
      *
-     * @var TcpClientIo
+     * @var StreamedClientIo
      */
     private $object;
 
@@ -78,7 +78,7 @@ class TcpClientIoTest extends \PHPUnit_Framework_TestCase
 
 
         $socket = new ClientSocket();
-        $object = new TcpClientIo($socket);
+        $object = new StreamedClientIo($socket);
         $socket->open('no matter');
         foreach ($methodCalls as $methodCall) {
             call_user_func_array([$object, $methodCall[0]], $methodCall[1]);
@@ -278,7 +278,7 @@ class TcpClientIoTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->object = new TcpClientIo(new ClientSocket());
+        $this->object = new StreamedClientIo(new ClientSocket());
         PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->setCallable(
             function ($resource) {
                 $data = \stream_get_meta_data($resource);

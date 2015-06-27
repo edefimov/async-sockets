@@ -14,7 +14,7 @@ use Tests\AsyncSockets\Application\Configuration;
 
 $configuration = new Configuration(
     __DIR__ . '/..',
-    getenv('ASYNC_SOCKETS_CONFIG') ?: 'config.yaml'
+    getenv('ASYNC_SOCKETS_CONFIG') ?: 'config.yml'
 );
 
 $cacheFile = $configuration->cacheDir() . '/phpmocker/autoload.php';

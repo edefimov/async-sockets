@@ -65,7 +65,7 @@ abstract class AbstractTestCase extends \PHPUnit_Framework_TestCase
     protected function dataProviderFromYaml($dir, $className, $section, $targetMethod)
     {
         $substr    = substr($className, strrpos($className, '\\') + 1);
-        $fileName  = $dir . '/data/' . $substr . '.yaml';
+        $fileName  = $dir . '/data/' . $substr . '.yml';
         $parser    = new Parser();
         $yaml      = $parser->parse(file_get_contents($fileName), true, true, true);
         if (!$yaml) {

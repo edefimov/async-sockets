@@ -10,9 +10,9 @@
 namespace AsyncSockets\Socket\Io;
 
 /**
- * Class TcpClientIo
+ * Class StreamedClientIo
  */
-class TcpClientIo extends AbstractClientIo
+class StreamedClientIo extends AbstractClientIo
 {
     /** {@inheritdoc} */
     protected function readRawData()

@@ -11,19 +11,19 @@
 namespace Tests\AsyncSockets\Socket\Io;
 
 use AsyncSockets\Frame\AcceptedFrame;
-use AsyncSockets\Socket\Io\TcpServerIo;
+use AsyncSockets\Socket\Io\StreamedServerIo;
 use AsyncSockets\Socket\ServerSocket;
 use Tests\AsyncSockets\Mock\PhpFunctionMocker;
 
 /**
- * Class TcpServerIoTest
+ * Class StreamedServerIoTest
  */
-class TcpServerIoTest extends \PHPUnit_Framework_TestCase
+class StreamedServerIoTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * TcpServerIo
+     * StreamedServerIo
      *
-     * @var TcpServerIo
+     * @var StreamedServerIo
      */
     private $object;
 
@@ -92,7 +92,7 @@ class TcpServerIoTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->object = new TcpServerIo(new ServerSocket());
+        $this->object = new StreamedServerIo(new ServerSocket());
 
         PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->setCallable(
             function ($resource) {

@@ -15,9 +15,9 @@ use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\AcceptedSocket;
 
 /**
- * Class TcpServerIo
+ * Class StreamedServerIo
  */
-class TcpServerIo extends AbstractServerIo
+class StreamedServerIo extends AbstractServerIo
 {
     /** {@inheritdoc} */
     public function read(FramePickerInterface $picker)

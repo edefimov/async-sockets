@@ -9,7 +9,7 @@ php:
   - hhvm
 
 env:
-  - ASYNC_SOCKETS_CONFIG=tests/travis/config.yaml
+  - ASYNC_SOCKETS_CONFIG=tests/travis/config.yml
 
 before_install:
   - composer self-update

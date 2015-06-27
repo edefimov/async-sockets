@@ -27,13 +27,16 @@ class UdpClientIo extends AbstractClientIo
      * Constructor
      *
      * @param SocketInterface $socket Socket object
-     * @param string          $remoteAddress Destination address in form scheme://host:port
+     * @param string|null     $remoteAddress Destination address in form scheme://host:port or null for local files io
      */
     public function __construct(SocketInterface $socket, $remoteAddress)
     {
         parent::__construct($socket);
-        $components          = parse_url($remoteAddress);
-        $this->remoteAddress = $components['host'] . ':' . $components['port'];
+        if ($remoteAddress) {
+            $components = parse_url($remoteAddress);
+            $this->remoteAddress = $components['host'] . ':' . $components['port'];
+        }
+        $this->remoteAddress = substr($remoteAddress, 6);
     }
 
     /** {@inheritdoc} */
@@ -43,7 +46,7 @@ class UdpClientIo extends AbstractClientIo
         $resource = $this->socket->getStreamResource();
         do {
             $data = stream_socket_recvfrom($resource, $size, MSG_PEEK, $actualRemoteAddress);
-            if ($actualRemoteAddress !== $this->remoteAddress) {
+            if ($this->remoteAddress && $actualRemoteAddress !== $this->remoteAddress) {
                 return '';
             }
 
