@@ -84,10 +84,8 @@ class ConnectStage extends AbstractTimeAwareStage
         }
 
         $meta           = $operationMetadata->getMetadata();
-        $isSkippingThis = (
-            $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] !== null ||
-            $meta[RequestExecutorInterface::META_REQUEST_COMPLETE]
-        );
+        $isSkippingThis = $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] !== null;
+
         if ($isSkippingThis) {
             return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
