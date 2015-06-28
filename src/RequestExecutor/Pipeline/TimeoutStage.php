@@ -53,8 +53,14 @@ class TimeoutStage extends AbstractTimeAwareStage
     {
         $desiredTimeout    = $this->timeoutSetting($operation);
         $lastOperationTime = $this->timeSinceLastIo($operation);
+        $hasConnected      = $this->hasConnected($operation);
 
         return ($desiredTimeout !== RequestExecutorInterface::WAIT_FOREVER) &&
-               ($microTime - $lastOperationTime > $desiredTimeout);
+               (
+                   ($hasConnected && $lastOperationTime !== null) ||
+                   !$hasConnected
+               ) &&
+               ($microTime - $lastOperationTime >= $desiredTimeout)
+               ;
     }
 }

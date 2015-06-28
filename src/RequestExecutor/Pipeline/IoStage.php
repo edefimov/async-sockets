@@ -173,7 +173,7 @@ class IoStage extends AbstractTimeAwareStage
         $operationMetadata->setOperation($nextOperation);
         $operationMetadata->setMetadata(
             [
-                RequestExecutorInterface::META_LAST_IO_START_TIME => microtime(true),
+                RequestExecutorInterface::META_LAST_IO_START_TIME => null,
             ]
         );
 

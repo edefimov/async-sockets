@@ -10,7 +10,6 @@
 namespace Demo;
 
 use AsyncSockets\Event\AcceptEvent;
-use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
