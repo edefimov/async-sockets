@@ -12,12 +12,14 @@ namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
+use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
 
 /**
  * Class AbstractStageTest
  */
-abstract class AbstractStageTest extends \PHPUnit_Framework_TestCase
+abstract class AbstractStageTest extends AbstractTestCase
 {
     /**
      * Executor
@@ -33,6 +35,20 @@ abstract class AbstractStageTest extends \PHPUnit_Framework_TestCase
      */
     protected $eventCaller;
 
+    /**
+     * Test object
+     *
+     * @var PipelineStageInterface
+     */
+    protected $stage;
+
+    /**
+     * Create test object
+     *
+     * @return PipelineStageInterface
+     */
+    abstract protected function createStage();
+
     /** {@inheritdoc} */
     protected function setUp()
     {
@@ -40,9 +56,10 @@ abstract class AbstractStageTest extends \PHPUnit_Framework_TestCase
         $this->executor    = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\RequestExecutorInterface');
         $this->eventCaller = $this->getMock(
             'AsyncSockets\RequestExecutor\Pipeline\EventCaller',
-            [ 'callExceptionSubscribers' ],
+            [ 'callExceptionSubscribers', 'callSocketSubscribers' ],
             [ $this->executor ]
         );
+        $this->stage       = $this->createStage();
     }
 
     /**
@@ -66,7 +83,7 @@ abstract class AbstractStageTest extends \PHPUnit_Framework_TestCase
     {
         $operationMetadata = $this->getMock(
             'AsyncSockets\RequestExecutor\Metadata\OperationMetadata',
-            ['initialize', 'getMetadata', 'setMetadata', 'setRunning', 'getSocket', 'isRunning'],
+            ['initialize', 'getMetadata', 'setMetadata', 'setRunning', 'getSocket', 'isRunning', 'getOperation'],
             [ ],
             '',
             false

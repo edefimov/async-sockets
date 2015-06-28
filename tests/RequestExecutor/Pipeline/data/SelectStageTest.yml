@@ -1,0 +1,99 @@
+timeoutDataProvider:
+    - #0 check connection timeout for one socket
+        expectedSeconds: 100
+        expectedMicroseconds: 300
+        sockets:
+            -
+                META_CONNECTION_TIMEOUT: 100.0003
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: 1
+                META_LAST_IO_START_TIME: ~
+    - #1 check connection timeout for mutiple sockets
+        expectedSeconds: 1
+        expectedMicroseconds: 3
+        sockets:
+            -
+                META_CONNECTION_TIMEOUT: 100.0003
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: 1
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 2.4
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: 1
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 1.000003
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: 1
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 5.000001
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: 1
+                META_LAST_IO_START_TIME: ~
+    - #2 check I/O timeout for one socket
+        expectedSeconds: 100
+        expectedMicroseconds: 300
+        sockets:
+            -
+                META_CONNECTION_TIMEOUT: 20.03
+                META_CONNECTION_FINISH_TIME: 100
+                META_IO_TIMEOUT: 100.0003
+                META_LAST_IO_START_TIME: ~
+    - #3 check I/O timeout for mutiple sockets
+        expectedSeconds: 1
+        expectedMicroseconds: 3
+        sockets:
+            -
+                META_CONNECTION_TIMEOUT: 0
+                META_CONNECTION_FINISH_TIME: 1
+                META_IO_TIMEOUT: 100.0003
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 0
+                META_CONNECTION_FINISH_TIME: 1
+                META_IO_TIMEOUT: 2.4
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 0
+                META_CONNECTION_FINISH_TIME: 1
+                META_IO_TIMEOUT: 1.000003
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 0
+                META_CONNECTION_FINISH_TIME: 1
+                META_IO_TIMEOUT: 5.000001
+                META_LAST_IO_START_TIME: ~
+    - #4 wait forever test for connection
+        expectedSeconds: ~
+        expectedMicroseconds: ~
+        sockets:
+            -
+                META_CONNECTION_TIMEOUT: ~
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: 1
+                META_LAST_IO_START_TIME: 1
+    - #5 wait forever test for I/O
+        expectedSeconds: ~
+        expectedMicroseconds: ~
+        sockets:
+            -
+                META_CONNECTION_TIMEOUT: 1
+                META_CONNECTION_FINISH_TIME: 1
+                META_IO_TIMEOUT: ~
+                META_LAST_IO_START_TIME: ~
+    - #6 incorrect timeout is treated like 0
+        expectedSeconds: 0
+        expectedMicroseconds: 0
+        sockets:
+            -
+                META_CONNECTION_TIMEOUT: -1
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: ~
+                META_LAST_IO_START_TIME: ~
+    - #7 no sockets - zero timeout
+        expectedSeconds: 0
+        expectedMicroseconds: 0
+        sockets: []
+

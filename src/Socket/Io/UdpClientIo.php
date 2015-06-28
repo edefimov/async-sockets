@@ -36,7 +36,6 @@ class UdpClientIo extends AbstractClientIo
             $components = parse_url($remoteAddress);
             $this->remoteAddress = $components['host'] . ':' . $components['port'];
         }
-        $this->remoteAddress = substr($remoteAddress, 6);
     }
 
     /** {@inheritdoc} */

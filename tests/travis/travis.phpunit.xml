@@ -18,6 +18,7 @@
                 <directory>./../../tests</directory>
                 <directory>./../../vendor</directory>
                 <directory>./../../demos</directory>
+                <directory>./../../build</directory>
             </exclude>
         </whitelist>
     </filter>

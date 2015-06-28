@@ -19,6 +19,7 @@
                 <directory>./vendor</directory>
                 <directory>./bin</directory>
                 <directory>./demos</directory>
+                <directory>./build</directory>
             </exclude>
         </whitelist>
     </filter>
