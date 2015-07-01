@@ -51,7 +51,7 @@ interface RequestExecutorInterface
 
     /**
      * Address to connect for socket. Has meaning only while execute process hasn't started. If this key is
-     * specified, you can omit processing of EventType::OPEN event
+     * specified, you can omit processing of EventType::INITIALIZE event
      *
      * @see EventType::INITIALIZE
      */

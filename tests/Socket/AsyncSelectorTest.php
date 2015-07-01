@@ -109,7 +109,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     /**
      * testAddSocketArrayWithInvalidArrayStructure
      *
-     * @param array $socketData Socket add data
+     * @param array $socketData Socket add getData
      *
      * @return void
      * @depends testSelectReadWrite

@@ -98,10 +98,10 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 false,
                 true,
                 true,
-                [ 'data', '__toString' ]
+                [ 'getData', '__toString' ]
             );
 
-            $mock->expects(self::any())->method('data')->willReturn('');
+            $mock->expects(self::any())->method('getData')->willReturn('');
             $mock->expects(self::any())->method('__toString')->willReturn('');
             return $mock;
         });

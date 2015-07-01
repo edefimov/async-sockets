@@ -65,7 +65,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
                         $event->nextIsRead();
                     },
                     EventType::READ => function (ReadEvent $event) {
-                        $output = strtolower($event->getFrame()->data());
+                        $output = strtolower($event->getFrame()->getData());
                         $meta   = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
                         self::assertTrue(
                             strpos($output, '</html>') !== false,

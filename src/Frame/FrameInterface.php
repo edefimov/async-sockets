@@ -19,7 +19,7 @@ interface FrameInterface
      *
      * @return string
      */
-    public function data();
+    public function getData();
 
     /**
      * Standard php __toString method, should return the same result as getData

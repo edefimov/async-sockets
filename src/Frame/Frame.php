@@ -32,7 +32,7 @@ class Frame implements FrameInterface
     }
 
     /** {@inheritdoc} */
-    public function data()
+    public function getData()
     {
         return $this->data;
     }
@@ -40,6 +40,6 @@ class Frame implements FrameInterface
     /** {@inheritdoc} */
     public function __toString()
     {
-        return $this->data();
+        return $this->getData();
     }
 }

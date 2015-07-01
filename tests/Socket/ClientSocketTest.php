@@ -135,7 +135,7 @@ class ClientSocketTest extends AbstractSocketTest
         );
 
         $this->socket->open('it has no meaning here');
-        $retString = $this->socket->read()->data();
+        $retString = $this->socket->read()->getData();
         self::assertEquals($testString, $retString, 'Unexpected result was read');
     }
 

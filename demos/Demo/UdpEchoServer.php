@@ -120,7 +120,7 @@ class UdpEchoServer extends Command
             $this->clientHandlers = new CallbackEventHandler(
                 [
                     EventType::READ => function (ReadEvent $event) use ($output) {
-                        $request       = $event->getFrame()->data();
+                        $request       = $event->getFrame()->getData();
                         $remoteAddress = $event->getContext();
                         $output->writeln($remoteAddress . ' sent: ' . $request);
                         $event->nextIsWrite('Echo: ' . $request);

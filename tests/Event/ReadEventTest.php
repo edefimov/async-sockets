@@ -75,7 +75,7 @@ class ReadEventTest extends IoEventTest
     {
         return [
             [ new Frame(''), false ],
-            [ new PartialFrame(''), true ],
+            [ new PartialFrame(new Frame('')), true ],
         ];
     }
 

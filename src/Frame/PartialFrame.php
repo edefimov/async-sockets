@@ -26,15 +26,15 @@ class PartialFrame implements FrameInterface
      *
      * @param FrameInterface $original Original frame
      */
-    public function __construct($original)
+    public function __construct(FrameInterface $original)
     {
         $this->original = $original;
     }
 
     /** {@inheritdoc} */
-    public function data()
+    public function getData()
     {
-        return $this->original->data();
+        return $this->original->getData();
     }
 
     /** {@inheritdoc} */

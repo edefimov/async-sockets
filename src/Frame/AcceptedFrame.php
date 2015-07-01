@@ -43,7 +43,7 @@ class AcceptedFrame implements FrameInterface
     }
 
     /** {@inheritdoc} */
-    public function data()
+    public function getData()
     {
         return $this->clientAddress;
     }

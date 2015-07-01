@@ -39,7 +39,7 @@ class FrameTest extends \PHPUnit_Framework_TestCase
     {
         $data  = md5(microtime());
         $frame = $this->createFrame($data);
-        self::assertEquals($data, $frame->data(), 'Get data failed');
+        self::assertEquals($data, $frame->getData(), 'Get data failed');
         self::assertEquals($data, (string) $frame, 'String casting failed');
     }
 }

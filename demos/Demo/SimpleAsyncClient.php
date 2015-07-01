@@ -157,7 +157,7 @@ final class SimpleAsyncClient extends Command
             if (!($frame instanceof PartialFrame)) {
                 $result += 1;
                 $output->writeln("<info>Response from {$data[$hash]['address']}</info>");
-                $output->writeln($frame->data() . "\n");
+                $output->writeln($frame->getData() . "\n");
                 $selector->removeAllSocketOperations($socket);
             } else {
                 $data[ spl_object_hash($socket) ][ 'lastResponse' ] .= (string) $frame;

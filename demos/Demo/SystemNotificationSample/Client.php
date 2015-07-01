@@ -125,7 +125,7 @@ class Client
         $context = $event->getContext();
         $socket  = $event->getSocket();
 
-        $this->output->writeln("<info>Received headers</info>: \n\n" . $event->getFrame()->data());
+        $this->output->writeln("<info>Received headers</info>: \n\n" . $event->getFrame()->getData());
 
         $event->getExecutor()->socketBag()->setSocketMetaData(
             $socket,
