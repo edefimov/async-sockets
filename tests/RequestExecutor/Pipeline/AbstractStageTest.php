@@ -83,7 +83,16 @@ abstract class AbstractStageTest extends AbstractTestCase
     {
         $operationMetadata = $this->getMock(
             'AsyncSockets\RequestExecutor\Metadata\OperationMetadata',
-            ['initialize', 'getMetadata', 'setMetadata', 'setRunning', 'getSocket', 'isRunning', 'getOperation'],
+            [
+                'initialize',
+                'getMetadata',
+                'setMetadata',
+                'setRunning',
+                'getSocket',
+                'isRunning',
+                'getOperation',
+                'setOperation',
+            ],
             [ ],
             '',
             false
@@ -109,6 +118,8 @@ abstract class AbstractStageTest extends AbstractTestCase
                     $result[$value] = null;
                 }
             }
+
+            $result[RequestExecutorInterface::META_USER_CONTEXT] = sha1(microtime(true));
         }
 
         return $result;

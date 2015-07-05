@@ -1,0 +1,13 @@
+operationDataProvider:
+    -
+        currentOperation: 'read'
+        nextOperation: 'read'
+    -
+        currentOperation: 'read'
+        nextOperation: 'write'
+    -
+        currentOperation: 'write'
+        nextOperation: 'read'
+    -
+        currentOperation: 'write'
+        nextOperation: 'write'
