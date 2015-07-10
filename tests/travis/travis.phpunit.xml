@@ -6,8 +6,8 @@
     >
     <testsuites>
         <testsuite name="Async sockets">
-            <directory>./../../tests</directory>
-            <exclude>./../../tests/Event/AbstractEventNoEventDispatcherTest.php</exclude>
+            <directory>./../../tests/unit</directory>
+            <exclude>./../../tests/unit/Event/AbstractEventNoEventDispatcherTest.php</exclude>
         </testsuite>
     </testsuites>
 

@@ -11,7 +11,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Socket\Io\StreamedServerIo;
-use AsyncSockets\Socket\Io\UdpServerIo;
+use AsyncSockets\Socket\Io\DatagramServerIo;
 
 /**
  * Class ServerSocket
@@ -82,9 +82,9 @@ class ServerSocket extends AbstractSocket
             case self::SOCKET_TYPE_TCP:
                 return new StreamedServerIo($this);
             case self::SOCKET_TYPE_UDG:
-                return new UdpServerIo($this, true);
+                return new DatagramServerIo($this, true);
             case self::SOCKET_TYPE_UDP:
-                return new UdpServerIo($this, false);
+                return new DatagramServerIo($this, false);
             default:
                 throw new \LogicException("Unsupported socket resource type {$type}");
         }

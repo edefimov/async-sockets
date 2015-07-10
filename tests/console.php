@@ -10,7 +10,7 @@
  */
 
 use Symfony\Component\Console\Application;
-use Tests\AsyncSockets\Application\WarmupCommand;
+use Tests\Application\Command\WarmupCommand;
 
 require_once __DIR__ . '/autoload.php';
 

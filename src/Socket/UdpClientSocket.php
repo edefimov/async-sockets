@@ -12,7 +12,7 @@ namespace AsyncSockets\Socket;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\Io\IoInterface;
-use AsyncSockets\Socket\Io\UdpMemorizedIo;
+use AsyncSockets\Socket\Io\DatagramMemorizedIo;
 
 /**
  * Class UdpClientSocket
@@ -43,7 +43,7 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     public function __construct(SocketInterface $origin, $remoteAddress, $data)
     {
         $this->origin      = $origin;
-        $this->ioInterface = new UdpMemorizedIo($this, $remoteAddress, $data);
+        $this->ioInterface = new DatagramMemorizedIo($this, $remoteAddress, $data);
     }
 
     /** {@inheritdoc} */

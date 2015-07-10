@@ -6,13 +6,13 @@
     >
     <testsuites>
         <testsuite name="Async sockets">
-            <file>./../../tests/Event/AbstractEventNoEventDispatcherTest.php</file>
+            <file>./../../tests/unit/Event/AbstractEventNoEventDispatcherTest.php</file>
         </testsuite>
     </testsuites>
 
     <filter>
         <whitelist>
-            <file>./../../src/Event/AbstractEvent.php</file>
+            <file>./../../src/unit/Event/AbstractEvent.php</file>
             <exclude>
                 <directory>./../../tests</directory>
                 <directory>./../../vendor</directory>

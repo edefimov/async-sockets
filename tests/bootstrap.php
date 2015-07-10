@@ -10,7 +10,7 @@
 
 require_once __DIR__ . '/autoload.php';
 
-use Tests\AsyncSockets\Application\Configuration;
+use Tests\Application\Command\Configuration;
 
 $configuration = new Configuration(
     __DIR__ . '/..',
