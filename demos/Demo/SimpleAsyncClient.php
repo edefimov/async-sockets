@@ -105,7 +105,6 @@ final class SimpleAsyncClient extends Command
             /** @var SocketInterface $socket */
             $item = $data[ spl_object_hash($socket) ];
             $socket->open($item[ 'address' ]);
-            $socket->setBlocking(false);
         }
     }
 

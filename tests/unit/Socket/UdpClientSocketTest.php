@@ -62,7 +62,7 @@ class UdpClientSocketTest extends \PHPUnit_Framework_TestCase
             true,
             true,
             true,
-            ['open', 'close', 'setBlocking', 'getStreamResource']
+            ['open', 'close', 'getStreamResource']
         );
 
         return $object;
@@ -88,20 +88,6 @@ class UdpClientSocketTest extends \PHPUnit_Framework_TestCase
     {
         $this->socket->expects(self::never())->method('close');
         $this->object->close();
-    }
-
-    /**
-     * testSetBlockingPassToOrigin
-     *
-     * @return void
-     */
-    public function testSetBlockingPassToOrigin()
-    {
-        $this->socket->expects(self::exactly(2))
-            ->method('setBlocking')
-            ->withConsecutive([true], [false]);
-        $this->object->setBlocking(true);
-        $this->object->setBlocking(false);
     }
 
     /**

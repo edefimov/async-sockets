@@ -31,25 +31,6 @@ class AbstractSocketTest extends AbstractTestCase
     protected $socket;
 
     /**
-     * testExceptionWillBeThrowsOnSetBlockingFail
-     *
-     * @return void
-     * @expectedException \AsyncSockets\Exception\NetworkSocketException
-     */
-    public function testExceptionWillBeThrowsOnSetBlockingFail()
-    {
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_set_blocking');
-        $this->socket->open('php://temp');
-
-        $mocker->setCallable(function ($resource, $isBlocking) {
-            self::assertEquals(false, $isBlocking, 'Unexpected value passed');
-            return false;
-        });
-
-        $this->socket->setBlocking(false);
-    }
-
-    /**
      * testBlockingModeWillChange
      *
      * @return void
@@ -71,7 +52,6 @@ class AbstractSocketTest extends AbstractTestCase
             }
         );
 
-        $this->socket->setBlocking(false);
         $this->socket->open('php://temp');
     }
 

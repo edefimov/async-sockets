@@ -8,7 +8,7 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Tests\AsyncSockets\Socket;
+namespace Tests\Functional;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;

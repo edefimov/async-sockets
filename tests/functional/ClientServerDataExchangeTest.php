@@ -10,7 +10,13 @@
 
 namespace Tests\Functional;
 
+use AsyncSockets\Exception\SocketException;
+use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Frame\AcceptedFrame;
+use AsyncSockets\Frame\PartialFrame;
+use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Socket\AsyncSelector;
+use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ClientSocket;
 use AsyncSockets\Socket\ServerSocket;
 
@@ -74,6 +80,56 @@ class ClientServerDataExchangeTest extends \PHPUnit_Framework_TestCase
         }
 
         $cleanup();
+    }
+
+    /**
+     * downloadInternetPage
+     *
+     * @param string $address Destination address
+     *
+     * @return void
+     * @dataProvider internetPageDataProvider
+     * @coversNothing
+     */
+    public function testDownloadInternetPage($address)
+    {
+        $factory  = new AsyncSocketFactory();
+        $selector = new AsyncSelector();
+
+        try {
+            $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
+            $client->open($address);
+            $host = parse_url($address, PHP_URL_HOST);
+            $selector->addSocketOperation($client, OperationInterface::OPERATION_WRITE);
+            $selector->select(30);
+            $client->write("GET / HTTP/1.1\nHost: {$host}\n\n");
+
+            do {
+                $selector->addSocketOperation($client, OperationInterface::OPERATION_READ);
+                $selector->select(30);
+                $response = $client->read();
+            } while ($response instanceof PartialFrame);
+
+            $client->close();
+
+            self::assertTrue(stripos((string) $response, '</html>') !== false, 'Unexpected response');
+        } catch (TimeoutException $e) {
+            self::markTestSkipped('Timeout occurred during request processing');
+        } catch (SocketException $e) {
+            self::markTestSkipped('Can not process test: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * internetPageDataProvider
+     *
+     * @return array
+     */
+    public function internetPageDataProvider()
+    {
+        return [
+            ['tcp://google.com:80'],
+        ];
     }
 
     /**

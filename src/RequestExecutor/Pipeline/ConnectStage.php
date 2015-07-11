@@ -153,7 +153,6 @@ class ConnectStage extends AbstractTimeAwareStage
         try {
             $this->callSocketSubscribers($item, $event);
             $this->setSocketOperationTime($item, RequestExecutorInterface::META_CONNECTION_START_TIME);
-            $socket->setBlocking(false);
 
             $socket->open(
                 $meta[ RequestExecutorInterface::META_ADDRESS ],

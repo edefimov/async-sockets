@@ -58,13 +58,12 @@ class ConnectStageTest extends AbstractStageTest
             true,
             true,
             true,
-            ['open', 'setBlocking']
+            ['open']
         );
         $socket->expects(self::once())->method('open')->with(
             $testMetadata[RequestExecutorInterface::META_ADDRESS],
             $testMetadata[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT]
         );
-        $socket->expects(self::once())->method('setBlocking')->with(false);
 
         $first  = $this->createOperationMetadata();
         $second = $this->createOperationMetadata();
@@ -206,10 +205,10 @@ class ConnectStageTest extends AbstractStageTest
             true,
             true,
             true,
-            ['setBlocking']
+            ['open']
         );
 
-        $socket->expects(self::once())->method('setBlocking')->willThrowException(
+        $socket->expects(self::once())->method('open')->willThrowException(
             new NetworkSocketException($socket)
         );
 

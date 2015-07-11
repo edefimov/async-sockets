@@ -71,12 +71,6 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     }
 
     /** {@inheritdoc} */
-    public function setBlocking($isBlocking)
-    {
-        $this->origin->setBlocking($isBlocking);
-    }
-
-    /** {@inheritdoc} */
     public function getStreamResource()
     {
         return $this->origin->getStreamResource();

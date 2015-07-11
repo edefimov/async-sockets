@@ -8,7 +8,7 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Demo;
+namespace Tests\Application\Command;
 
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -19,7 +19,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * Class SimpleClient
  */
-final class SimpleClient extends Command
+class SimpleClient extends Command
 {
     /** {@inheritdoc} */
     protected function configure()
@@ -36,8 +36,8 @@ final class SimpleClient extends Command
             $factory = new AsyncSocketFactory();
 
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
-            $client->open('tls://github.com:443');
-            $client->write("GET / HTTP/1.1\nHost: github.com\n\n");
+            $client->open('tcp://google.com:80');
+            $client->write("GET / HTTP/1.1\nHost: google.com\n\n");
             $response = $client->read()->getData();
             $client->close();
 

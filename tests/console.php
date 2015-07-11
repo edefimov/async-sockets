@@ -10,7 +10,8 @@
  */
 
 use Symfony\Component\Console\Application;
-use Tests\Application\Command\WarmupCommand;
+use /** @noinspection PhpUnusedAliasInspection */
+    Tests\Application\Command\WarmupCommand;
 
 require_once __DIR__ . '/autoload.php';
 

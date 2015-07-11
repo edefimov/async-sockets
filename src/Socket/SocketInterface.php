@@ -66,16 +66,4 @@ interface SocketInterface extends StreamResourceInterface
      * @api
      */
     public function write($data);
-
-    /**
-     * Set blocking mode for socket
-     *
-     * @param bool $isBlocking Blocking mode for socket
-     *
-     * @return void
-     * @throws NetworkSocketException If set operation failed
-     *
-     * @api
-     */
-    public function setBlocking($isBlocking);
 }

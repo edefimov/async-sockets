@@ -11,7 +11,6 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\ConnectionException;
-use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\Io\DisconnectedIo;
@@ -53,13 +52,6 @@ abstract class AbstractSocket implements SocketInterface
      * @var resource
      */
     private $resource;
-
-    /**
-     * Flag whether this socket is blocking
-     *
-     * @var bool
-     */
-    private $isBlocking = true;
 
     /**
      * I/O interface
@@ -117,12 +109,7 @@ abstract class AbstractSocket implements SocketInterface
         $result = false;
         if (is_resource($this->resource)) {
             $result = true;
-            $meta   = stream_get_meta_data($this->resource);
-
-            /** @noinspection TypeUnsafeComparisonInspection */
-            if (isset($meta['blocked']) && $meta['blocked'] != $this->isBlocking) {
-                $this->setBlocking($this->isBlocking);
-            }
+            stream_set_blocking($this->resource, 0);
 
             $this->ioInterface = $this->createIoInterface(
                 $this->resolveSocketType(),
@@ -165,26 +152,6 @@ abstract class AbstractSocket implements SocketInterface
             $this->setDisconnectedState();
             throw $e;
         }
-    }
-
-    /** {@inheritdoc} */
-    public function setBlocking($isBlocking)
-    {
-        if (is_resource($this->resource)) {
-            $result = stream_set_blocking($this->resource, $isBlocking ? 1 : 0);
-            if ($result === false) {
-                throw new NetworkSocketException(
-                    $this,
-                    'Failed to switch ' . ($isBlocking ? '' : 'non-') . 'blocking mode.'
-                );
-            }
-        } else {
-            $result = true;
-        }
-
-        $this->isBlocking = (bool) $isBlocking;
-
-        return $result;
     }
 
     /** {@inheritdoc} */
