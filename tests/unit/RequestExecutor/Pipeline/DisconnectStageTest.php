@@ -102,9 +102,9 @@ class DisconnectStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::at(1))
              ->method('callSocketSubscribers')
              ->willReturnCallback(
-                function ($mock, Event $event) {
-                    self::assertEquals(EventType::FINALIZE, $event->getType(), 'Wrong final event');
-                }
+                 function ($mock, Event $event) {
+                     self::assertEquals(EventType::FINALIZE, $event->getType(), 'Wrong final event');
+                 }
              );
 
         $this->selector->expects(self::once())->method('removeAllSocketOperations')->with($request);
@@ -151,11 +151,9 @@ class DisconnectStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::once())
              ->method('callSocketSubscribers')
              ->after('exception_call')
-             ->willReturnCallback(
-                function ($mock, Event $event) {
-                    self::assertEquals(EventType::FINALIZE, $event->getType(), 'Wrong final event');
-                }
-             );
+             ->willReturnCallback(function ($mock, Event $event) {
+                 self::assertEquals(EventType::FINALIZE, $event->getType(), 'Wrong final event');
+             });
 
         $this->selector->expects(self::once())->method('removeAllSocketOperations')->with($request);
 

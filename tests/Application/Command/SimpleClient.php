@@ -25,8 +25,7 @@ class SimpleClient extends Command
     protected function configure()
     {
         parent::configure();
-        $this->setName('demo:simple_client')
-            ->setDescription('Demonstrates simple synchronous socket');
+        $this->setName('test:simple_client');
     }
 
     /** {@inheritdoc} */
@@ -36,7 +35,7 @@ class SimpleClient extends Command
             $factory = new AsyncSocketFactory();
 
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
-            $client->open('tcp://google.com:80');
+            $client->open('tcp://127.0.0.1:10031');
             $client->write("GET / HTTP/1.1\nHost: google.com\n\n");
             $response = $client->read()->getData();
             $client->close();

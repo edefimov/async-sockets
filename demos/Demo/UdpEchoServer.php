@@ -10,12 +10,15 @@
 namespace Demo;
 
 use AsyncSockets\Event\AcceptEvent;
+use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\EventMultiHandler;
 use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use Symfony\Component\Console\Command\Command;
@@ -117,18 +120,34 @@ class UdpEchoServer extends Command
     private function getAcceptedClientHandlers(OutputInterface $output)
     {
         if (!$this->clientHandlers) {
-            $this->clientHandlers = new CallbackEventHandler(
+            $this->clientHandlers = new EventMultiHandler(
                 [
-                    EventType::READ => function (ReadEvent $event) use ($output) {
-                        $request       = $event->getFrame()->getData();
-                        $remoteAddress = $event->getContext();
-                        $output->writeln($remoteAddress . ' sent: ' . $request);
-                        $event->nextIsWrite('Echo: ' . $request);
-                    },
-                    EventType::DISCONNECTED => function () use ($output) {
-                        $output->writeln('Client disconnected');
-                    },
-                    EventType::EXCEPTION => $this->getExceptionHandler($output)
+                    new RemoveFinishedSocketsEventHandler(
+                        new CallbackEventHandler(
+                            [
+                                EventType::READ => function (ReadEvent $event) use ($output) {
+                                    $request       = $event->getFrame()->getData();
+                                    $remoteAddress = $event->getContext();
+                                    $output->writeln($remoteAddress . ' sent: ' . $request);
+                                    $event->nextIsWrite('Echo: ' . $request);
+                                },
+                                EventType::DISCONNECTED => function () use ($output) {
+                                    $output->writeln('Client disconnected');
+                                },
+                                EventType::FINALIZE => function (Event $event) use ($output) {
+                                    $output->writeln('Sockets in bag: ' . count($event->getExecutor()->socketBag()));
+                                },
+                                EventType::EXCEPTION => $this->getExceptionHandler($output)
+                            ]
+                        )
+                    ),
+                    new CallbackEventHandler(
+                        [
+                            EventType::FINALIZE => function (Event $event) use ($output) {
+                                $output->writeln('Sockets in bag: ' . count($event->getExecutor()->socketBag()));
+                            }
+                        ]
+                    )
                 ]
             );
         }

@@ -10,8 +10,11 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\Event\EventType;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
+use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 

@@ -55,11 +55,12 @@ class SocketPool extends Command
         $factory = new AsyncSocketFactory();
 
         $executor = $factory->createRequestExecutor();
+        $host     = parse_url($destination, PHP_URL_HOST);
         for ($i = 0; $i < $countSockets; $i++) {
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
             $executor->socketBag()->addSocket(
                 $client,
-                new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
+                new WriteOperation("GET / HTTP/1.1\nHost: {$host}\n\n"),
                 [
                     RequestExecutorInterface::META_ADDRESS      => $destination,
                     RequestExecutorInterface::META_USER_CONTEXT => [

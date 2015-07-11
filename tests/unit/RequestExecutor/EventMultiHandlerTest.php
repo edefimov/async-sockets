@@ -11,13 +11,12 @@
 namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
-use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\EventMultiHandler;
 
 /**
  * Class EventMultiHandlerTest
  */
-class EventMultiHandlerTest extends \PHPUnit_Framework_TestCase
+class EventMultiHandlerTest extends EventHandlerInterfaceTest
 {
     /**
      * Test object
@@ -109,24 +108,6 @@ class EventMultiHandlerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Create mocked handler
-     *
-     * @return EventHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
-     */
-    private function createMockedHandler()
-    {
-        return $this->getMockForAbstractClass(
-            'AsyncSockets\RequestExecutor\EventHandlerInterface',
-            [],
-            '',
-            true,
-            true,
-            true,
-            ['invokeEvent']
-        );
-    }
-
-    /**
      * Create Event stub object
      *
      * @return Event
@@ -140,6 +121,5 @@ class EventMultiHandlerTest extends \PHPUnit_Framework_TestCase
             '',
             false
         );
-
     }
 }

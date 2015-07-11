@@ -130,46 +130,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
     }
 
-
-
-    /**
-     * testRemoveHandler
-     *
-     * @param OperationInterface $operation Operation to test
-     *
-     * @return void
-     * @dataProvider socketOperationDataProvider
-     */
-    public function testRemoveHandler(OperationInterface $operation)
-    {
-        $handler = function () {
-            self::fail('Handler is not removed');
-        };
-
-        $this->executor->socketBag()->addSocket(
-            $this->socket,
-            $operation,
-            [
-                RequestExecutor::META_ADDRESS   => 'php://temp',
-            ]
-        );
-
-        $bag = new CallbackEventHandler(
-            [
-                EventType::INITIALIZE => $handler,
-            ]
-        );
-        $bag->removeHandler(
-            [
-                EventType::INITIALIZE => $handler,
-                EventType::READ       => $handler,
-            ]
-        );
-
-        $this->executor->withEventHandler($bag);
-        $this->executor->executeRequest();
-    }
-
     /**
      * testExceptionOnMethodCall
      *
@@ -178,7 +138,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketMethodDataProvider
-     * @depends      testRemoveHandler
      */
     public function testExceptionOnMethodCall(OperationInterface $operation, $method)
     {
@@ -256,7 +215,6 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
      *
      * @return void
      * @dataProvider socketOperationDataProvider
-     * @depends      testRemoveHandler
      */
     public function testNextOperationNotRequired(OperationInterface $operation, $eventType)
     {
@@ -502,6 +460,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             ->willThrowException(new \RuntimeException('Test passed', 354));
 
 
+        /** @var SocketInterface $mock */
         $this->executor->socketBag()->addSocket(
             $mock,
             $operation,
@@ -540,7 +499,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
 
         $mock = $this->getMock('Countable', [ 'count' ]);
 
-        /** @var \Countable $mock */
+        /** @var \Countable|\PHPUnit_Framework_MockObject_MockObject $mock */
         $handlers = [
             EventType::INITIALIZE   => function (Event $event) use ($mock) {
                 $this->verifyEvent($event, $mock, 1);

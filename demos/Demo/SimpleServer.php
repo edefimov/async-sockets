@@ -16,6 +16,7 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use Symfony\Component\Console\Command\Command;
@@ -122,25 +123,27 @@ class SimpleServer extends Command
     private function getAcceptedClientHandlers(OutputInterface $output)
     {
         if (!$this->clientHandlers) {
-            $this->clientHandlers = new CallbackEventHandler(
-                [
-                    EventType::READ => function (ReadEvent $event) {
-                        $request  = $event->getFrame()->getData();
-                        $path     = $this->extractPath($request);
-                        $response = $this->generateResponse($path);
+            $this->clientHandlers = new RemoveFinishedSocketsEventHandler(
+                new CallbackEventHandler(
+                    [
+                        EventType::READ => function (ReadEvent $event) {
+                            $request  = $event->getFrame()->getData();
+                            $path     = $this->extractPath($request);
+                            $response = $this->generateResponse($path);
 
-                        $event->nextIsWrite(
-                            "HTTP/1.1 200 OK \r\n" .
-                            "Content-Type: text/html;charset=utf8\r\n" .
-                            'Content-Length: ' . strlen($response) . "\r\n\r\n" .
-                            $response
-                        );
-                    },
-                    EventType::DISCONNECTED => function () use ($output) {
-                        $output->writeln('Client disconnected');
-                    },
-                    EventType::EXCEPTION => $this->getExceptionHandler($output)
-                ]
+                            $event->nextIsWrite(
+                                "HTTP/1.1 200 OK \r\n" .
+                                "Content-Type: text/html;charset=utf8\r\n" .
+                                'Content-Length: ' . strlen($response) . "\r\n\r\n" .
+                                $response
+                            );
+                        },
+                        EventType::DISCONNECTED => function () use ($output) {
+                            $output->writeln('Client disconnected');
+                        },
+                        EventType::EXCEPTION => $this->getExceptionHandler($output)
+                    ]
+                )
             );
         }
 

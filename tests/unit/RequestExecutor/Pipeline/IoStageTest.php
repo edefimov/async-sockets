@@ -197,15 +197,15 @@ class IoStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::once())
                           ->method('callSocketSubscribers')
                           ->willReturnCallback(function ($mock, Event $event) use ($frame, $eventType, $metadata) {
-                                  self::assertEquals($eventType, $event->getType(), 'Incorrect event fired');
-                                  if ($event instanceof ReadEvent) {
-                                      self::assertSame($frame, $event->getFrame());
-                                  }
-                                  self::assertSame(
-                                      $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
-                                      $event->getContext(),
-                                      'Incorrect user context'
-                                  );
+                              self::assertEquals($eventType, $event->getType(), 'Incorrect event fired');
+                              if ($event instanceof ReadEvent) {
+                                  self::assertSame($frame, $event->getFrame());
+                              }
+                              self::assertSame(
+                                  $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
+                                  $event->getContext(),
+                                  'Incorrect user context'
+                              );
                           });
 
         $result = $this->stage->processStage([$request]);
@@ -492,11 +492,9 @@ class IoStageTest extends AbstractStageTest
 
         $this->eventCaller->expects(self::once())
                           ->method('callSocketSubscribers')
-                          ->willReturnCallback(
-                              function ($mock, WriteEvent $event) use ($testData) {
-                                  $event->getOperation()->setData($testData);
-                              }
-                          );
+                          ->willReturnCallback(function ($mock, WriteEvent $event) use ($testData) {
+                              $event->getOperation()->setData($testData);
+                          });
 
         $result = $this->stage->processStage([$request]);
         self::assertTrue(in_array($request, $result, true), 'Incorrect return result');
