@@ -36,16 +36,25 @@ class MarkerFramePicker extends AbstractFramePicker
     private $startPos;
 
     /**
+     * bool
+     *
+     * @var bool
+     */
+    private $isCaseSensitive;
+
+    /**
      * MarkerFramePicker constructor.
      *
      * @param null|string $startMarker Start marker
      * @param string      $endMarker End marker
+     * @param bool        $isCaseSensitive True, if case is important
      */
-    public function __construct($startMarker, $endMarker)
+    public function __construct($startMarker, $endMarker, $isCaseSensitive = true)
     {
         parent::__construct();
-        $this->startMarker = $startMarker;
-        $this->endMarker   = $endMarker;
+        $this->startMarker     = $startMarker;
+        $this->endMarker       = $endMarker;
+        $this->isCaseSensitive = $isCaseSensitive;
     }
 
     /**
@@ -66,7 +75,7 @@ class MarkerFramePicker extends AbstractFramePicker
             return true;
         }
 
-        $pos = strpos($buffer, $this->startMarker);
+        $pos = $this->findMarker($buffer, $this->startMarker);
         if ($pos !== false) {
             $this->startPos = $pos;
             return true;
@@ -83,7 +92,7 @@ class MarkerFramePicker extends AbstractFramePicker
             return '';
         }
 
-        $pos = strpos($buffer, $this->endMarker, $this->startPos + strlen($this->startMarker));
+        $pos = $this->findMarker($buffer, $this->endMarker, $this->startPos + strlen($this->startMarker));
         if ($pos === false) {
             return '';
         }
@@ -103,5 +112,21 @@ class MarkerFramePicker extends AbstractFramePicker
 
         $data = $this->startPos === null ? '' : substr($buffer, $this->startPos);
         return new Frame($data);
+    }
+
+    /**
+     * Performs strpos or stripos according to case sensibility
+     *
+     * @param string $haystack Where find text
+     * @param string $needle What to find
+     * @param int    $offset Start offset in $haystack
+     *
+     * @return bool|int
+     */
+    protected function findMarker($haystack, $needle, $offset = 0)
+    {
+        return $this->isCaseSensitive ?
+            strpos($haystack, $needle, $offset) :
+            stripos($haystack, $needle, $offset);
     }
 }

@@ -9,7 +9,6 @@
  */
 namespace AsyncSockets\Socket\Io;
 
-use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -43,11 +42,5 @@ class DatagramMemorizedIo extends DatagramClientIo
         $result     = $this->data;
         $this->data = '';
         return $result;
-    }
-
-    /** {@inheritdoc} */
-    protected function isFullFrameRead($socket, FramePickerInterface $picker)
-    {
-        return $this->data === '' && parent::isFullFrameRead($socket, $picker);
     }
 }

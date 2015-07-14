@@ -10,9 +10,12 @@
 
 namespace Tests\Functional;
 
+use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
+use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
@@ -58,19 +61,32 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             );
         }
 
+        $mock = $this->getMock('Countable', ['count']);
+        $mock->expects(self::exactly(count($urls)))->method('count');
         $this->executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::WRITE => function (WriteEvent $event) {
-                        $event->nextIsRead();
+                        $event->nextIsRead(new MarkerFramePicker(null, '</html>', false));
                     },
-                    EventType::READ => function (ReadEvent $event) {
+                    EventType::READ => function (ReadEvent $event) use ($mock) {
+                        /** @var \Countable $mock */
+                        $mock->count();
+                        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
+                        echo 'Processed ' . $meta[RequestExecutorInterface::META_ADDRESS] . "\n";
                         $output = strtolower($event->getFrame()->getData());
                         $meta   = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
                         self::assertTrue(
                             strpos($output, '</html>') !== false,
                             'Incomplete data were received for ' . $meta[RequestExecutorInterface::META_ADDRESS]
                         );
+                    },
+                    EventType::TIMEOUT => function (Event $event) {
+                        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
+                        self::fail('Timeout on socket ' . $meta[RequestExecutorInterface::META_ADDRESS]);
+                    },
+                    EventType::EXCEPTION => function (SocketExceptionEvent $event) {
+                        self::fail('Exception ' . $event->getException()->getMessage());
                     }
                 ]
             )
@@ -90,11 +106,11 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             [
                 [
                     'tcp://php.net:80',
-                    'tls://github.com:443',
-                    'tls://packagist.org:443',
-                    'tls://coveralls.io:443',
-                    'tcp://stackoverflow.com:80',
-                    'tls://google.com:443'
+//                    'tls://github.com:443',
+//                    'tls://packagist.org:443',
+//                    'tls://coveralls.io:443',
+//                    'tcp://stackoverflow.com:80',
+//                    'tls://google.com:443'
                 ],
             ]
         ];

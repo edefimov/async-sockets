@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket\Io;
 
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\ClientSocket;
 use AsyncSockets\Socket\Io\StreamedClientIo;
@@ -153,6 +154,56 @@ class StreamedClientIoTest extends AbstractClientIoTest
     }
 
     /**
+     * testExceptionWillBeThrownIfFrameNotCollected
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\FrameSocketException
+     */
+    public function testExceptionWillBeThrownIfFrameNotCollected()
+    {
+        /** @var FramePickerInterface|\PHPUnit_Framework_MockObject_MockObject $picker */
+        $picker = $this->getMock(
+            'AsyncSockets\Frame\FramePickerInterface',
+            ['isEof', 'pickUpData', 'createFrame']
+        );
+
+        $picker->expects(self::any())->method('isEof')->willReturn(false);
+        $picker->expects(self::any())->method('pickUpData')->willReturnCallback(function ($data) {
+            return $data;
+        });
+        $picker->expects(self::any())->method('createFrame')->willReturnCallback(function () {
+            return $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface');
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(
+            function () {
+                return 0;
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () {
+                return false;
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(
+            function () {
+                return '';
+            }
+        );
+
+        //$this->socket->open('it has no meaning here');
+        $this->ensureSocketIsOpened();
+        $this->setConnectedStateForTestObject(true);
+        for ($i = 0; $i < StreamedClientIo::READ_ATTEMPTS; $i++) {
+            $this->object->read($picker);
+        }
+
+        self::fail('Exception was not thrown');
+    }
+
+    /**
      * ioDataProvider
      *
      * @return array
@@ -208,32 +259,6 @@ class StreamedClientIoTest extends AbstractClientIoTest
                 'Failed to read data.'
             ],
 
-            // testLossConnectionOnReading
-            [
-                [
-                    ['read', [$picker]],
-                ],
-                [
-                    'stream_socket_get_name' => $streamSocketMock,
-                    'stream_select'          => function () {
-                        return 1;
-                    },
-                    'fread'                  => function () use ($falseFunction) {
-                        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
-                            $falseFunction
-                        );
-
-                        return '';
-                    },
-                    'stream_socket_recvfrom' => function () {
-                        return 'x';
-                    },
-                ],
-                'Remote connection has been lost.'
-            ],
-
-
-
             // testLossConnectionOnWriting
             [
                 [
@@ -280,5 +305,9 @@ class StreamedClientIoTest extends AbstractClientIoTest
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_client')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('fwrite')->restoreNativeHandler();
     }
 }

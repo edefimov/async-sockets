@@ -20,6 +20,12 @@ use AsyncSockets\RequestExecutor\OperationInterface;
 class AsyncSelector
 {
     /**
+     * Delay in microseconds between select attempts, if previous stream_select returned incorrect result
+     * @link https://bugs.php.net/bug.php?id=65137
+     */
+    const ATTEMPT_DELAY = 250000;
+
+    /**
      * Array of resources indexed by operation
      *
      * @var StreamResourceInterface[][]
@@ -43,22 +49,34 @@ class AsyncSelector
             throw new \InvalidArgumentException('Can not perform select on empty data');
         }
 
-        $read  = $this->getSocketsForOperation(OperationInterface::OPERATION_READ);
-        $write = $this->getSocketsForOperation(OperationInterface::OPERATION_WRITE);
+        $read     = $this->getSocketsForOperation(OperationInterface::OPERATION_READ);
+        $write    = $this->getSocketsForOperation(OperationInterface::OPERATION_WRITE);
+        $attempts = floor(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) + 1;
 
-        $result = $this->doStreamSelect($seconds, $usec, $read, $write);
-        if ($result === false) {
-            throw new SocketException('Failed to select sockets');
-        }
+        do {
+            $result = $this->doStreamSelect($seconds, $usec, $read, $write);
+            if ($result === false) {
+                throw new SocketException('Failed to select sockets');
+            }
 
-        if ($result === 0) {
-            throw new TimeoutException('Select operation was interrupted during timeout');
-        }
+            if ($result === 0) {
+                break;
+            }
 
-        return new SelectContext(
-            $this->popSocketsByResources((array) $read, OperationInterface::OPERATION_READ),
-            $this->popSocketsByResources((array) $write, OperationInterface::OPERATION_WRITE)
-        );
+            $readyRead  = $this->popSocketsByResources((array) $read, OperationInterface::OPERATION_READ);
+            $readyWrite = $this->popSocketsByResources((array) $write, OperationInterface::OPERATION_WRITE);
+
+            if ($readyRead || $readyWrite) {
+                return new SelectContext($readyRead, $readyWrite);
+            }
+
+            $attempts -= 1;
+            if ($attempts) {
+                usleep(self::ATTEMPT_DELAY);
+            }
+        } while ($attempts);
+
+        throw new TimeoutException('Select operation was interrupted during timeout');
     }
 
     /**
@@ -175,14 +193,36 @@ class AsyncSelector
 
         $result = [];
         foreach ($this->streamResources[$operation] as $socket) {
-            /** @var SocketInterface $socket */
-            if (in_array($socket->getStreamResource(), $resources, true)) {
+            /** @var StreamResourceInterface $socket */
+            $isReadySocket = in_array($socket->getStreamResource(), $resources, true) &&
+                             $this->isActuallyReadyForIo($socket->getStreamResource(), $operation);
+            if ($isReadySocket) {
                 $this->removeSocketOperation($socket, $operation);
                 $result[] = $socket;
             }
         }
 
         return $result;
+    }
+
+    /**
+     * Checks whether given socket can process I/O operation after stream_select return
+     *
+     * @param resource $stream Socket resource
+     * @param string   $operation One of OperationInterface::OPERATION_* consts
+     *
+     * @return bool
+     */
+    private function isActuallyReadyForIo($stream, $operation)
+    {
+        return (
+            $operation === OperationInterface::OPERATION_READ &&
+
+            // https://bugs.php.net/bug.php?id=65137
+            stream_socket_recvfrom($stream, 1, MSG_PEEK) !== false
+        ) || (
+            $operation === OperationInterface::OPERATION_WRITE
+        );
     }
 
     /**

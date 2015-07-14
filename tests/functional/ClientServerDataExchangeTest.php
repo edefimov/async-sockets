@@ -13,6 +13,7 @@ namespace Tests\Functional;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Frame\AcceptedFrame;
+use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
@@ -90,6 +91,7 @@ class ClientServerDataExchangeTest extends \PHPUnit_Framework_TestCase
      * @return void
      * @dataProvider internetPageDataProvider
      * @coversNothing
+     * @group networking
      */
     public function testDownloadInternetPage($address)
     {
@@ -107,7 +109,7 @@ class ClientServerDataExchangeTest extends \PHPUnit_Framework_TestCase
             do {
                 $selector->addSocketOperation($client, OperationInterface::OPERATION_READ);
                 $selector->select(30);
-                $response = $client->read();
+                $response = $client->read(new MarkerFramePicker(null, '</html>', false));
             } while ($response instanceof PartialFrame);
 
             $client->close();
@@ -128,7 +130,13 @@ class ClientServerDataExchangeTest extends \PHPUnit_Framework_TestCase
     public function internetPageDataProvider()
     {
         return [
-            ['tcp://google.com:80'],
+            [ 'tcp://google.com:80' ],
+            [ 'tcp://php.net:80' ],
+            [ 'tls://github.com:443' ],
+            [ 'tls://packagist.org:443' ],
+            [ 'tls://coveralls.io:443' ],
+            [ 'tcp://stackoverflow.com:80' ],
+            [ 'tls://google.com:443' ],
         ];
     }
 

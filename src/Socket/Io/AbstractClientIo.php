@@ -10,6 +10,7 @@
 namespace AsyncSockets\Socket\Io;
 
 use AsyncSockets\Exception\ConnectionException;
+use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
@@ -67,32 +68,39 @@ abstract class AbstractClientIo extends AbstractIo
      */
     abstract protected function isConnected();
 
+    /**
+     * Return true, if transfer is finished, false otherwise
+     *
+     * @return bool
+     */
+    abstract protected function isEndOfTransfer();
+
+    /**
+     * Return true if frame can be collected in nearest future, false otherwise
+     *
+     * @return bool
+     */
+    abstract protected function canReachFrame();
+
     /** {@inheritdoc} */
     final public function read(FramePickerInterface $picker)
     {
         $this->setConnectedState();
         $unhandledData = $picker->pickUpData($this->unhandledData);
 
-        $isEndOfFrame        = false;
-        $resource            = $this->socket->getStreamResource();
         $this->unhandledData = $unhandledData;
-        do {
-            if ($this->isFullFrameRead($resource, $picker)) {
-                $isEndOfFrame = true;
-                break;
-            }
+        $this->unhandledData = $picker->pickUpData(
+            $this->unhandledData . $this->readRawData()
+        );
 
-            $data = $this->readRawData();
-            if ($data === false || $data === '') {
-                $isEndOfFrame = ($data === '' && $picker instanceof NullFramePicker) || $isEndOfFrame;
-                break;
-            }
-
-            $this->unhandledData = $picker->pickUpData($this->unhandledData . $data);
-        } while (!$isEndOfFrame);
+        $isEndOfTransfer     = $this->isEndOfTransfer();
+        $isEndOfFrameReached = $this->isEndOfFrameReached($picker, $isEndOfTransfer);
+        if (!$isEndOfFrameReached && !$this->canReachFrame()) {
+            throw new FrameSocketException($picker, $this->socket, 'Failed to receive desired frame.');
+        }
 
         $frame = $picker->createFrame();
-        if (!$isEndOfFrame) {
+        if (!$isEndOfFrameReached) {
             $frame = new PartialFrame($frame);
         }
 
@@ -107,7 +115,7 @@ abstract class AbstractClientIo extends AbstractIo
         $result       = 0;
         $dataLength   = strlen($data);
         $microseconds = self::SELECT_DELAY;
-        $attempts     = self::SEND_ATTEMPTS;
+        $attempts     = self::IO_ATTEMPTS;
 
         do {
             $write    = [ $this->socket->getStreamResource() ];
@@ -117,7 +125,7 @@ abstract class AbstractClientIo extends AbstractIo
 
             $bytesWritten = $write ? $this->writeRawData($data) : 0;
             $bytesWritten = $bytesWritten > 0 ? $bytesWritten : 0;
-            $attempts     = $bytesWritten > 0 ? self::SEND_ATTEMPTS : $attempts - 1;
+            $attempts     = $bytesWritten > 0 ? self::IO_ATTEMPTS : $attempts - 1;
 
             $this->throwNetworkSocketExceptionIf(
                 !$attempts && $result !== $dataLength,
@@ -170,5 +178,20 @@ abstract class AbstractClientIo extends AbstractIo
             !$this->isConnected(),
             $message
         );
+    }
+
+    /**
+     * Checks whether all FramePicker data is read
+     *
+     * @param FramePickerInterface $picker Frame object to check
+     * @param bool                 $isTransferFinished Flag whether network transfer is finished
+     *
+     * @return bool
+     */
+    private function isEndOfFrameReached(FramePickerInterface $picker, $isTransferFinished)
+    {
+        return
+            (!($picker instanceof NullFramePicker) && $picker->isEof()) ||
+            ($picker instanceof NullFramePicker && $isTransferFinished);
     }
 }

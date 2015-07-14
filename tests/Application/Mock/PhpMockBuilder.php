@@ -313,7 +313,7 @@ MAGIC;
     }
 MAGIC;
 
-        $handlerArgs = $argList ? '$argCount, ' . $argList : '';
+        $handlerArgs = $argList ? '$argCount, ' . $argList : '$argCount';
         $this->interceptorCode[$this->phpNamespace][$functionDefName] = <<<MAGIC
 
 function {$functionDefName} ({$handlerArgs})
@@ -339,7 +339,7 @@ MAGIC;
 namespace {$namespace}{$sourceFnNameSpace} {
    function {$funcName} ({$argList})
    {
-       return \\{$this->phpNamespace}\\{$functionDefName}(\\func_num_args(), {$callList});
+       return \\{$this->phpNamespace}\\{$functionDefName}(\\func_num_args() {$separatedCallList});
    }
 }
 MAGIC;

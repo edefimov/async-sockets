@@ -269,6 +269,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     protected function tearDown()
     {
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
         $this->socket->close();
     }
 
@@ -282,6 +283,11 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      */
     private function verifySocketSelectOperation($countRead, $countWrite)
     {
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () {
+                return '';
+            }
+        );
         $result = $this->selector->select(0);
         self::assertCount($countRead, $result->getRead(), 'Unexpected result of read selector');
         self::assertCount($countWrite, $result->getWrite(), 'Unexpected result of write selector');

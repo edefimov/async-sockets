@@ -124,26 +124,6 @@ class AbstractClientIoTest extends AbstractIoTest
     }
 
     /**
-     * testExceptionWillBeThrownOnReadError
-     *
-     * @return void
-     * @expectedException \AsyncSockets\Exception\NetworkSocketException
-     * @expectedExceptionMessage Failed to read data.
-     */
-    public function testExceptionWillBeThrownOnReadError()
-    {
-        $this->prepareFor(__FUNCTION__);
-        $this->setConnectedStateForTestObject(true);
-        $this->ensureSocketIsOpened();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(
-            function () {
-                return false;
-            }
-        );
-        $this->object->read(new NullFramePicker());
-    }
-
-    /**
      * testCantWriteInClosedSocket
      *
      * @return void

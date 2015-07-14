@@ -109,7 +109,11 @@ abstract class AbstractSocket implements SocketInterface
         $result = false;
         if (is_resource($this->resource)) {
             $result = true;
+            // https://bugs.php.net/bug.php?id=51056
             stream_set_blocking($this->resource, 0);
+
+            // https://bugs.php.net/bug.php?id=52602
+            stream_set_timeout($this->resource, 0, 0);
 
             $this->ioInterface = $this->createIoInterface(
                 $this->resolveSocketType(),

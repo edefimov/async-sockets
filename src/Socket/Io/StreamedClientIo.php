@@ -14,24 +14,37 @@ namespace AsyncSockets\Socket\Io;
  */
 class StreamedClientIo extends AbstractClientIo
 {
+    /**
+     * Read attempts count
+     */
+    const READ_ATTEMPTS = 2;
+
+    /**
+     * Amount of read attempts
+     *
+     * @var int
+     */
+    private $readAttempts = self::READ_ATTEMPTS;
+
     /** {@inheritdoc} */
     protected function readRawData()
     {
         // work-around https://bugs.php.net/bug.php?id=52602
         $resource = $this->socket->getStreamResource();
-        $rawData = stream_socket_recvfrom($resource, self::SOCKET_BUFFER_SIZE, MSG_PEEK);
-        if ($rawData === false || $rawData === '') {
-            return $rawData;
-        }
+        $result   = '';
 
-        $data = fread($resource, self::SOCKET_BUFFER_SIZE);
-        $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
+        do {
+            $data = fread($resource, self::SOCKET_BUFFER_SIZE);
+            $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
+            $result     .= $data;
+            $isDataEmpty = $data === '';
 
-        if ($data === '') {
-            $this->throwExceptionIfNotConnected('Remote connection has been lost.');
-        }
+            $this->readAttempts = $isDataEmpty ?
+                $this->readAttempts - 1 :
+                self::READ_ATTEMPTS;
+        } while (!$isDataEmpty);
 
-        return $data;
+        return $result;
     }
 
     /** {@inheritdoc} */
@@ -56,5 +69,18 @@ class StreamedClientIo extends AbstractClientIo
     {
         $name = stream_socket_get_name($this->socket->getStreamResource(), true);
         return $name !== false;
+    }
+
+    /** {@inheritdoc} */
+    protected function isEndOfTransfer()
+    {
+        $resource = $this->socket->getStreamResource();
+        return stream_socket_recvfrom($resource, 1, MSG_PEEK) === '';
+    }
+
+    /** {@inheritdoc} */
+    protected function canReachFrame()
+    {
+        return $this->readAttempts > 0;
     }
 }
