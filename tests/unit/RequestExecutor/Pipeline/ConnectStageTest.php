@@ -90,9 +90,14 @@ class ConnectStageTest extends AbstractStageTest
 
         $this->eventCaller->expects(self::once())
             ->method('callSocketSubscribers')
-            ->willReturnCallback(function ($mock, Event $event) {
+            ->willReturnCallback(function ($mock, Event $event) use ($testMetadata) {
                 /** @var OperationMetadata|\PHPUnit_Framework_MockObject_MockObject $mock */
                 self::assertSame($mock->getSocket(), $event->getSocket(), 'Incorrect socket passed');
+                self::assertSame(
+                    $testMetadata[ RequestExecutorInterface::META_USER_CONTEXT ],
+                    $event->getContext(),
+                    'Incorrect user context'
+                );
                 self::assertEquals(EventType::INITIALIZE, $event->getType(), 'Wrong event fired on connect stage');
             });
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable(

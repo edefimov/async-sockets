@@ -56,9 +56,14 @@ class TimeoutStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::once())
             ->method('callSocketSubscribers')
             ->with($request)
-            ->willReturnCallback(function (OperationMetadata $request, Event $event) {
+            ->willReturnCallback(function (OperationMetadata $request, Event $event) use ($metadata) {
                 self::assertSame($request->getSocket(), $event->getSocket());
                 self::assertSame(EventType::TIMEOUT, $event->getType());
+                self::assertSame(
+                    $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
+                    $event->getContext(),
+                    'Incorrect context'
+                );
             });
 
         $result = $this->stage->processStage([$request]);
@@ -95,9 +100,14 @@ class TimeoutStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::once())
             ->method('callExceptionSubscribers')
             ->with($request)
-            ->willReturnCallback(function (OperationMetadata $request, $exception, Event $event) {
+            ->willReturnCallback(function (OperationMetadata $request, $exception, Event $event) use ($metadata) {
                 self::assertSame($request->getSocket(), $event->getSocket());
                 self::assertSame(EventType::TIMEOUT, $event->getType());
+                self::assertSame(
+                    $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
+                    $event->getContext(),
+                    'Incorrect context'
+                );
             });
 
         $result = $this->stage->processStage([$request]);

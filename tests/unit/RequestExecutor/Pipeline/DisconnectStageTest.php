@@ -94,16 +94,26 @@ class DisconnectStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::at(0))
             ->method('callSocketSubscribers')
             ->willReturnCallback(
-                function ($mock, Event $event) {
+                function ($mock, Event $event) use ($metadata) {
                     self::assertEquals(EventType::DISCONNECTED, $event->getType(), 'Wrong disconnect event');
+                    self::assertSame(
+                        $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
+                        $event->getContext(),
+                        'Incorrect context'
+                    );
                 }
             );
 
         $this->eventCaller->expects(self::at(1))
              ->method('callSocketSubscribers')
              ->willReturnCallback(
-                 function ($mock, Event $event) {
+                 function ($mock, Event $event) use ($metadata) {
                      self::assertEquals(EventType::FINALIZE, $event->getType(), 'Wrong final event');
+                     self::assertSame(
+                         $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
+                         $event->getContext(),
+                         'Incorrect context'
+                     );
                  }
              );
 
@@ -151,8 +161,13 @@ class DisconnectStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::once())
              ->method('callSocketSubscribers')
              ->after('exception_call')
-             ->willReturnCallback(function ($mock, Event $event) {
+             ->willReturnCallback(function ($mock, Event $event) use ($metadata) {
                  self::assertEquals(EventType::FINALIZE, $event->getType(), 'Wrong final event');
+                 self::assertSame(
+                     $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
+                     $event->getContext(),
+                     'Incorrect context'
+                 );
              });
 
         $this->selector->expects(self::once())->method('removeAllSocketOperations')->with($request);

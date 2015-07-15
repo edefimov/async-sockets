@@ -144,57 +144,29 @@ class ClientSocketTest extends AbstractSocketTest
      *
      * @return void
      */
-//    public function testChunkReading()
-//    {
-//        $data      = 'I will pass this test';
-//        $splitData = str_split($data, 1);
-//        $freadMock = $this->getMock('Countable', ['count']);
-//        $freadMock->expects(self::any())
-//            ->method('count')
-//            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($splitData));
-//        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(function () {
-//            return 1;
-//        });
-//        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(function () use ($freadMock) {
-//            /** @var \Countable $freadMock */
-//            return $freadMock->count();
-//        });
-//
-//        $streamSocketRecvFromData = [];
-//        foreach ($splitData as $letter) {
-//            $streamSocketRecvFromData[] = $letter;
-//            $streamSocketRecvFromData[] = false;
-//            if (mt_rand(1, 10) % 2) {
-//                $streamSocketRecvFromData[] = false;
-//            }
-//            if (mt_rand(1, 10) % 3) {
-//                $streamSocketRecvFromData[] = false;
-//            }
-//            if (mt_rand(1, 10) % 5) {
-//                $streamSocketRecvFromData[] = false;
-//            }
-//        }
-//        $streamSocketRecvFromData[] = '';
-//        $socketReadMock = $this->getMock('Countable', ['count']);
-//        $socketReadMock->expects(self::any())
-//            ->method('count')
-//            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($streamSocketRecvFromData));
-//        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
-//            function () use ($socketReadMock) {
-//                /** @var \Countable $socketReadMock */
-//                return $socketReadMock->count();
-//            }
-//        );
-//
-//        $responseText = '';
-//        $this->socket->open('it has no meaning here');
-//        do {
-//            $response      = $this->socket->read(null);
-//            $responseText .= (string) $response;
-//        } while ($response instanceof PartialFrame);
-//
-//        self::assertEquals($data, $responseText, 'Received data is incorrect');
-//    }
+    public function testChunkReading()
+    {
+        $data      = 'I will pass this test';
+        $splitData = str_split($data, 1);
+        $freadMock = $this->getMock('Countable', ['count']);
+        $freadMock->expects(self::any())
+            ->method('count')
+            ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($splitData));
+
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(function () use ($freadMock) {
+            /** @var \Countable $freadMock */
+            return $freadMock->count();
+        });
+
+        $responseText = '';
+        $this->socket->open('it has no meaning here');
+        do {
+            $response      = $this->socket->read(null);
+            $responseText .= (string) $response;
+        } while ($response instanceof PartialFrame);
+
+        self::assertEquals($data, $responseText, 'Received data is incorrect');
+    }
 
     /**
      * testUnhandledDataFromFirstFrameWillBePassedToSecond
