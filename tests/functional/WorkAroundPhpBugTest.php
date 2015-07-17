@@ -106,11 +106,11 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             [
                 [
                     'tcp://php.net:80',
-//                    'tls://github.com:443',
-//                    'tls://packagist.org:443',
-//                    'tls://coveralls.io:443',
-//                    'tcp://stackoverflow.com:80',
-//                    'tls://google.com:443'
+                    'tls://github.com:443',
+                    'tls://packagist.org:443',
+                    'tls://coveralls.io:443',
+                    'tcp://stackoverflow.com:80',
+                    'tls://google.com:443'
                 ],
             ]
         ];

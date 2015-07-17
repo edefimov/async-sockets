@@ -37,7 +37,7 @@ class StreamedClientIo extends AbstractClientIo
             $data = fread($resource, self::SOCKET_BUFFER_SIZE);
             $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
             $result     .= $data;
-            $isDataEmpty = $data === '';
+            $isDataEmpty = $this->isReadDataActuallyEmpty($data);
 
             $this->readAttempts = $isDataEmpty ?
                 $this->readAttempts - 1 :
@@ -71,16 +71,43 @@ class StreamedClientIo extends AbstractClientIo
         return $name !== false;
     }
 
+    /**
+     * Checks whether data read from stream buffer can be filled later
+     *
+     * @param string $data Read data
+     *
+     * @return bool
+     */
+    private function isReadDataActuallyEmpty($data)
+    {
+        $result = false;
+        if ($data === '') {
+            $dataInSocket = $this->getDataInSocket();
+            $result       = $dataInSocket === '' || $dataInSocket === false;
+        }
+
+        return $result;
+    }
+
     /** {@inheritdoc} */
     protected function isEndOfTransfer()
     {
-        $resource = $this->socket->getStreamResource();
-        return stream_socket_recvfrom($resource, 1, MSG_PEEK) === '';
+        return $this->getDataInSocket() === '';
     }
 
     /** {@inheritdoc} */
     protected function canReachFrame()
     {
         return $this->readAttempts > 0;
+    }
+
+    /**
+     * Return first byte from socket buffer
+     *
+     * @return string
+     */
+    private function getDataInSocket()
+    {
+        return stream_socket_recvfrom($this->socket->getStreamResource(), 1, MSG_PEEK);
     }
 }
