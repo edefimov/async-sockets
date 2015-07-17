@@ -6,6 +6,7 @@ stringDataProvider:
         expectedFrame: '<body>'
         afterFrame: ''
         isEof: true
+        isCaseSensitive: true
     -
         start: '<'
         end: '>'
@@ -13,6 +14,7 @@ stringDataProvider:
         expectedFrame: '<body>'
         afterFrame: ''
         isEof: true
+        isCaseSensitive: true
     -
         start: '<'
         end: '>'
@@ -20,6 +22,7 @@ stringDataProvider:
         expectedFrame: ''
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: ~
         end: ker
@@ -27,6 +30,7 @@ stringDataProvider:
         expectedFrame: 'no marker'
         afterFrame: '123'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<'
         end: '>'
@@ -34,6 +38,7 @@ stringDataProvider:
         expectedFrame: '<body'
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '</body>'
@@ -41,6 +46,7 @@ stringDataProvider:
         expectedFrame: '<body>clear data</body>'
         afterFrame: 'mystery data'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '</body>'
@@ -48,6 +54,7 @@ stringDataProvider:
         expectedFrame: '<body>clear data</body>'
         afterFrame: 'mystery data'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '</body>'
@@ -55,6 +62,7 @@ stringDataProvider:
         expectedFrame: ''
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: ~
         end: '</body>'
@@ -62,6 +70,7 @@ stringDataProvider:
         expectedFrame: 'unknown data </body>'
         afterFrame: '<body>clear data</body>mystery data'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '</body>'
@@ -69,6 +78,7 @@ stringDataProvider:
         expectedFrame: '<body>clear data'
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: 'x'
         end: 'x'
@@ -76,6 +86,7 @@ stringDataProvider:
         expectedFrame: 'xbodyx'
         afterFrame: ''
         isEof: true
+        isCaseSensitive: true
     -
         start: 'x'
         end: 'x'
@@ -83,6 +94,7 @@ stringDataProvider:
         expectedFrame: 'xx'
         afterFrame: 'bodyx'
         isEof: true
+        isCaseSensitive: true
     -
         start: 'x'
         end: 'x'
@@ -90,6 +102,7 @@ stringDataProvider:
         expectedFrame: ''
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: 'x'
         end: 'x'
@@ -97,6 +110,7 @@ stringDataProvider:
         expectedFrame: 'xbody'
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '<body>'
@@ -104,6 +118,7 @@ stringDataProvider:
         expectedFrame: '<body>clear data<body>'
         afterFrame: 'mystery data'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '<body>'
@@ -111,6 +126,7 @@ stringDataProvider:
         expectedFrame: '<body><body>'
         afterFrame: 'clear data</body>mystery data'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '<body>'
@@ -118,6 +134,7 @@ stringDataProvider:
         expectedFrame: ''
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '<body>'
@@ -125,6 +142,7 @@ stringDataProvider:
         expectedFrame: '<body>clear data'
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: '<'
         end: '>'
@@ -132,6 +150,7 @@ stringDataProvider:
         expectedFrame: '<body>'
         afterFrame: ''
         isEof: true
+        isCaseSensitive: true
     -
         start: '<'
         end: '>'
@@ -139,6 +158,7 @@ stringDataProvider:
         expectedFrame: '<body>'
         afterFrame: ''
         isEof: true
+        isCaseSensitive: true
     -
         start: '<'
         end: '>'
@@ -146,6 +166,7 @@ stringDataProvider:
         expectedFrame: ''
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: ~
         end: 'ker'
@@ -153,6 +174,7 @@ stringDataProvider:
         expectedFrame: 'no marker'
         afterFrame: ''
         isEof: true
+        isCaseSensitive: true
     -
         start: '<'
         end: '>'
@@ -160,6 +182,7 @@ stringDataProvider:
         expectedFrame: '<body-param key="something"'
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '</body>'
@@ -167,6 +190,7 @@ stringDataProvider:
         expectedFrame: '<body>clear data</body>'
         afterFrame: 'mystery data'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '</body>'
@@ -174,6 +198,7 @@ stringDataProvider:
         expectedFrame: '<body>clear data</body>'
         afterFrame: 'mystery data'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '</body>'
@@ -181,6 +206,7 @@ stringDataProvider:
         expectedFrame: ''
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
     -
         start: ~
         end: '</body>'
@@ -188,6 +214,7 @@ stringDataProvider:
         expectedFrame: 'unknown data </body>'
         afterFrame: '<body>clear data</body>mystery data'
         isEof: true
+        isCaseSensitive: true
     -
         start: '<body>'
         end: '</body>'
@@ -195,3 +222,12 @@ stringDataProvider:
         expectedFrame: '<body>clear data'
         afterFrame: ''
         isEof: false
+        isCaseSensitive: true
+    -
+        start: '<bOdY>'
+        end: '</BoDy>'
+        chunks: ['unknown data </Body><BoDy>clear data</bOdY>mystery data']
+        expectedFrame: '<BoDy>clear data</bOdY>'
+        afterFrame: 'mystery data'
+        isEof: true
+        isCaseSensitive: false

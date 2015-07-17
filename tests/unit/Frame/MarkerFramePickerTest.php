@@ -48,13 +48,21 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
      * @param string   $expectedFrame Expected data inside frame
      * @param string   $afterFrame Expected data after frame
      * @param bool     $isEof Expected eof
+     * @param bool     $isCaseSensitive True if FramePicker should be case sensitive
      *
      * @return void
      * @dataProvider stringDataProvider
      */
-    public function testSearchMarkerInString($start, $end, array $chunks, $expectedFrame, $afterFrame, $isEof)
-    {
-        $picker = new MarkerFramePicker($start, $end);
+    public function testSearchMarkerInString(
+        $start,
+        $end,
+        array $chunks,
+        $expectedFrame,
+        $afterFrame,
+        $isEof,
+        $isCaseSensitive
+    ) {
+        $picker = new MarkerFramePicker($start, $end, $isCaseSensitive);
 
         $actualEnd = '';
         foreach ($chunks as $chunk) {
@@ -62,7 +70,7 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
         }
 
         $frame = $picker->createFrame();
-        self::assertEquals($expectedFrame, $frame, 'Incorrect frame');
+        self::assertEquals($expectedFrame, (string) $frame, 'Incorrect frame');
         self::assertEquals($afterFrame, $actualEnd, 'Incorrect data after frame');
         self::assertEquals($isEof, $picker->isEof(), 'Incorrect eof');
     }

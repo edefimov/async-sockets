@@ -146,17 +146,26 @@ class ClientSocketTest extends AbstractSocketTest
      */
     public function testChunkReading()
     {
-        $data      = 'I will pass this test';
-        $splitData = str_split($data, 1);
-        $freadMock = $this->getMock('Countable', ['count']);
+        $isFinished = false;
+        $data       = 'I will pass this test';
+        $splitData  = array_merge(str_split($data, 1), array_fill(0, 20, ''));
+        $freadMock  = $this->getMock('Countable', [ 'count' ]);
         $freadMock->expects(self::any())
             ->method('count')
             ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($splitData));
 
-        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(function () use ($freadMock) {
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(function () use ($freadMock, &$isFinished) {
             /** @var \Countable $freadMock */
-            return $freadMock->count();
+            $result     = $freadMock->count();
+            $isFinished = $result === '';
+            return $result;
         });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () use (&$isFinished) {
+                return $isFinished ? '' : false;
+            }
+        );
 
         $responseText = '';
         $this->socket->open('it has no meaning here');
