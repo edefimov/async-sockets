@@ -149,7 +149,7 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
             true,
             true,
             true,
-            array_unique([ $method, 'createSocketResource', 'createIoInterface', 'isConnected', 'read' ])
+            array_unique([ $method, 'createSocketResource', 'createIoInterface', 'isConnected', 'read', 'write' ])
         );
 
         $mock->expects(self::any())->method('isConnected')->willReturn($method === 'close');
@@ -165,6 +165,14 @@ class RequestExecutorTest extends \PHPUnit_Framework_TestCase
                 ->method($method)
                 ->willThrowException(new NetworkSocketException($mock, 'Test', $code));
         } else {
+            if ($operation instanceof  WriteOperation) {
+                $mock->expects(self::any())->method('write')->willReturnCallback(
+                    function () use ($operation) {
+                        return strlen($operation->getData());
+                    }
+                );
+            }
+
             $mock
                 ->expects(self::any())
                 ->method($method)

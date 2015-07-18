@@ -62,7 +62,9 @@ class DatagramClientIo extends AbstractClientIo
     /** {@inheritdoc} */
     protected function writeRawData($data)
     {
-        return stream_socket_sendto($this->socket->getStreamResource(), $data, 0, $this->remoteAddress);
+        $result = stream_socket_sendto($this->socket->getStreamResource(), $data, 0, $this->remoteAddress);
+        $this->throwNetworkSocketExceptionIf($result < 0, 'Failed to send data.');
+        return $result;
     }
 
     /** {@inheritdoc} */

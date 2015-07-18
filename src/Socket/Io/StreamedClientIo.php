@@ -37,9 +37,9 @@ class StreamedClientIo extends AbstractClientIo
             $data = fread($resource, self::SOCKET_BUFFER_SIZE);
             $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
             $result     .= $data;
-            $isDataEmpty = $this->isReadDataActuallyEmpty($data);
+            $isDataEmpty = $data === '';
 
-            $this->readAttempts = $isDataEmpty ?
+            $this->readAttempts = $this->isReadDataActuallyEmpty($data) ?
                 $this->readAttempts - 1 :
                 self::READ_ATTEMPTS;
         } while (!$isDataEmpty);
@@ -98,7 +98,7 @@ class StreamedClientIo extends AbstractClientIo
     /** {@inheritdoc} */
     protected function canReachFrame()
     {
-        return $this->readAttempts > 0;
+        return $this->readAttempts > 0 && $this->isConnected();
     }
 
     /**

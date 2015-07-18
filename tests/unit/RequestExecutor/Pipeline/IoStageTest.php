@@ -21,6 +21,7 @@ use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\PartialFrame;
+use AsyncSockets\RequestExecutor\InProgressWriteOperation;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\ReadOperation;
@@ -31,6 +32,8 @@ use Tests\Application\Mock\PhpFunctionMocker;
 
 /**
  * Class IoStageTest
+ *
+ * @coversDefaultClass
  */
 class IoStageTest extends AbstractStageTest
 {
@@ -361,7 +364,7 @@ class IoStageTest extends AbstractStageTest
         $request = $this->createOperationMetadata();
         $socket  = $this->setupSocketForRequest($request);
         $socket->expects(self::never())->method('read');
-        $socket->expects(self::any())->method('write');
+        $socket->expects(self::any())->method('write')->willReturn(strlen($testData));
 
         $request->expects(self::any())->method('getOperation')->willReturn(new WriteOperation($testData));
         $request->expects(self::any())->method('getSocket')->willReturn($socket);
@@ -481,7 +484,7 @@ class IoStageTest extends AbstractStageTest
         $request = $this->createOperationMetadata();
         $socket  = $this->setupSocketForRequest($request);
         $socket->expects(self::never())->method('read');
-        $socket->expects(self::once())->method('write')->with($testData);
+        $socket->expects(self::once())->method('write')->with($testData)->willReturn(strlen($testData));
 
         $request->expects(self::any())->method('getOperation')->willReturn(new WriteOperation());
         $request->expects(self::any())->method('getSocket')->willReturn($socket);
@@ -566,6 +569,97 @@ class IoStageTest extends AbstractStageTest
                         RequestExecutorInterface::META_LAST_IO_START_TIME => null,
                     ]
                 );
+
+        $result = $this->stage->processStage([$request]);
+        self::assertFalse(in_array($request, $result, true), 'Incorrect return result');
+    }
+
+    /**
+     * testThatPartialDataWillWrittenLater
+     *
+     * @return void
+     */
+    public function testThatPartialDataWillWrittenLater()
+    {
+        $testData = md5(microtime(true));
+        $chunks   = str_split($testData, 4);
+
+        $request = $this->createOperationMetadata();
+        $socket  = $this->setupSocketForRequest($request);
+        $socket->expects(self::never())->method('read');
+        $socket->expects(self::any())->method('write')->willReturnOnConsecutiveCalls(4, 4, 4, 4, 0);
+
+        $request->expects(self::any())->method('getOperation')->willReturn(new WriteOperation($testData));
+        $request->expects(self::any())->method('getSocket')->willReturn($socket);
+
+        $metadata = $this->getMetadataStructure();
+        $metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 5;
+        $request->expects(self::any())->method('getMetadata')->willReturn($metadata);
+
+        $this->eventCaller->expects(self::once())
+                          ->method('callSocketSubscribers')
+                          ->willReturnCallback(function ($mock, Event $event) use ($metadata) {
+                              self::assertEquals(EventType::WRITE, $event->getType(), 'Incorrect event fired');
+                              self::assertInstanceOf(
+                                  'AsyncSockets\Event\WriteEvent',
+                                  $event,
+                                  'Unexpected event class'
+                              );
+                              self::assertSame(
+                                  $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
+                                  $event->getContext(),
+                                  'Incorrect user context'
+                              );
+                          });
+
+        $request->expects(self::once())->method('setOperation')->willReturnCallback(
+            function (OperationInterface $operation) use ($chunks) {
+                self::assertInstanceOf(
+                    'AsyncSockets\RequestExecutor\InProgressWriteOperation',
+                    $operation,
+                    'Incorrect operation'
+                );
+
+                /** @var InProgressWriteOperation $operation */
+                self::assertSame(
+                    implode('', array_slice($chunks, 1)),
+                    $operation->getData(),
+                    'Incorrect data'
+                );
+            }
+        );
+
+        $result = $this->stage->processStage([$request]);
+        self::assertFalse(in_array($request, $result, true), 'Incorrect return result');
+    }
+
+    /**
+     * testThatInProgressWriteOperationWillNotFireEvent
+     *
+     * @return void
+     */
+    public function testThatInProgressWriteOperationWillNotFireEvent()
+    {
+        $testData      = md5(microtime(true));
+        $nextOperation = new ReadOperation();
+
+        $request = $this->createOperationMetadata();
+        $socket  = $this->setupSocketForRequest($request);
+        $socket->expects(self::never())->method('read');
+        $socket->expects(self::any())->method('write')->willReturnOnConsecutiveCalls(strlen($testData));
+
+        $request->expects(self::any())->method('getOperation')->willReturn(
+            new InProgressWriteOperation($nextOperation, $testData)
+        );
+        $request->expects(self::any())->method('getSocket')->willReturn($socket);
+
+        $metadata = $this->getMetadataStructure();
+        $metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 5;
+        $request->expects(self::any())->method('getMetadata')->willReturn($metadata);
+
+        $this->eventCaller->expects(self::never())->method('callSocketSubscribers');
+
+        $request->expects(self::once())->method('setOperation')->with($nextOperation);
 
         $result = $this->stage->processStage([$request]);
         self::assertFalse(in_array($request, $result, true), 'Incorrect return result');

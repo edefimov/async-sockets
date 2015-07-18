@@ -18,10 +18,13 @@ use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\PartialFrame;
+use AsyncSockets\RequestExecutor\InProgressWriteOperation;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class IoStage
@@ -52,17 +55,17 @@ class IoStage extends AbstractTimeAwareStage
     /**
      * Resolves I/O operation type and process it
      *
-     * @param OperationMetadata $operation Operation object
+     * @param OperationMetadata $operationMetadata Operation object
      *
      * @return bool Flag, whether operation is complete
      */
-    private function processIoOperation(OperationMetadata $operation)
+    private function processIoOperation(OperationMetadata $operationMetadata)
     {
-        switch ($operation->getOperation()->getType()) {
+        switch ($operationMetadata->getOperation()->getType()) {
             case OperationInterface::OPERATION_READ:
-                return $this->processReadIo($operation);
+                return $this->processReadIo($operationMetadata);
             case OperationInterface::OPERATION_WRITE:
-                return $this->processWriteIo($operation);
+                return $this->processWriteIo($operationMetadata);
             default:
                 return true;
         }
@@ -133,25 +136,51 @@ class IoStage extends AbstractTimeAwareStage
      */
     private function processWriteIo(OperationMetadata $operationMetadata)
     {
-        $meta   = $operationMetadata->getMetadata();
-        $socket = $operationMetadata->getSocket();
-        $event  = new WriteEvent(
-            $operationMetadata->getOperation(),
+        $meta      = $operationMetadata->getMetadata();
+        $socket    = $operationMetadata->getSocket();
+        $operation = $operationMetadata->getOperation();
+        $fireEvent = !($operation instanceof InProgressWriteOperation);
+
+        /** @var WriteOperation $operation */
+        $event = new WriteEvent(
+            $operation,
             $this->executor,
             $socket,
             $meta[ RequestExecutorInterface::META_USER_CONTEXT ]
         );
         try {
-            $this->callSocketSubscribers($operationMetadata, $event);
-            if ($event->getOperation()->hasData()) {
-                $socket->write($event->getOperation()->getData());
+            if ($fireEvent) {
+                $this->callSocketSubscribers($operationMetadata, $event);
+                $nextOperation = $event->getNextOperation();
+            } else {
+                $nextOperation = $operation;
             }
 
-            return $this->resolveNextOperation($operationMetadata, $event->getNextOperation());
+            $nextOperation = $this->writeDataToSocket($operation, $socket, $nextOperation);
+
+            return $this->resolveNextOperation($operationMetadata, $nextOperation);
         } catch (SocketException $e) {
             $this->callExceptionSubscribers($operationMetadata, $e, $event);
             return true;
         }
+    }
+
+    /**
+     * Marks write operation as in progress
+     *
+     * @param WriteOperation     $operation Current operation object
+     * @param OperationInterface $nextOperation Next planned operation
+     *
+     * @return InProgressWriteOperation Next operation object
+     */
+    private function makeInProgressWriteOperation(WriteOperation $operation, OperationInterface $nextOperation = null)
+    {
+        $result = $operation;
+        if (!($result instanceof InProgressWriteOperation)) {
+            $result = new InProgressWriteOperation($nextOperation, $operation->getData());
+        }
+
+        return $result;
     }
 
     /**
@@ -204,5 +233,45 @@ class IoStage extends AbstractTimeAwareStage
         }
 
         return true;
+    }
+
+    /**
+     * Perform data writing to socket and return suitable next socket operation
+     *
+     * @param WriteOperation     $operation Current write operation instance
+     * @param SocketInterface    $socket Socket object
+     * @param OperationInterface $nextOperation Desirable next operation
+     *
+     * @return OperationInterface Actual next operation
+     */
+    private function writeDataToSocket(
+        WriteOperation $operation,
+        SocketInterface $socket,
+        OperationInterface $nextOperation = null
+    ) {
+        $result               = $nextOperation;
+        $extractNextOperation = true;
+        if ($operation->hasData()) {
+            $data    = $operation->getData();
+            $length  = strlen($data);
+            $written = $socket->write($data);
+            if ($length !== $written) {
+                $extractNextOperation = false;
+
+                $operation = $this->makeInProgressWriteOperation($operation, $nextOperation);
+                $operation->setData(
+                    substr($operation->getData(), $written)
+                );
+
+                $result = $operation;
+            }
+        }
+
+        if ($extractNextOperation && ($operation instanceof InProgressWriteOperation)) {
+            /** @var InProgressWriteOperation $operation */
+            $result = $operation->getNextOperation();
+        }
+
+        return $result;
     }
 }

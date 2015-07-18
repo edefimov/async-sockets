@@ -116,15 +116,18 @@ abstract class AbstractClientIo extends AbstractIo
         $dataLength   = strlen($data);
         $microseconds = self::SELECT_DELAY;
         $attempts     = self::IO_ATTEMPTS;
+        $resource     = $this->socket->getStreamResource();
 
         do {
-            $write    = [ $this->socket->getStreamResource() ];
+            $write    = [ $resource ];
             $nomatter = null;
             $select   = stream_select($nomatter, $write, $nomatter, 0, $microseconds);
             $this->throwNetworkSocketExceptionIf($select === false, 'Failed to send data.');
+            if ($select === 0) {
+                break;
+            }
 
             $bytesWritten = $write ? $this->writeRawData($data) : 0;
-            $bytesWritten = $bytesWritten > 0 ? $bytesWritten : 0;
             $attempts     = $bytesWritten > 0 ? self::IO_ATTEMPTS : $attempts - 1;
 
             $this->throwNetworkSocketExceptionIf(
@@ -132,7 +135,7 @@ abstract class AbstractClientIo extends AbstractIo
                 'Failed to send data.'
             );
 
-            $data = substr($data, $bytesWritten);
+            $data    = substr($data, $bytesWritten);
             $result += $bytesWritten;
         } while ($result < $dataLength && $data !== false);
 
