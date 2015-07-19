@@ -154,6 +154,39 @@ class StreamedClientIoTest extends AbstractClientIoTest
     }
 
     /**
+     * testThatIfDataInSocketNotReadyForReadThenTheyWillBeReadLater
+     *
+     * @return void
+     */
+    public function testThatIfDataInSocketNotReadyForReadThenTheyWillBeReadLater()
+    {
+        $numReads                 = 3;
+        $mockFread                = $this->getMock('Countable', ['count']);
+        $mockStreamSocketRecvFrom = $this->getMock('Countable', ['count']);
+
+        $mockFread->expects(self::any())->method('count')
+            ->willReturnOnConsecutiveCalls('1', '', '', '2', '', '');
+
+        $mockStreamSocketRecvFrom->expects(self::any())->method('count')
+            ->willReturnOnConsecutiveCalls(false, '2', '');
+
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable([$mockFread, 'count']);
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            [ $mockStreamSocketRecvFrom, 'count' ]
+        );
+
+        $this->setConnectedStateForTestObject(true);
+        $this->ensureSocketIsOpened();
+
+        $picker = new NullFramePicker();
+        for ($i = 0; $i < $numReads; $i++) {
+            $frame = $this->object->read($picker);
+        }
+
+        self::assertEquals('12', (string) $frame, 'Incorrect frame');
+    }
+
+    /**
      * testExceptionWillBeThrownIfFrameNotCollected
      *
      * @return void
@@ -175,12 +208,6 @@ class StreamedClientIoTest extends AbstractClientIoTest
             return $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface');
         });
 
-        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(
-            function () {
-                return 0;
-            }
-        );
-
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
             function () {
                 return false;
@@ -193,7 +220,6 @@ class StreamedClientIoTest extends AbstractClientIoTest
             }
         );
 
-        //$this->socket->open('it has no meaning here');
         $this->ensureSocketIsOpened();
         $this->setConnectedStateForTestObject(true);
         for ($i = 0; $i < StreamedClientIo::READ_ATTEMPTS; $i++) {

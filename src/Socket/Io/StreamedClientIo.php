@@ -30,8 +30,10 @@ class StreamedClientIo extends AbstractClientIo
     protected function readRawData()
     {
         // work-around https://bugs.php.net/bug.php?id=52602
-        $resource = $this->socket->getStreamResource();
-        $result   = '';
+        $resource         = $this->socket->getStreamResource();
+        $result           = '';
+        $dataInSocket     = $this->getDataInSocket();
+        $isFirstIteration = true;
 
         do {
             $data = fread($resource, self::SOCKET_BUFFER_SIZE);
@@ -39,9 +41,12 @@ class StreamedClientIo extends AbstractClientIo
             $result     .= $data;
             $isDataEmpty = $data === '';
 
-            $this->readAttempts = $this->isReadDataActuallyEmpty($data) ?
+            $this->readAttempts = ($isFirstIteration && $dataInSocket === false) ||
+                                  (!$isFirstIteration && $this->isReadDataActuallyEmpty($data)) ?
                 $this->readAttempts - 1 :
                 self::READ_ATTEMPTS;
+
+            $isFirstIteration = false;
         } while (!$isDataEmpty);
 
         return $result;
