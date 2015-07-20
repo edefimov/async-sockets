@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\Socket\Io;
 
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -37,10 +38,10 @@ class DatagramMemorizedIo extends DatagramClientIo
     }
 
     /** {@inheritdoc} */
-    protected function readRawData()
+    protected function readRawDataIntoPicker(FramePickerInterface $picker)
     {
-        $result     = $this->data;
+        $data       = $this->data;
         $this->data = '';
-        return $result;
+        return $picker->pickUpData($data);
     }
 }

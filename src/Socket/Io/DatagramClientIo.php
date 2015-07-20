@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\Socket\Io;
 
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -39,7 +40,7 @@ class DatagramClientIo extends AbstractClientIo
     }
 
     /** {@inheritdoc} */
-    protected function readRawData()
+    protected function readRawDataIntoPicker(FramePickerInterface $picker)
     {
         $size     = self::SOCKET_BUFFER_SIZE;
         $resource = $this->socket->getStreamResource();
@@ -56,7 +57,9 @@ class DatagramClientIo extends AbstractClientIo
             $size += $size;
         } while (true);
 
-        return stream_socket_recvfrom($resource, $size, 0);
+        return $picker->pickUpData(
+            stream_socket_recvfrom($resource, $size, 0)
+        );
     }
 
     /** {@inheritdoc} */

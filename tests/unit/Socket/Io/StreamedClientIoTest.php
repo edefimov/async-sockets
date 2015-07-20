@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket\Io;
 
+use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\ClientSocket;
@@ -227,6 +228,52 @@ class StreamedClientIoTest extends AbstractClientIoTest
         }
 
         self::fail('Exception was not thrown');
+    }
+
+    /**
+     * testReadInfinityStream
+     *
+     * @return void
+     */
+    public function testReadInfinityStream()
+    {
+        $alphabet       = str_split('0123456789');
+        $sequence       = [ ];
+        $sequenceLength = 2048;
+        $idxSequence    = 0;
+        for ($i = 0; $i < $sequenceLength; $i++) {
+            $idx        = mt_rand(0, count($alphabet)-1);
+            $sequence[] = $alphabet[$idx];
+        }
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(
+            function () use (&$sequence, &$idxSequence) {
+                if ($idxSequence + 1 >= count($sequence)) {
+                    $idxSequence = 0;
+                }
+
+                return $sequence[$idxSequence++];
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () {
+                return 'x';
+            }
+        );
+
+        $this->setConnectedStateForTestObject(true);
+        $this->ensureSocketIsOpened();
+
+        $length = 12;
+        $picker = new FixedLengthFramePicker($length);
+        $frame  = $this->object->read($picker);
+
+        self::assertEquals(
+            implode('', array_slice($sequence, 0, $length)),
+            (string) $frame,
+            'Incorrect frame'
+        );
+        self::assertEquals($length, $idxSequence, 'Read too much bytes');
     }
 
     /**

@@ -9,6 +9,8 @@
  */
 namespace AsyncSockets\Socket\Io;
 
+use AsyncSockets\Frame\FramePickerInterface;
+
 /**
  * Class StreamedClientIo
  */
@@ -27,7 +29,7 @@ class StreamedClientIo extends AbstractClientIo
     private $readAttempts = self::READ_ATTEMPTS;
 
     /** {@inheritdoc} */
-    protected function readRawData()
+    protected function readRawDataIntoPicker(FramePickerInterface $picker)
     {
         // work-around https://bugs.php.net/bug.php?id=52602
         $resource         = $this->socket->getStreamResource();
@@ -38,7 +40,6 @@ class StreamedClientIo extends AbstractClientIo
         do {
             $data = fread($resource, self::SOCKET_BUFFER_SIZE);
             $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
-            $result     .= $data;
             $isDataEmpty = $data === '';
 
             $this->readAttempts = ($isFirstIteration && $dataInSocket === false) ||
@@ -47,7 +48,8 @@ class StreamedClientIo extends AbstractClientIo
                 self::READ_ATTEMPTS;
 
             $isFirstIteration = false;
-        } while (!$isDataEmpty);
+            $result           = $picker->pickUpData($data);
+        } while (!$this->isEndOfFrameReached($picker, false) && !$isDataEmpty);
 
         return $result;
     }

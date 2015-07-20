@@ -46,11 +46,13 @@ abstract class AbstractClientIo extends AbstractIo
     private $state = self::STATE_DISCONNECTED;
 
     /**
-     * Read raw data from network
+     * Read raw data from network into given picker
      *
-     * @return string|bool Read data or false on error
+     * @param FramePickerInterface $picker Frame picker
+     *
+     * @return string Data after end of frame
      */
-    abstract protected function readRawData();
+    abstract protected function readRawDataIntoPicker(FramePickerInterface $picker);
 
     /**
      * Write data to socket
@@ -87,16 +89,16 @@ abstract class AbstractClientIo extends AbstractIo
     {
         $this->setConnectedState();
         $unhandledData = $picker->pickUpData($this->unhandledData);
-
         $this->unhandledData = $unhandledData;
-        $this->unhandledData = $picker->pickUpData(
-            $this->unhandledData . $this->readRawData()
-        );
+        $isEndOfFrameReached = $this->isEndOfFrameReached($picker, false);
+        if (!$this->isEndOfFrameReached($picker, false)) {
+            $this->unhandledData = $this->readRawDataIntoPicker($picker);
 
-        $isEndOfTransfer     = $this->isEndOfTransfer();
-        $isEndOfFrameReached = $this->isEndOfFrameReached($picker, $isEndOfTransfer);
-        if (!$isEndOfFrameReached && !$this->canReachFrame()) {
-            throw new FrameSocketException($picker, $this->socket, 'Failed to receive desired frame.');
+            $isEndOfTransfer     = $this->isEndOfTransfer();
+            $isEndOfFrameReached = $this->isEndOfFrameReached($picker, $isEndOfTransfer);
+            if (!$isEndOfFrameReached && !$this->canReachFrame()) {
+                throw new FrameSocketException($picker, $this->socket, 'Failed to receive desired frame.');
+            }
         }
 
         $frame = $picker->createFrame();
@@ -191,7 +193,7 @@ abstract class AbstractClientIo extends AbstractIo
      *
      * @return bool
      */
-    private function isEndOfFrameReached(FramePickerInterface $picker, $isTransferFinished)
+    protected function isEndOfFrameReached(FramePickerInterface $picker, $isTransferFinished)
     {
         return
             (!($picker instanceof NullFramePicker) && $picker->isEof()) ||
