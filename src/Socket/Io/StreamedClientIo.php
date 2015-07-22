@@ -33,25 +33,41 @@ class StreamedClientIo extends AbstractClientIo
     {
         // work-around https://bugs.php.net/bug.php?id=52602
         $resource         = $this->socket->getStreamResource();
-        $result           = '';
-        $dataInSocket     = $this->getDataInSocket();
-        $isFirstIteration = true;
+        $readContext      = [
+            'countCycles'       => 0,
+            'dataBeforeIo'      => $this->getDataInSocket(),
+            'isStreamDataEmpty' => false,
+        ];
 
         do {
             $data = fread($resource, self::SOCKET_BUFFER_SIZE);
             $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
             $isDataEmpty = $data === '';
+            $result      = $picker->pickUpData($data);
 
-            $this->readAttempts = ($isFirstIteration && $dataInSocket === false) ||
-                                  (!$isFirstIteration && $this->isReadDataActuallyEmpty($data)) ?
-                $this->readAttempts - 1 :
-                self::READ_ATTEMPTS;
-
-            $isFirstIteration = false;
-            $result           = $picker->pickUpData($data);
+            $readContext['countCycles']      += 1;
+            $readContext['isStreamDataEmpty'] = $this->isReadDataActuallyEmpty($data);
+            $this->readAttempts               = $this->resolveReadAttempts($readContext, $this->readAttempts);
         } while (!$this->isEndOfFrameReached($picker, false) && !$isDataEmpty);
 
         return $result;
+    }
+
+    /**
+     * Calculate attempts value
+     *
+     * @param array $context Read context
+     * @param int   $currentAttempts Current attempts counter
+     *
+     * @return int
+     */
+    private function resolveReadAttempts(array $context, $currentAttempts)
+    {
+        return ($context['countCycles'] === 1 && $context['dataBeforeIo'] === false) ||
+               ($context['countCycles'] > 1   && $context['isStreamDataEmpty']) ?
+            $currentAttempts - 1 :
+            self::READ_ATTEMPTS;
+
     }
 
     /** {@inheritdoc} */
