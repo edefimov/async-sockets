@@ -9,8 +9,7 @@ Async sockets library
 [![Dependency Status](https://www.versioneye.com/user/projects/55525b5706c318305500014b/badge.png?style=flat)](https://www.versioneye.com/user/projects/55525b5706c318305500014b)
 [![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%205.4-777bb4.svg?style=flat)](https://php.net/)
 
-Async sockets is the library for asynchronous work with sockets based on php streams. 
-Library's workflow process is built on event model, but also select like and common synchronous models are supported.
+Async sockets is event-based library for asynchronous work with sockets built on php streams.
 
 ## Features
 
@@ -30,9 +29,10 @@ Library's workflow process is built on event model, but also select like and com
 - error handling is based on exceptions
 
 ## What is it for
-Async sockets library will be good for such tasks like executing multiple requests at once. When you have several
- servers with different delays the response from the fastest ones will be delivered earlier than from the slowest. 
- This allows to have maximum delay at size of timeout assigned for the slowest server.
+Async sockets library provides networking layer for applications, hides complexity of I/O operations, 
+ and cares about connections management. Library will be a powerful solution for such tasks like executing multiple 
+ requests at once as well as executing single one. Running multiple requests at once decreases delay of I/O operation 
+ to the size of timeout assigned to the slowest server.
  
 ## Installation
 
@@ -114,7 +114,7 @@ $executor->executeRequest();
 ## Workflow
 ### Socket types
 Async socket library provides two types of sockets - client and server. The recommended way to create 
-sockets of different types in source code is to use AsyncSocketFactory
+sockets of different types in source code is to use `AsyncSocketFactory`
 ```php
 $factory = new AsyncSocketFactory();
 
@@ -129,21 +129,23 @@ Creating RequestExecutor is as simple as creating sockets:
 $executor = $factory->createRequestExecutor();
 ```
 
-At this point we have should determine whether we need to use global event handler or limitation solver.
+At this point we should decide whether or not to use global event handler or limitation solver.
  
 Global event handler is the implementation of `EventHandlerInterface`, which will be called for every event on every
-added socket. There are three implementations of this interface out of box:
+added socket. There are four implementations of this interface out of box:
  - `CallbackEventHandler` takes array of callable, indexed by event type. For certain event type a certain 
    callable will be invoked. Several callbacks can be defined for one event type
  - `EventHandlerFromSymfonyEventDispatcher` dispatches all socket event to symfony [EventDispatcher](http://symfony.com/doc/current/components/event_dispatcher/introduction.html)
  - `EventMultiHandler` is the composite of EventHandlerInterface implementations
+ - `RemoveFinishedSocketsEventHandler` decorator for any implementation of `EventHandlerInterface` which automatically
+        removes completed sockets from `RequestExecutor`. Recommended to use for accepted clients from server sockets.
 
 The limitation solver is the component restricts amount of executed at once requests. Out of the box two strategies
 are available:
  - `NoLimitationSolver` doesn't restrict anything, it is default one
  - `ConstantLimitationSolver` restricts amount of running requests to given number
-Custom limitation solver can be written by implementing LimitationSolverInterface. If you need an access to socket
-events from the solver, just implement EventHandlerInterface in addition to the first one.
+Custom limitation solver can be written by implementing `LimitationSolverInterface`. If you need an access to socket
+events from the solver, just implement `EventHandlerInterface` in addition to the first one.
 
 To set up event handler or limitation solver use this snippet
 ```php
@@ -161,7 +163,7 @@ $executor->withLimitationSolver(new ConstantLimitationSolver(20));
 ```
 
 ### Event types
-To deal with sockets you need to subscribe events you are interested in. There are several type of events:
+To deal with sockets you need to subscribe to events you are interested in. There are several type of events:
  - EventType::INITIALIZE is the first event sent for socket and can be used for some preparations like setting 
         destination address for socket
  - EventType::CONNECTED - socket has been just connected to server
@@ -176,7 +178,7 @@ To deal with sockets you need to subscribe events you are interested in. There a
  - EventType::EXCEPTION - some `NetworkSocketException` occurred, detailed information can be retrieved from `SocketExceptionEvent`
 
 ### Adding sockets
-To add socket to RequestExecutor use `SocketBagInterface` returned by `socketBag` method of RequestExecutor
+To add socket to RequestExecutor use `SocketBagInterface` returned by `socketBag` method of `RequestExecutor`
 ```php
 $executor->socketBag()->addSocket(
     $socket, 
@@ -193,21 +195,25 @@ $executor->socketBag()->addSocket(
 Function `addSocket` accepts four arguments: socket, operation, metadata and event handler. 
 Socket is the object, created by `AsyncSocketFactory` or received by `AcceptEvent`.
 Operation can be one of `ReadOperation` or `WriteOperation` classes.
-Metadata is key-value array with settings for this socket.
+Metadata is key-value array with settings for this socket and will be described later.
 Event handler is implementation of `EventHandlerInterface`, which will be invoked only for this socket.
 
 #### Determination of frame boundaries
-When `ReadOperation` is applied to socket it is possible to determine frame boundaries when receiving data structure is known.
-To achieve this purpose helps `FramePickerInterface`. It gives hints to socket engine where the end of frame is and
-whether it is reached. These implementations of `FramePickerInterface` are available out of the box:
- - `NullFramePicker` - default implementation is used if nothing else is provided, reads data until they won't stop arriving
- - `FixedLengthFramePicker` - frame of predefined length, when length bytes are received immediately fires READ event
- - `MarkerFramePicker` - frame of variable length, but at start and end marker, or at least end marker, are known
+When `ReadOperation` is applied to socket it is possible to determine frame boundaries when receiving data structure 
+is known. To achieve this purpose helps `FramePickerInterface`. It gives hints to socket engine where the end of frame 
+is and whether it is reached. These implementations of `FramePickerInterface` are available out of the box:
+ - `NullFramePicker` - default implementation is used if nothing else is provided, reads data until network
+                       connection is active. *WARNING*: It is strongly recommended to avoid this type of picker in
+                       production code and always use any other one.
+ - `FixedLengthFramePicker` - frame of predefined length, when length bytes are received immediately fires READ event.
+ - `MarkerFramePicker` - frame of variable length, but at start and end marker, or at least end marker, are known.
+ - `RawFramePicker` - raw frame with chunk of data just received from network read call.
+ 
 To write own frame picker just implement `FramePickerInterface`.
 ```php
 $read = new ReadOperation(new FixedLengthFramePicker(256)); // read 256 bytes from response
 
-$read = new MarkerFramePicker('HTTP', "\n\n"); // get HTTP headers from response
+$read = new MarkerFramePicker('HTTP', "\r\n\r\n"); // get HTTP headers from response
 
 $read = new MarkerFramePicker(null, "\x00"); // read data until 0-byte
 ```
@@ -219,7 +225,7 @@ type inside of event.
 Metadata is settings for all operations on given socket. Supported keys are defined in `RequestExecutorInterface`.
 For now these keys are supported:
   - META_ADDRESS - string in form scheme://target, destination address for client socket and local address for server.
-        This value is required.
+        This value is required for created sockets and can be ignored for accepted ones.
   - META_CONNECTION_TIMEOUT - int, value in seconds, if there was no connection during this period, socket would 
         be closed automatically and TIMEOUT event will be fired. If value is omitted then php.ini setting default_socket_timeout is used
   - META_IO_TIMEOUT - float, seconds with microseconds, if there were no data sent/received during this period of time,
@@ -229,11 +235,12 @@ For now these keys are supported:
         or null or array with options. If array value is used, then it should contain two nested keys:
         "options" and "params", which will be passed to stream_context_create parameters respectively.
   - META_REQUEST_COMPLETE - bool, read-only, flag indicating that execute operation on this socket is complete
-  - META_CONNECTION_START_TIME - float, read-only, value with microseconds when connection process has begun. If connection process hasn't started
-        yet, the value will be null
-  - META_CONNECTION_FINISH_TIME - float, read-only, value with microseconds when connection process has ended. If connection process hasn't finished
-        yet, the value will be null
-  - META_LAST_IO_START_TIME - float, read-only, value with microseconds when last io operation has started
+  - META_CONNECTION_START_TIME - float, read-only, int part is seconds and float is microseconds, time 
+        when connection process has begun. If connection process hasn't started yet, the value will be null
+  - META_CONNECTION_FINISH_TIME - float, read-only, int part is seconds and float is microseconds, time when 
+        connection process has ended. If connection process hasn't finished yet, the value will be null
+  - META_LAST_IO_START_TIME - float, read-only, int part is seconds and float is microseconds, time when last 
+        io operation has started
 
 ### Starting request
 After setting up event handler and adding at least one socket request can be executed by calling
@@ -319,4 +326,4 @@ $executor->socketBag()->addSocket(
 
 $executor->executeRequest();
 ```
-
+See full example [here](https://github.com/edefimov/async-sockets/blob/master/demos/Demo/SimpleServer.php)
