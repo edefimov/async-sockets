@@ -129,6 +129,46 @@ class DatagramClientIoTest extends AbstractClientIoTest
     }
 
     /**
+     * testReadUnreachedFrame
+     *
+     * @param string|null $remoteAddress Remote address for I/O object
+     *
+     * @return void
+     * @dataProvider remoteAddressDataProvider
+     * @expectedException \AsyncSockets\Exception\FrameSocketException
+     */
+    public function testReadUnreachedFrame($remoteAddress)
+    {
+        $this->setUpIoObject($remoteAddress);
+
+        $data   = '1';
+        $picker = $this->getMockForAbstractClass(
+            'AsyncSockets\Frame\FramePickerInterface',
+            [],
+            '',
+            true,
+            true,
+            true,
+            ['isEof']
+        );
+        $picker->expects(self::any())->method('isEof')->willReturn(false);
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function ($handle, $size, $flags, &$address) use (&$data) {
+                $address = $this->address;
+                $result  = $data;
+
+                if (!($flags & MSG_PEEK)) {
+                    $data = '';
+                }
+                return $result;
+            }
+        );
+
+        $this->object->read($picker);
+    }
+
+    /**
      * testWriteData
      *
      * @param string|null $remoteAddress Remote address for I/O object
