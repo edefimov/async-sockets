@@ -7,6 +7,7 @@ Async sockets library
 [![Scrutinizer](https://img.shields.io/scrutinizer/g/edefimov/async-sockets.svg?style=flat)](https://scrutinizer-ci.com/g/edefimov/async-sockets/)
 [![GitHub release](https://img.shields.io/github/release/edefimov/async-sockets.svg?style=flat)](https://github.com/edefimov/async-sockets/releases/latest)
 [![Dependency Status](https://www.versioneye.com/user/projects/55525b5706c318305500014b/badge.png?style=flat)](https://www.versioneye.com/user/projects/55525b5706c318305500014b)
+[![Downloads](https://img.shields.io/packagist/dt/edefimov/async-sockets.svg)](https://packagist.org/packages/edefimov/async-sockets)
 [![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%205.4-777bb4.svg?style=flat)](https://php.net/)
 
 Async sockets is event-based library for asynchronous work with sockets built on php streams.
@@ -20,7 +21,7 @@ Async sockets is event-based library for asynchronous work with sockets built on
 - all transports returned by stream_get_transports are supported
 - compatible with symfony event dispatcher component
 - full control over timeouts
-- dynamically adding new request during working process
+- dynamically adding new request during execution process
 - separate timeout values for each socket
 - custom sockets setup by php stream contexts
 - custom user context for each socket
@@ -40,7 +41,7 @@ The recommended way to install async sockets library is through composer
 
 stable version:
 ```
-$ composer require edefimov/async-sockets:~0.1.0 --prefer-dist|--prefer-source
+$ composer require edefimov/async-sockets:~0.2.0 --prefer-dist|--prefer-source
 ```
 
 actual version:
@@ -123,7 +124,7 @@ $server = $factory->createSocket(AsyncSocketFactory::SOCKET_SERVER);
 ```
 
 ### RequestExecutor
-RequestExecutor is the engine, which hides all I/O operations and provides event system for client code.
+RequestExecutor is an engine, which hides all I/O operations and provides event system for client code.
 Creating RequestExecutor is as simple as creating sockets:
 ```php
 $executor = $factory->createRequestExecutor();
@@ -176,6 +177,10 @@ To deal with sockets you need to subscribe to events you are interested in. Ther
  - EventType::FINALIZE - socket I/O cycle is complete and socket should be removed from RequestExecutor
  - EventType::TIMEOUT - socket failed to connect/read/write data during set up period of time
  - EventType::EXCEPTION - some `NetworkSocketException` occurred, detailed information can be retrieved from `SocketExceptionEvent`
+
+Each event type has `Event` object (or one of its children) as the callback argument. If you have installed symfony event
+ dispatcher component, library's `Event` object will be inherited from symfony `Event` object.
+ 
 
 ### Adding sockets
 To add socket to RequestExecutor use `SocketBagInterface` returned by `socketBag` method of `RequestExecutor`

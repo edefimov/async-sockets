@@ -1,5 +1,16 @@
 # Changelog
 
+0.2.0 (Jul 25, 2015)
+--------------------
+ Changes:
+  - Removed support of synchronous I/O
+  - Server socket support
+  - Support all transports returned by `stream_get_transports`
+  - Distinguish frame boundaries
+  - Determine datagram size for udp sockets
+  - Improved working with TLS sockets
+  
+  
 0.2.0-alpha (Jul 1, 2015)
 --------------------
  New features:
