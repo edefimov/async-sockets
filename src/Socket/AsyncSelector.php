@@ -51,7 +51,7 @@ class AsyncSelector
 
         $read     = $this->getSocketsForOperation(OperationInterface::OPERATION_READ);
         $write    = $this->getSocketsForOperation(OperationInterface::OPERATION_WRITE);
-        $attempts = floor(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) + 1;
+        $attempts = ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY);
 
         do {
             $result = $this->doStreamSelect($seconds, $usec, $read, $write);

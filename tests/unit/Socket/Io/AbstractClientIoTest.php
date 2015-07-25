@@ -156,11 +156,40 @@ class AbstractClientIoTest extends AbstractIoTest
         $this->object->write('data');
     }
 
+    /**
+     * testThatIoWillNotTryWriteIfNotSelected
+     *
+     * @return void
+     */
+    public function testThatIoWillNotTryWriteIfNotSelected()
+    {
+        $this->prepareFor(__FUNCTION__);
+        $this->setConnectedStateForTestObject(true);
+        foreach (['stream_socket_sendto', 'fwrite'] as $f) {
+            PhpFunctionMocker::getPhpFunctionMocker($f)->setCallable(
+                function () use ($f) {
+                    self::fail("{$f} shouldn't be called");
+                }
+            );
+        }
+
+        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
+        $mocker->setCallable(function (array &$read = null, array &$write = null) {
+            $read  = [];
+            $write = [];
+            return 0;
+        });
+
+        $this->ensureSocketIsOpened();
+        $this->object->write('data');
+    }
+
     /** {@inheritdoc} */
     protected function tearDown()
     {
         parent::tearDown();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('fwrite')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
     }
 

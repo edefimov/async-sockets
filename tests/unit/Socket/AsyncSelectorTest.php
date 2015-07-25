@@ -220,6 +220,31 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testThatIfSelectFailedIncompleteSleepWillBeCalled
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\TimeoutException
+     */
+    public function testThatIfSelectFailedIncompleteSleepWillBeCalled()
+    {
+        $usleep = $this->getMock('Countable', ['count']);
+        $usleep->expects(self::exactly(1))->method('count')->with(AsyncSelector::ATTEMPT_DELAY);
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(function () {
+            return 1;
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(function () {
+            return false;
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('usleep')->setCallable([$usleep, 'count']);
+
+        $this->selector->addSocketOperation($this->socket, OperationInterface::OPERATION_READ);
+        $this->selector->select(0, 2 * AsyncSelector::ATTEMPT_DELAY);
+    }
+
+    /**
      * socketOperationDataProvider
      *
      * @return array
@@ -270,6 +295,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     {
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('usleep')->restoreNativeHandler();
         $this->socket->close();
     }
 
