@@ -12,11 +12,12 @@ namespace Tests\AsyncSockets\Socket\Io;
 
 use AsyncSockets\Socket\Io\IoInterface;
 use AsyncSockets\Socket\SocketInterface;
+use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
 
 /**
  * Class AbstractIoTest
  */
-abstract class AbstractIoTest extends \PHPUnit_Framework_TestCase
+abstract class AbstractIoTest extends AbstractTestCase
 {
     /**
      * Test object

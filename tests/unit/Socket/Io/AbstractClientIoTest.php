@@ -19,21 +19,6 @@ use Tests\Application\Mock\PhpFunctionMocker;
  */
 class AbstractClientIoTest extends AbstractIoTest
 {
-    /**
-     * Make some preparations for test method
-     *
-     * @param string $testMethod Test method from this class
-     *
-     * @return void
-     */
-    protected function prepareFor($testMethod)
-    {
-        $method = 'prepareFor' . ucfirst($testMethod);
-        if (method_exists($this, $method)) {
-            $this->$method();
-        }
-    }
-
     /** {@inheritdoc} */
     protected function createSocketInterface()
     {

@@ -19,6 +19,23 @@ use Symfony\Component\Yaml\Yaml;
 abstract class AbstractTestCase extends \PHPUnit_Framework_TestCase
 {
     /**
+     * Make some preparations for test method
+     *
+     * @param string $testMethod Test method from this class
+     *
+     * @return void
+     */
+    protected function prepareFor($testMethod)
+    {
+        $method = 'prepareFor' . ucfirst($testMethod);
+        if (method_exists($this, $method)) {
+            $args = func_get_args();
+            array_shift($args);
+            call_user_func_array([$this, $method], $args);
+        }
+    }
+
+    /**
      * Convert dataProvider return value from associative array to list of function arguments
      *
      * @param string  $method Target method name in class

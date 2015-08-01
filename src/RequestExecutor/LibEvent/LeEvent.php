@@ -153,17 +153,17 @@ class LeEvent
     private function onEvent($eventFlags, OperationMetadata $operationMetadata)
     {
         $fireTimeout = true;
-        if ($eventFlags & EV_READ) {
+        if (!$this->base->isTerminating() && $eventFlags & EV_READ) {
             $fireTimeout = false;
             $this->callback->onEvent($this, $operationMetadata, LeCallbackInterface::EVENT_READ);
         }
 
-        if ($eventFlags & EV_WRITE) {
+        if (!$this->base->isTerminating() && $eventFlags & EV_WRITE) {
             $fireTimeout = false;
             $this->callback->onEvent($this, $operationMetadata, LeCallbackInterface::EVENT_WRITE);
         }
 
-        if ($fireTimeout && ($eventFlags & EV_TIMEOUT)) {
+        if (!$this->base->isTerminating() && $fireTimeout && ($eventFlags & EV_TIMEOUT)) {
             $this->callback->onEvent($this, $operationMetadata, LeCallbackInterface::EVENT_TIMEOUT);
         }
     }

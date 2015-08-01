@@ -9,6 +9,9 @@
  */
 namespace AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Event\Event;
+use AsyncSockets\Event\EventType;
+use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LibEvent\LeBase;
 use AsyncSockets\RequestExecutor\LibEvent\LeCallbackInterface;
 use AsyncSockets\RequestExecutor\LibEvent\LeEvent;
@@ -18,7 +21,6 @@ use AsyncSockets\RequestExecutor\Pipeline\DisconnectStage;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
-use AsyncSockets\RequestExecutor\Pipeline\TimeoutStage;
 
 /**
  * Class LibEventRequestExecutor
@@ -47,40 +49,54 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     private $ioStage;
 
     /**
-     * Timeout stage
-     *
-     * @var PipelineStageInterface
-     */
-    private $timeoutStage;
-
-    /**
      * Disconnect stage
      *
      * @var PipelineStageInterface
      */
     private $disconnectStage;
 
+    /**
+     * EventCaller
+     *
+     * @var EventCaller
+     */
+    private $eventCaller;
+
     /** {@inheritdoc} */
     protected function doExecuteRequest(EventCaller $eventCaller)
     {
-        $this->base = new LeBase();
+        $this->connectSockets();
+        $this->base->startLoop();
+    }
+
+    /** {@inheritdoc} */
+    protected function initializeRequest(EventCaller $eventCaller)
+    {
+        parent::initializeRequest($eventCaller);
+        $this->base        = new LeBase();
+        $this->eventCaller = $eventCaller;
 
         $this->connectStage    = new ConnectStage($this, $eventCaller, $this->solver);
         $this->ioStage         = new IoStage($this, $eventCaller);
-        $this->timeoutStage    = new TimeoutStage($this, $eventCaller);
         $this->disconnectStage = new DisconnectStage($this, $eventCaller);
-        try {
-            $this->connectSockets();
+    }
 
-            $this->base->startLoop();
-        } catch (\Exception $e) {
-            $this->base    = null;
-            $this->ioStage = null;
-            throw $e;
-        }
+    /** {@inheritdoc} */
+    protected function terminateRequest()
+    {
+        parent::terminateRequest();
+        $this->base        = null;
+        $this->eventCaller = null;
 
-        $this->ioStage = null;
-        $this->base    = null;
+        $this->connectStage    = null;
+        $this->ioStage         = null;
+        $this->disconnectStage = null;
+    }
+
+    /** {@inheritdoc} */
+    protected function disconnectItems(array $items)
+    {
+        $this->disconnectStage->processStage($items);
     }
 
     /**
@@ -98,13 +114,14 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     }
 
     /** {@inheritdoc} */
-    protected function doStopRequest()
+    public function stopRequest()
     {
+        parent::stopRequest();
         $this->base->breakLoop();
     }
 
     /** {@inheritdoc} */
-    public function onEvent(LeEvent $event, OperationMetadata $operationMetadata, $type)
+    public function onEvent(LeEvent $leEvent, OperationMetadata $operationMetadata, $type)
     {
         $doResetEvent = false;
         switch ($type) {
@@ -116,7 +133,7 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
 
                 break;
             case LeCallbackInterface::EVENT_TIMEOUT:
-                $this->timeoutStage->processStage([$operationMetadata]);
+                $this->handleTimeout($operationMetadata);
                 break;
         }
 
@@ -140,6 +157,25 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
         foreach ($this->connectStage->processStage($items) as $item) {
             $meta = $item->getMetadata();
             $this->setupEvent($item, $meta[ self::META_CONNECTION_TIMEOUT ]);
+        }
+    }
+
+    /**
+     * Process timeout event on socket
+     *
+     * @param OperationMetadata $operationMetadata
+     *
+     * @return void
+     */
+    private function handleTimeout(OperationMetadata $operationMetadata)
+    {
+        $operation = $operationMetadata->getOperation();
+        $socket    = $operationMetadata->getSocket();
+        $event     = new Event($this, $socket, $operation, EventType::TIMEOUT);
+        try {
+            $this->eventCaller->callSocketSubscribers($operationMetadata, $event);
+        } catch (SocketException $e) {
+            $this->eventCaller->callExceptionSubscribers($operationMetadata, $e, $event);
         }
     }
 }

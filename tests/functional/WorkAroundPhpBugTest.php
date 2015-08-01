@@ -17,6 +17,9 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
+use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
+use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
+use AsyncSockets\RequestExecutor\NativeRequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -30,29 +33,22 @@ use AsyncSockets\Socket\ClientSocket;
 class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * RequestExecutorInterface
-     *
-     * @var RequestExecutorInterface
-     */
-    private $executor;
-
-    /**
      * testReadFromNetwork
      *
-     * @param string[] $urls Array of urls to resource
+     * @param RequestExecutorInterface $executor Request executor engine
+     * @param string[]                 $urls Array of urls to resource
      *
-     * @return void
      * @dataProvider urlDataProvider
      * @group networking
      */
-    public function testReadFromNetwork(array $urls)
+    public function testReadFromNetwork(RequestExecutorInterface $executor, array $urls)
     {
         foreach ($urls as $url) {
             $components = parse_url($url);
             $request    = "GET / HTTP/1.1\nHost: {$components['host']}:{$components['port']}\n\n";
             $socket     = new ClientSocket();
 
-            $this->executor->socketBag()->addSocket(
+            $executor->socketBag()->addSocket(
                 $socket,
                 new WriteOperation($request),
                 [
@@ -63,7 +59,9 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
 
         $mock = $this->getMock('Countable', ['count']);
         $mock->expects(self::exactly(count($urls)))->method('count');
-        $this->executor->withEventHandler(
+
+        echo 'Processing with ' . get_class($executor) . " engine\n";
+        $executor->withEventHandler(
             new CallbackEventHandler(
                 [
                     EventType::WRITE => function (WriteEvent $event) {
@@ -92,7 +90,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             )
         );
 
-        $this->executor->executeRequest();
+        $executor->executeRequest();
     }
 
     /**
@@ -102,25 +100,18 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
      */
     public function urlDataProvider()
     {
-        return [
-            [
-                [
-                    'tcp://php.net:80',
-                    'tls://github.com:443',
-                    'tls://packagist.org:443',
-                    'tls://coveralls.io:443',
-                    'tcp://stackoverflow.com:80',
-                    'tls://google.com:443'
-                ],
-            ]
+        $urls = [
+            'tcp://php.net:80',
+            'tls://github.com:443',
+            'tls://packagist.org:443',
+            'tls://coveralls.io:443',
+            'tcp://stackoverflow.com:80',
+            'tls://google.com:443'
         ];
-    }
 
-    /** {@inheritdoc} */
-    protected function setUp()
-    {
-        parent::setUp();
-        $factory        = new AsyncSocketFactory();
-        $this->executor = $factory->createRequestExecutor();
+        return [
+            [ new NativeRequestExecutor(new PipelineFactory()), $urls ],
+            [ new LibEventRequestExecutor(), $urls ],
+        ];
     }
 }

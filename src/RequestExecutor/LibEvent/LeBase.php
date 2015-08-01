@@ -29,6 +29,13 @@ class LeBase
     private $events = [];
 
     /**
+     * Flag, whether loop is about to terminate
+     *
+     * @var bool
+     */
+    private $isTerminating = false;
+
+    /**
      * LeBase constructor.
      */
     public function __construct()
@@ -82,6 +89,7 @@ class LeBase
      */
     public function startLoop()
     {
+        $this->isTerminating = false;
         return event_base_loop($this->handle);
     }
 
@@ -92,7 +100,18 @@ class LeBase
      */
     public function breakLoop()
     {
+        $this->isTerminating = true;
         event_base_loopbreak($this->handle);
+    }
+
+    /**
+     * Check whether loop is terminating
+     *
+     * @return boolean
+     */
+    public function isTerminating()
+    {
+        return $this->isTerminating;
     }
 
     /**

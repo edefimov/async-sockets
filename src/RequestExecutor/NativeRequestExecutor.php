@@ -17,7 +17,7 @@ use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 /**
  * Class RequestExecutor
  */
-class RequestExecutor extends AbstractRequestExecutor
+class NativeRequestExecutor extends AbstractRequestExecutor
 {
     /**
      * Pipeline
@@ -45,28 +45,28 @@ class RequestExecutor extends AbstractRequestExecutor
     }
 
     /** {@inheritdoc} */
-    protected function doExecuteRequest(EventCaller $eventCaller)
+    protected function initializeRequest(EventCaller $eventCaller)
     {
+        parent::initializeRequest($eventCaller);
         $this->pipeline = $this->pipelineFactory->createPipeline($this, $eventCaller, $this->solver);
+    }
 
-        $eventCaller->addHandler($this->pipeline);
-
-        try {
-            $this->solver->initialize($this);
-            $this->pipeline->process($this->socketBag, $eventCaller);
-            $this->solver->finalize($this);
-        } catch (\Exception $e) {
-            $this->solver->finalize($this);
-            $this->pipeline = null;
-            throw $e;
-        }
-
+    /** {@inheritdoc} */
+    protected function terminateRequest()
+    {
+        parent::terminateRequest();
         $this->pipeline = null;
     }
 
     /** {@inheritdoc} */
-    protected function doStopRequest()
+    protected function doExecuteRequest(EventCaller $eventCaller)
     {
-        $this->pipeline->stopRequest();
+        $this->pipeline->process($this->socketBag);
+    }
+
+    /** {@inheritdoc} */
+    protected function disconnectItems(array $items)
+    {
+        $this->pipeline->disconnectSockets($items);
     }
 }

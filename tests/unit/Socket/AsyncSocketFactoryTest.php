@@ -33,15 +33,15 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     {
         $executor = $this->factory->createRequestExecutor();
         self::assertInstanceOf(
-            'AsyncSockets\RequestExecutor\RequestExecutor',
+            'AsyncSockets\RequestExecutor\NativeRequestExecutor',
             $executor,
             'Strange object ' . get_class($executor) . ' was created'
         );
 
-        $ref = new \ReflectionClass('AsyncSockets\RequestExecutor\RequestExecutor');
+        $ref = new \ReflectionClass('AsyncSockets\RequestExecutor\NativeRequestExecutor');
         self::assertTrue(
             $ref->implementsInterface('AsyncSockets\RequestExecutor\RequestExecutorInterface'),
-            'RequestExecutor must implement RequestExecutorInterface'
+            'NativeRequestExecutor must implement RequestExecutorInterface'
         );
     }
 

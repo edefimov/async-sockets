@@ -31,6 +31,7 @@ class ClientServerDataExchangeTest extends \PHPUnit_Framework_TestCase
      * testSendLargeAmountOfData
      *
      * @return void
+     * @group networking
      */
     public function testSendLargeAmountOfData()
     {
