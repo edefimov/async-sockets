@@ -10,7 +10,6 @@
 
 namespace AsyncSockets\RequestExecutor;
 
-use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\Pipeline;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
@@ -18,29 +17,8 @@ use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 /**
  * Class RequestExecutor
  */
-class RequestExecutor implements RequestExecutorInterface
+class RequestExecutor extends AbstractRequestExecutor
 {
-    /**
-     * Decider for request limitation
-     *
-     * @var LimitationSolverInterface
-     */
-    private $solver;
-
-    /**
-     * EventHandlerInterface
-     *
-     * @var EventHandlerInterface
-     */
-    private $eventHandler;
-
-    /**
-     * Socket bag
-     *
-     * @var SocketBag
-     */
-    private $socketBag;
-
     /**
      * Pipeline
      *
@@ -62,46 +40,14 @@ class RequestExecutor implements RequestExecutorInterface
      */
     public function __construct(PipelineFactory $pipelineFactory)
     {
-        $this->socketBag       = new SocketBag($this);
+        parent::__construct();
         $this->pipelineFactory = $pipelineFactory;
     }
 
     /** {@inheritdoc} */
-    public function socketBag()
+    protected function doExecuteRequest(EventCaller $eventCaller)
     {
-        return $this->socketBag;
-    }
-
-    /** {@inheritdoc} */
-    public function withEventHandler(EventHandlerInterface $handler = null)
-    {
-        $this->eventHandler = $handler;
-    }
-
-    /** {@inheritdoc} */
-    public function isExecuting()
-    {
-        return $this->pipeline !== null;
-    }
-
-    /** {@inheritdoc} */
-    public function executeRequest()
-    {
-        if ($this->isExecuting()) {
-            throw new \BadMethodCallException('Request is already in progress');
-        }
-
-        $eventCaller   = new EventCaller($this);
-        $this->solver = $this->solver ?: new NoLimitationSolver();
-        if ($this->eventHandler) {
-            $eventCaller->addHandler($this->eventHandler);
-        }
-
-        if ($this->solver instanceof EventHandlerInterface) {
-            $eventCaller->addHandler($this->solver);
-        }
-
-        $this->pipeline  = $this->pipelineFactory->createPipeline($this, $eventCaller, $this->solver);
+        $this->pipeline = $this->pipelineFactory->createPipeline($this, $eventCaller, $this->solver);
 
         $eventCaller->addHandler($this->pipeline);
 
@@ -119,22 +65,8 @@ class RequestExecutor implements RequestExecutorInterface
     }
 
     /** {@inheritdoc} */
-    public function stopRequest()
+    protected function doStopRequest()
     {
-        if (!$this->isExecuting()) {
-            throw new \BadMethodCallException('Can not stop inactive request');
-        }
-
         $this->pipeline->stopRequest();
-    }
-
-    /** {@inheritdoc} */
-    public function withLimitationSolver(LimitationSolverInterface $solver)
-    {
-        if ($this->isExecuting()) {
-            throw new \BadMethodCallException('Can not change limitation solver during request processing');
-        }
-
-        $this->solver = $solver;
     }
 }

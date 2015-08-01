@@ -30,7 +30,7 @@ class ConnectStageTest extends AbstractStageTest
      *
      * @var LimitationSolverInterface|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $solver;
+    protected $solver;
 
     /**
      * testProcessScheduledDecision
@@ -142,11 +142,11 @@ class ConnectStageTest extends AbstractStageTest
     }
 
     /**
-     * testThatAlreadyRunningObjectWillBeSkipped
+     * testThatAlreadyRunningObjectWillNotBeConnectedAgain
      *
      * @return void
      */
-    public function testThatAlreadyRunningObjectWillBeSkipped()
+    public function testThatAlreadyRunningObjectWillNotBeConnectedAgain()
     {
         $this->solver->expects(self::any())->method('decide')->willReturn(LimitationSolverInterface::DECISION_OK);
         $first = $this->createOperationMetadata();
@@ -159,11 +159,7 @@ class ConnectStageTest extends AbstractStageTest
         $first->expects(self::never())->method('setRunning');
 
 
-        $connected = $this->stage->processStage([ $first, ]);
-        self::assertTrue(
-            in_array($first, $connected, true),
-            'Running operation must be returned as connected'
-        );
+        $this->stage->processStage([ $first, ]);
     }
 
     /**
@@ -188,11 +184,7 @@ class ConnectStageTest extends AbstractStageTest
 
         $first->expects(self::any())->method('getMetadata')->willReturn($testMetadata);
 
-        $connected = $this->stage->processStage([ $first, ]);
-        self::assertTrue(
-            in_array($first, $connected, true),
-            'Running operation must be returned as connected'
-        );
+        $this->stage->processStage([ $first, ]);
     }
 
     /**

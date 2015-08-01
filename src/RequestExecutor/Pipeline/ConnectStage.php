@@ -48,6 +48,7 @@ class ConnectStage extends AbstractTimeAwareStage
     {
         /** @var OperationMetadata[] $operations */
         $totalItems = count($operations);
+        $result     = [];
         foreach ($operations as $item) {
             $decision = $this->decide($item, $totalItems);
             if ($decision === LimitationSolverInterface::DECISION_PROCESS_SCHEDULED) {
@@ -58,10 +59,12 @@ class ConnectStage extends AbstractTimeAwareStage
                 throw new \LogicException('Unknown decision ' . $decision . ' received.');
             }
 
-            $this->connectSocket($item);
+            if ($this->connectSocket($item)) {
+                $result[] = $item;
+            }
         }
 
-        return $this->getActiveOperations($operations);
+        return $result;
     }
 
     /**
@@ -116,31 +119,11 @@ class ConnectStage extends AbstractTimeAwareStage
     }
 
     /**
-     * Return array of keys for socket waiting for processing
-     *
-     * @param OperationMetadata[] $operations List of all operations
-     *
-     * @return OperationMetadata[]
-     */
-    private function getActiveOperations(array $operations)
-    {
-        $result = [];
-        foreach ($operations as $key => $item) {
-            $meta = $item->getMetadata();
-            if (!$meta[RequestExecutorInterface::META_REQUEST_COMPLETE] && $item->isRunning()) {
-                $result[$key] = $item;
-            }
-        }
-
-        return $result;
-    }
-
-    /**
      * Start connecting process
      *
      * @param OperationMetadata $item Socket operation data
      *
-     * @return void
+     * @return bool True if successfully connected, false otherwise
      */
     private function connectSocket(OperationMetadata $item)
     {
@@ -160,9 +143,15 @@ class ConnectStage extends AbstractTimeAwareStage
             );
 
             $item->setRunning(true);
+
+            $result = true;
         } catch (SocketException $e) {
             $item->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
             $this->callExceptionSubscribers($item, $e, $event);
+
+            $result = false;
         }
+
+        return $result;
     }
 }

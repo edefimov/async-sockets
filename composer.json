@@ -25,6 +25,7 @@
         "symfony/yaml": "~2.7 || ~3.0"
     },
     "suggest": {
+        "ext-libevent": "For using RequestExecutor engine based on libevent",
         "symfony/event-dispatcher": "Allows to notify system about socket events"
     },
     "extra": {

@@ -35,7 +35,7 @@ class PipelineFactory
         $selector        = $this->createSelector();
         $disconnectStage = $this->createDisconnectStage($executor, $eventCaller, $selector);
         return new Pipeline(
-            new ConnectStage($executor, $eventCaller, $limitationDecider),
+            new ConnectStageReturningAllActiveSockets($executor, $eventCaller, $limitationDecider),
             [
                 new ExcludedOperationsStage(
                     $executor,

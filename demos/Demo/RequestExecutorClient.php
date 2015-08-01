@@ -15,6 +15,7 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
@@ -117,7 +118,7 @@ class RequestExecutorClient extends Command
      */
     public function onWrite(WriteEvent $event)
     {
-        $event->nextIsRead();
+        $event->nextIsRead(new MarkerFramePicker(null, '</html>', false));
     }
 
     /**

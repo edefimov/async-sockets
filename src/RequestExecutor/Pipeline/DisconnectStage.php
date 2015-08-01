@@ -34,8 +34,11 @@ class DisconnectStage extends AbstractStage
      * @param EventCaller              $eventCaller Event caller
      * @param AsyncSelector            $selector Async selector
      */
-    public function __construct(RequestExecutorInterface $executor, EventCaller $eventCaller, AsyncSelector $selector)
-    {
+    public function __construct(
+        RequestExecutorInterface $executor,
+        EventCaller $eventCaller,
+        AsyncSelector $selector = null
+    ) {
         parent::__construct($executor, $eventCaller);
         $this->selector = $selector;
     }
@@ -79,10 +82,24 @@ class DisconnectStage extends AbstractStage
             $this->callExceptionSubscribers($operation, $e, $event);
         }
 
-        $this->selector->removeAllSocketOperations($operation);
+        $this->removeOperationsFromSelector($operation);
         $this->callSocketSubscribers(
             $operation,
             $this->createEvent($operation, EventType::FINALIZE)
         );
+    }
+
+    /**
+     * Remove given operation from selector
+     *
+     * @param OperationMetadata $operation
+     *
+     * @return void
+     */
+    private function removeOperationsFromSelector(OperationMetadata $operation)
+    {
+        if ($this->selector) {
+            $this->selector->removeAllSocketOperations($operation);
+        }
     }
 }
