@@ -11,9 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\EventType;
-use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
-use Tests\Application\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\RequestExecutor\LibEvent\LibEventEmulatedEvent;
 use Tests\AsyncSockets\RequestExecutor\LibEvent\LibEventLoopEmulator;
 
@@ -32,6 +30,9 @@ class LibEventRequestExecutorTest extends AbstractRequestExecutorTest
     /** {@inheritdoc} */
     protected function createRequestExecutor()
     {
+        if (!extension_loaded('libevent')) {
+            self::markTestSkipped('To pass this test libevent extension must be installed');
+        }
         return new LibEventRequestExecutor();
     }
 
