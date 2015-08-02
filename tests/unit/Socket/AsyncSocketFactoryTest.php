@@ -11,6 +11,7 @@
 namespace Tests\AsyncSockets\Socket;
 
 use AsyncSockets\Socket\AsyncSocketFactory;
+use Tests\Application\Mock\PhpFunctionMocker;
 
 /**
  * Class AsyncSocketFactoryTest
@@ -31,6 +32,12 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
      */
     public function testSimpleRequestExecutorCreated()
     {
+        PhpFunctionMocker::getPhpFunctionMocker('extension_loaded')->setCallable(
+            function ($extension) {
+                return $extension === 'libevent' ? false : \extension_loaded($extension);
+            }
+        );
+
         $executor = $this->factory->createRequestExecutor();
         self::assertInstanceOf(
             'AsyncSockets\RequestExecutor\NativeRequestExecutor',
@@ -42,6 +49,31 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
         self::assertTrue(
             $ref->implementsInterface('AsyncSockets\RequestExecutor\RequestExecutorInterface'),
             'NativeRequestExecutor must implement RequestExecutorInterface'
+        );
+    }
+
+    /**
+     * testLibEventRequestExecutorIsCreated
+     *
+     * @return void
+     */
+    public function testLibEventRequestExecutorIsCreated()
+    {
+        if (!extension_loaded('libevent')) {
+            self::markTestSkipped('To pass this test libevent extension must be loaded');
+        }
+
+        $executor = $this->factory->createRequestExecutor();
+        self::assertInstanceOf(
+            'AsyncSockets\RequestExecutor\LibEventRequestExecutor',
+            $executor,
+            'Strange object ' . get_class($executor) . ' was created'
+        );
+
+        $ref = new \ReflectionClass('AsyncSockets\RequestExecutor\LibEventRequestExecutor');
+        self::assertTrue(
+            $ref->implementsInterface('AsyncSockets\RequestExecutor\RequestExecutorInterface'),
+            'LibEventRequestExecutor must implement RequestExecutorInterface'
         );
     }
 
@@ -98,5 +130,12 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $this->factory = new AsyncSocketFactory();
+    }
+
+    /** {@inheritdoc} */
+    protected function tearDown()
+    {
+        parent::tearDown();
+        PhpFunctionMocker::getPhpFunctionMocker('extension_loaded')->restoreNativeHandler();
     }
 }

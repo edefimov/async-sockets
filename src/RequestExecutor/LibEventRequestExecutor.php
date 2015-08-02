@@ -21,6 +21,7 @@ use AsyncSockets\RequestExecutor\Pipeline\DisconnectStage;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
+use AsyncSockets\RequestExecutor\Specification\ConnectionLessSocketSpecification;
 
 /**
  * Class LibEventRequestExecutor
@@ -109,8 +110,13 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
      */
     private function setupEvent(OperationMetadata $operationMetadata, $timeout)
     {
-        $event = new LeEvent($this->base, $this);
-        $event->register($operationMetadata, $timeout);
+        $specification = new ConnectionLessSocketSpecification();
+        if (!$specification->isSatisfiedBy($operationMetadata)) {
+            $event = new LeEvent($this->base, $this);
+            $event->register($operationMetadata, $timeout);
+        } else {
+            $this->onEvent($operationMetadata, LeCallbackInterface::EVENT_READ);
+        }
     }
 
     /** {@inheritdoc} */
@@ -121,7 +127,7 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     }
 
     /** {@inheritdoc} */
-    public function onEvent(LeEvent $leEvent, OperationMetadata $operationMetadata, $type)
+    public function onEvent(OperationMetadata $operationMetadata, $type)
     {
         $doResetEvent = false;
         switch ($type) {
@@ -142,8 +148,9 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
             $this->setupEvent($operationMetadata, $meta[self::META_IO_TIMEOUT]);
         } else {
             $this->disconnectStage->processStage([$operationMetadata]);
-            $this->connectSockets();
         }
+
+        $this->connectSockets();
     }
 
     /**

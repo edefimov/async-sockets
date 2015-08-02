@@ -34,10 +34,9 @@ interface LeCallbackInterface
     /**
      * Handle event from libevent
      *
-     * @param LeEvent           $event Libevent event object
      * @param OperationMetadata $operationMetadata Operation metadata object
      * @param string            $type One of EVENT_* consts
      *
      */
-    public function onEvent(LeEvent $event, OperationMetadata $operationMetadata, $type);
+    public function onEvent(OperationMetadata $operationMetadata, $type);
 }

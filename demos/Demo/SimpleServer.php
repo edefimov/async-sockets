@@ -13,6 +13,7 @@ use AsyncSockets\Event\AcceptEvent;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
+use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\ReadOperation;
@@ -100,7 +101,7 @@ class SimpleServer extends Command
                         $output->writeln("<info>Incoming connection from {$event->getRemoteAddress()}</info>");
                         $event->getExecutor()->socketBag()->addSocket(
                             $event->getClientSocket(),
-                            new ReadOperation(),
+                            new ReadOperation(new MarkerFramePicker(null, "\r\n\r\n")),
                             [ ],
                             $this->getAcceptedClientHandlers($output)
                         );

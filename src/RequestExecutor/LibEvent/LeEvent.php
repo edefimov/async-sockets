@@ -120,7 +120,7 @@ class LeEvent
 
 
         event_base_set($this->handle, $this->base->getHandle());
-        event_add($this->handle, $timeout * 1E6);
+        event_add($this->handle, $timeout !== null ? $timeout * 1E6 : -1);
     }
 
     /**
@@ -155,16 +155,16 @@ class LeEvent
         $fireTimeout = true;
         if (!$this->base->isTerminating() && $eventFlags & EV_READ) {
             $fireTimeout = false;
-            $this->callback->onEvent($this, $operationMetadata, LeCallbackInterface::EVENT_READ);
+            $this->callback->onEvent($operationMetadata, LeCallbackInterface::EVENT_READ);
         }
 
         if (!$this->base->isTerminating() && $eventFlags & EV_WRITE) {
             $fireTimeout = false;
-            $this->callback->onEvent($this, $operationMetadata, LeCallbackInterface::EVENT_WRITE);
+            $this->callback->onEvent($operationMetadata, LeCallbackInterface::EVENT_WRITE);
         }
 
         if (!$this->base->isTerminating() && $fireTimeout && ($eventFlags & EV_TIMEOUT)) {
-            $this->callback->onEvent($this, $operationMetadata, LeCallbackInterface::EVENT_TIMEOUT);
+            $this->callback->onEvent($operationMetadata, LeCallbackInterface::EVENT_TIMEOUT);
         }
     }
 }

@@ -65,9 +65,6 @@ class Pipeline
      */
     public function process(SocketBag $socketBag)
     {
-        $this->isRequestStopInProgress = false;
-        $this->isRequestStopped        = false;
-
         do {
             $activeOperations = $this->connectStage->processStage($socketBag->getItems());
             if (!$activeOperations) {

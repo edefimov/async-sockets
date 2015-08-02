@@ -12,10 +12,9 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\Specification\ConnectionLessSocketSpecification;
 use AsyncSockets\Socket\AsyncSelector;
-use AsyncSockets\Socket\UdpClientSocket;
 
 /**
  * Class SelectStageAbstract
@@ -159,12 +158,10 @@ class SelectStage extends AbstractTimeAwareStage
      */
     private function findConnectionLessSockets(array $operations)
     {
-        $result = [];
+        $result        = [];
+        $specification = new ConnectionLessSocketSpecification();
         foreach ($operations as $operation) {
-            $isWithoutConnection = $operation->getSocket() instanceof UdpClientSocket &&
-                                   $operation->getOperation() instanceof ReadOperation;
-
-            if ($isWithoutConnection) {
+            if ($specification->isSatisfiedBy($operation)) {
                 $result[] = $operation;
             }
         }

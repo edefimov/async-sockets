@@ -10,6 +10,7 @@
 
 namespace AsyncSockets\Socket;
 
+use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -62,6 +63,10 @@ class AsyncSocketFactory
      */
     public function createRequestExecutor()
     {
+        if (extension_loaded('libevent')) {
+            return new LibEventRequestExecutor();
+        }
+
         return new NativeRequestExecutor(new PipelineFactory());
     }
 }
