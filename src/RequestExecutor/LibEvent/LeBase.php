@@ -9,6 +9,8 @@
  */
 namespace AsyncSockets\RequestExecutor\LibEvent;
 
+use AsyncSockets\RequestExecutor\OperationInterface;
+
 /**
  * Class LeBase
  */
@@ -63,10 +65,10 @@ class LeBase
     {
         foreach ($this->events as $event) {
             $this->removeEvent($event);
-            $event->unregister();
         }
 
         if ($this->handle) {
+            event_base_loopexit($this->handle, 1);
             event_base_free($this->handle);
             $this->handle = null;
         }
@@ -102,16 +104,6 @@ class LeBase
     {
         $this->isTerminating = true;
         event_base_loopbreak($this->handle);
-    }
-
-    /**
-     * Check whether loop is terminating
-     *
-     * @return boolean
-     */
-    public function isTerminating()
-    {
-        return $this->isTerminating;
     }
 
     /**
@@ -153,6 +145,71 @@ class LeBase
         $key = $this->getEventKey($event);
         if (!isset($this->events[$key])) {
             $this->events[$key] = $event;
+
+            $timeout = $event->getTimeout();
+            $flags   = $timeout !== null ? EV_TIMEOUT : 0;
+
+            event_set(
+                $event->getHandle(),
+                $event->getOperationMetadata()->getSocket()->getStreamResource(),
+                $flags | $this->getEventFlags($event),
+                function ($streamResource, $eventFlags, $eventKey) {
+                    if (isset($this->events[$eventKey])) {
+                        $event = $this->events[$eventKey];
+                        $this->onEvent($event, $eventFlags);
+                        $this->removeEvent($event);
+                    }
+                },
+                $key
+            );
+
+            event_base_set($event->getHandle(), $this->handle);
+            event_add($event->getHandle(), $timeout !== null ? $timeout * 1E6 : -1);
+        }
+    }
+
+    /**
+     * Return set of flags for listening events
+     *
+     * @param LeEvent $event Libevent event object
+     *
+     * @return int
+     */
+    private function getEventFlags(LeEvent $event)
+    {
+        $map = [
+            OperationInterface::OPERATION_READ  => EV_READ,
+            OperationInterface::OPERATION_WRITE => EV_WRITE,
+        ];
+
+        $operation = $event->getOperationMetadata()->getOperation()->getType();
+
+        return isset($map[$operation]) ? $map[$operation] : 0;
+    }
+
+    /**
+     * Process libevent event
+     *
+     * @param LeEvent $event Libevent event object
+     * @param int     $eventFlags Event flag
+     *
+     * @return void
+     */
+    private function onEvent(LeEvent $event, $eventFlags)
+    {
+        $fireTimeout = true;
+        if (!$this->isTerminating && $eventFlags & EV_READ) {
+            $fireTimeout = false;
+            $event->fire(LeCallbackInterface::EVENT_READ);
+        }
+
+        if (!$this->isTerminating && $eventFlags & EV_WRITE) {
+            $fireTimeout = false;
+            $event->fire(LeCallbackInterface::EVENT_WRITE);
+        }
+
+        if (!$this->isTerminating && $fireTimeout && ($eventFlags & EV_TIMEOUT)) {
+            $event->fire(LeCallbackInterface::EVENT_TIMEOUT);
         }
     }
 }

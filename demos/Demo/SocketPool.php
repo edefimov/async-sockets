@@ -14,8 +14,10 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
+use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\ConstantLimitationSolver;
+use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -73,31 +75,36 @@ class SocketPool extends Command
 
         $executor->withLimitationSolver(new ConstantLimitationSolver($limitSockets));
         $executor->withEventHandler(
-            new CallbackEventHandler(
-                [
-                    EventType::DISCONNECTED => [
-                        [ $this, 'logEvent' ],
-                    ],
-                    EventType::CONNECTED    => [
-                        [ $this, 'logEvent' ],
-                    ],
-                    EventType::WRITE        => [
-                        [ $this, 'logEvent' ],
-                        [ $this, 'onWrite' ],
-                    ],
-                    EventType::READ         => [
-                        [ $this, 'logEvent' ],
-                        [ $this, 'onRead' ],
-                    ],
-                    EventType::EXCEPTION    => [
-                        [ $this, 'logEvent' ],
-                        [ $this, 'onException' ],
-                    ],
-                    EventType::TIMEOUT      => [
-                        [ $this, 'logEvent' ],
-                        [ $this, 'onTimeout' ],
-                    ],
-                ]
+            new RemoveFinishedSocketsEventHandler(
+                new CallbackEventHandler(
+                    [
+                        EventType::DISCONNECTED => [
+                            [ $this, 'logEvent' ],
+                        ],
+                        EventType::CONNECTED    => [
+                            [ $this, 'logEvent' ],
+                        ],
+                        EventType::WRITE        => [
+                            [ $this, 'logEvent' ],
+                            [ $this, 'onWrite' ],
+                        ],
+                        EventType::READ         => [
+                            [ $this, 'logEvent' ],
+                            [ $this, 'onRead' ],
+                            function (ReadEvent $event) use ($output) {
+                                $output->writeln('Read ' . strlen((string) $event->getFrame()) . ' bytes');
+                            },
+                        ],
+                        EventType::EXCEPTION    => [
+                            [ $this, 'logEvent' ],
+                            [ $this, 'onException' ],
+                        ],
+                        EventType::TIMEOUT      => [
+                            [ $this, 'logEvent' ],
+                            [ $this, 'onTimeout' ],
+                        ],
+                    ]
+                )
             )
         );
 
@@ -131,7 +138,7 @@ class SocketPool extends Command
      */
     public function onWrite(WriteEvent $event)
     {
-        $event->nextIsRead();
+        $event->nextIsRead(new MarkerFramePicker(null, "\r\n\r\n"));
     }
 
     /**
@@ -144,6 +151,7 @@ class SocketPool extends Command
     public function onRead(ReadEvent $event)
     {
         $event->nextOperationNotRequired();
+
     }
 
     /**

@@ -112,8 +112,8 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     {
         $specification = new ConnectionLessSocketSpecification();
         if (!$specification->isSatisfiedBy($operationMetadata)) {
-            $event = new LeEvent($this->base, $this);
-            $event->register($operationMetadata, $timeout);
+            $event = new LeEvent($this, $operationMetadata, $timeout);
+            $this->base->addEvent($event);
         } else {
             $this->onEvent($operationMetadata, LeCallbackInterface::EVENT_READ);
         }

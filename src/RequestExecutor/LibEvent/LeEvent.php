@@ -10,7 +10,6 @@
 namespace AsyncSockets\RequestExecutor\LibEvent;
 
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\OperationInterface;
 
 /**
  * Class LeEvent
@@ -32,22 +31,32 @@ class LeEvent
     private $callback;
 
     /**
-     * LeBase
+     * OperationMetadata
      *
-     * @var LeBase
+     * @var OperationMetadata
      */
-    private $base;
+    private $operationMetadata;
+
+    /**
+     * Timeout for event
+     *
+     * @var int|null
+     */
+    private $timeout;
 
     /**
      * LeEvent constructor.
      *
-     * @param LeBase              $base Lib event base
      * @param LeCallbackInterface $callback Callback object
+     * @param OperationMetadata   $operationMetadata Operation metadata object
+     * @param int|null                 $timeout Timeout for event
      */
-    public function __construct(LeBase $base, LeCallbackInterface $callback)
+    public function __construct(LeCallbackInterface $callback, OperationMetadata $operationMetadata, $timeout)
     {
-        $this->base     = $base;
-        $this->callback = $callback;
+        $this->handle            = event_new();
+        $this->callback          = $callback;
+        $this->operationMetadata = $operationMetadata;
+        $this->timeout           = $timeout;
     }
 
     /**
@@ -55,7 +64,17 @@ class LeEvent
      */
     public function __destruct()
     {
-        $this->unregister();
+        $this->destroy();
+    }
+
+    /**
+     * Return Timeout
+     *
+     * @return int|null
+     */
+    public function getTimeout()
+    {
+        return $this->timeout;
     }
 
     /**
@@ -69,102 +88,38 @@ class LeEvent
     }
 
     /**
-     * Register event in libevent
+     * Return OperationMetadata
      *
-     * @param OperationMetadata $operationMetadata Socket operation object
-     * @param int|null          $timeout Timeout in seconds
-     *
+     * @return OperationMetadata
      */
-    public function register(OperationMetadata $operationMetadata, $timeout)
+    public function getOperationMetadata()
     {
-        $this->base->addEvent($this);
-        $this->setupEvent($operationMetadata, $timeout);
+        return $this->operationMetadata;
     }
 
     /**
-     * Remove this event from libevent base
+     * Fire event
+     *
+     * @param string $eventType Type of event, one of LeCallbackInterface::EVENT_* consts
      *
      * @return void
      */
-    public function unregister()
+    public function fire($eventType)
     {
-        $this->base->removeEvent($this);
+        $this->callback->onEvent($this->operationMetadata, $eventType);
+    }
+
+    /**
+     * Destroy event handle
+     *
+     * @return void
+     */
+    private function destroy()
+    {
         if ($this->handle) {
             event_del($this->handle);
             event_free($this->handle);
             $this->handle = null;
-        }
-    }
-
-    /**
-     * Setup libevent for given operation
-     *
-     * @param OperationMetadata $operationMetadata Socket operation object
-     * @param int|null          $timeout Timeout in seconds
-     *
-     */
-    private function setupEvent(OperationMetadata $operationMetadata, $timeout)
-    {
-        $this->handle = event_new();
-
-        $flags = $timeout !== null ? EV_TIMEOUT : 0;
-        event_set(
-            $this->handle,
-            $operationMetadata->getSocket()->getStreamResource(),
-            $flags | $this->getEventFlags($operationMetadata),
-            function ($streamResource, $eventFlags, OperationMetadata $operationMetadata) {
-                $this->onEvent($eventFlags, $operationMetadata);
-            },
-            $operationMetadata
-        );
-
-
-        event_base_set($this->handle, $this->base->getHandle());
-        event_add($this->handle, $timeout !== null ? $timeout * 1E6 : -1);
-    }
-
-    /**
-     * Return set of flags for listening events
-     *
-     * @param OperationMetadata $operationMetadata
-     *
-     * @return int
-     */
-    private function getEventFlags(OperationMetadata $operationMetadata)
-    {
-        $map = [
-            OperationInterface::OPERATION_READ  => EV_READ,
-            OperationInterface::OPERATION_WRITE => EV_WRITE,
-        ];
-
-        $operation = $operationMetadata->getOperation()->getType();
-
-        return isset($map[$operation]) ? $map[$operation] : 0;
-    }
-
-    /**
-     * Process libevent event
-     *
-     * @param int               $eventFlags Event flag
-     * @param OperationMetadata $operationMetadata
-     *
-     * @return void
-     */
-    private function onEvent($eventFlags, OperationMetadata $operationMetadata)
-    {
-        $fireTimeout = true;
-        if (!$this->base->isTerminating() && $eventFlags & EV_READ) {
-            $fireTimeout = false;
-            $this->callback->onEvent($operationMetadata, LeCallbackInterface::EVENT_READ);
-        }
-
-        if (!$this->base->isTerminating() && $eventFlags & EV_WRITE) {
-            $fireTimeout = false;
-            $this->callback->onEvent($operationMetadata, LeCallbackInterface::EVENT_WRITE);
-        }
-
-        if (!$this->base->isTerminating() && $fireTimeout && ($eventFlags & EV_TIMEOUT)) {
-            $this->callback->onEvent($operationMetadata, LeCallbackInterface::EVENT_TIMEOUT);
         }
     }
 }
