@@ -21,6 +21,9 @@ use AsyncSockets\RequestExecutor\Pipeline\DisconnectStage;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
+use AsyncSockets\RequestExecutor\Pipeline\ReadIoHandler;
+use AsyncSockets\RequestExecutor\Pipeline\SslHandshakeIoHandler;
+use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
 use AsyncSockets\RequestExecutor\Specification\ConnectionLessSocketSpecification;
 
 /**
@@ -78,7 +81,11 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
         $this->eventCaller = $eventCaller;
 
         $this->connectStage    = new ConnectStage($this, $eventCaller, $this->solver);
-        $this->ioStage         = new IoStage($this, $eventCaller);
+        $this->ioStage         = new IoStage($this, $eventCaller, [
+            new ReadIoHandler(),
+            new WriteIoHandler(),
+            new SslHandshakeIoHandler()
+        ]);
         $this->disconnectStage = new DisconnectStage($this, $eventCaller);
     }
 
@@ -112,8 +119,9 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     {
         $specification = new ConnectionLessSocketSpecification();
         if (!$specification->isSatisfiedBy($operationMetadata)) {
-            $event = new LeEvent($this, $operationMetadata, $timeout);
-            $this->base->addEvent($event);
+            $this->base->addEvent(
+                new LeEvent($this, $operationMetadata, $timeout)
+            );
         } else {
             $this->onEvent($operationMetadata, LeCallbackInterface::EVENT_READ);
         }

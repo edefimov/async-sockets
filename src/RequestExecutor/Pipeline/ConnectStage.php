@@ -30,8 +30,8 @@ class ConnectStage extends AbstractTimeAwareStage
     /**
      * ConnectStageAbstract constructor.
      *
-     * @param RequestExecutorInterface   $executor Request executor
-     * @param EventCaller                $eventCaller Event caller
+     * @param RequestExecutorInterface  $executor Request executor
+     * @param EventCaller               $eventCaller Event caller
      * @param LimitationSolverInterface $decider Limitation solver for running requests
      */
     public function __construct(
@@ -81,16 +81,16 @@ class ConnectStage extends AbstractTimeAwareStage
             return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
 
-        $decision = $this->decider->decide($this->executor, $operationMetadata->getSocket(), $totalItems);
-        if ($decision !== LimitationSolverInterface::DECISION_OK) {
-            return $decision;
-        }
-
         $meta           = $operationMetadata->getMetadata();
         $isSkippingThis = $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] !== null;
 
         if ($isSkippingThis) {
             return LimitationSolverInterface::DECISION_SKIP_CURRENT;
+        }
+
+        $decision = $this->decider->decide($this->executor, $operationMetadata->getSocket(), $totalItems);
+        if ($decision !== LimitationSolverInterface::DECISION_OK) {
+            return $decision;
         }
 
         return LimitationSolverInterface::DECISION_OK;

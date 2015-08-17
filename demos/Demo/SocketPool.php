@@ -19,6 +19,7 @@ use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\ConstantLimitationSolver;
 use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\SslHandshakeOperation;
 use AsyncSockets\RequestExecutor\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use Symfony\Component\Console\Command\Command;
@@ -44,7 +45,7 @@ class SocketPool extends Command
                 'a',
                 InputOption::VALUE_OPTIONAL,
                 'Destination address in form scheme://host:port',
-                'tls://packagist.org:443'
+                'tcp://packagist.org:443'
             );
     }
 
@@ -62,7 +63,10 @@ class SocketPool extends Command
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
             $executor->socketBag()->addSocket(
                 $client,
-                new WriteOperation("GET / HTTP/1.1\nHost: {$host}\n\n"),
+                new SslHandshakeOperation(
+                    STREAM_CRYPTO_METHOD_TLS_CLIENT,
+                    new WriteOperation("GET / HTTP/1.1\nHost: {$host}\n\n")
+                ),
                 [
                     RequestExecutorInterface::META_ADDRESS      => $destination,
                     RequestExecutorInterface::META_USER_CONTEXT => [
@@ -167,7 +171,7 @@ class SocketPool extends Command
         $output  = $context['output'];
         /** @var OutputInterface $output */
         $message = $event->getException()->getMessage();
-        $type    = $event->getOriginalEvent()->getType();
+        $type    = $event->getOriginalEvent() ? $event->getOriginalEvent()->getType() : 'unknown';
         $output->writeln(
             "<error>Exception during processing {$type}: {$message}</error>"
         );

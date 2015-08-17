@@ -21,6 +21,8 @@ use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
  */
 abstract class AbstractStageTest extends AbstractTestCase
 {
+    use MetadataStructureAwareTrait;
+
     /**
      * Executor
      *
@@ -43,6 +45,13 @@ abstract class AbstractStageTest extends AbstractTestCase
     protected $stage;
 
     /**
+     * Metadata test array
+     *
+     * @var array
+     */
+    protected $metadata;
+
+    /**
      * Create test object
      *
      * @return PipelineStageInterface
@@ -53,7 +62,16 @@ abstract class AbstractStageTest extends AbstractTestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->executor    = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\RequestExecutorInterface');
+        $this->metadata = $this->getMetadataStructure();
+        $bag            = $this->getMockBuilder('AsyncSockets\RequestExecutor\SocketBagInterface')
+                               ->setMethods([ 'getSocketMetaData' ])
+                               ->getMockForAbstractClass();
+        $this->executor = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                               ->setMethods(['socketBag'])
+                               ->getMockForAbstractClass();
+        $bag->expects(self::any())->method('getSocketMetaData')->willReturn($this->metadata);
+        $this->executor->expects(self::any())->method('socketBag')->willReturn($bag);
+
         $this->eventCaller = $this->getMock(
             'AsyncSockets\RequestExecutor\Pipeline\EventCaller',
             [ 'callExceptionSubscribers', 'callSocketSubscribers' ],
@@ -99,29 +117,5 @@ abstract class AbstractStageTest extends AbstractTestCase
         );
 
         return $operationMetadata;
-    }
-
-    /**
-     * getMetadataStructure
-     *
-     * @return array
-     */
-    protected function getMetadataStructure()
-    {
-        static $result;
-
-        if (!$result) {
-            $result = [];
-            $ref      = new \ReflectionClass('AsyncSockets\RequestExecutor\RequestExecutorInterface');
-            foreach ($ref->getConstants() as $name => $value) {
-                if (strpos($name, 'META_') === 0) {
-                    $result[$value] = null;
-                }
-            }
-
-            $result[RequestExecutorInterface::META_USER_CONTEXT] = sha1(microtime(true));
-        }
-
-        return $result;
     }
 }

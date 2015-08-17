@@ -20,7 +20,7 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 /**
  * Class EventCaller
  */
-class EventCaller
+class EventCaller implements EventHandlerInterface
 {
     /**
      * List of handlers
@@ -35,6 +35,13 @@ class EventCaller
      * @var RequestExecutorInterface
      */
     private $executor;
+
+    /**
+     * OperationMetadata
+     *
+     * @var OperationMetadata
+     */
+    private $currentOperation;
 
     /**
      * EventCaller constructor.
@@ -56,6 +63,34 @@ class EventCaller
     public function addHandler(EventHandlerInterface $handler)
     {
         $this->handlers[] = $handler;
+    }
+
+    /**
+     * Sets CurrentOperation
+     *
+     * @param OperationMetadata $currentOperation New value for CurrentOperation
+     *
+     * @return void
+     */
+    public function setCurrentOperation(OperationMetadata $currentOperation)
+    {
+        $this->currentOperation = $currentOperation;
+    }
+
+    /**
+     * Clear current operation object
+     *
+     * @return void
+     */
+    public function clearCurrentOperation()
+    {
+        $this->currentOperation = null;
+    }
+
+    /** {@inheritdoc} */
+    public function invokeEvent(Event $event)
+    {
+        $this->callSocketSubscribers($this->currentOperation, $event);
     }
 
     /**

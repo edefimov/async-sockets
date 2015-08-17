@@ -197,19 +197,17 @@ class LeBase
      */
     private function onEvent(LeEvent $event, $eventFlags)
     {
-        $fireTimeout = true;
-        if (!$this->isTerminating && $eventFlags & EV_READ) {
-            $fireTimeout = false;
-            $event->fire(LeCallbackInterface::EVENT_READ);
-        }
+        $map = [
+            LeCallbackInterface::EVENT_READ    => EV_READ,
+            LeCallbackInterface::EVENT_WRITE   => EV_WRITE,
+            LeCallbackInterface::EVENT_TIMEOUT => EV_TIMEOUT,
+        ];
 
-        if (!$this->isTerminating && $eventFlags & EV_WRITE) {
-            $fireTimeout = false;
-            $event->fire(LeCallbackInterface::EVENT_WRITE);
-        }
-
-        if (!$this->isTerminating && $fireTimeout && ($eventFlags & EV_TIMEOUT)) {
-            $event->fire(LeCallbackInterface::EVENT_TIMEOUT);
+        foreach ($map as $eventType => $libEventFlag) {
+            if (!$this->isTerminating && $eventFlags & $libEventFlag) {
+                $eventFlags &= ~EV_TIMEOUT;
+                $event->fire($eventType);
+            }
         }
     }
 }

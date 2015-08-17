@@ -18,7 +18,7 @@ use AsyncSockets\Socket\StreamResourceInterface;
 /**
  * Class OperationMetadata
  */
-class OperationMetadata implements StreamResourceInterface
+class OperationMetadata implements StreamResourceInterface, EventHandlerInterface
 {
     /**
      * Socket for this operation
@@ -177,13 +177,7 @@ class OperationMetadata implements StreamResourceInterface
         }
     }
 
-    /**
-     * Invoke handlers with given event
-     *
-     * @param Event $event Event object
-     *
-     * @return void
-     */
+    /** {@inheritdoc} */
     public function invokeEvent(Event $event)
     {
         if ($this->handlers) {

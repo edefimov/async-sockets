@@ -24,7 +24,7 @@ abstract class AbstractStage implements PipelineStageInterface
      *
      * @var EventCaller
      */
-    private $eventCaller;
+    protected $eventCaller;
 
     /**
      * Request executor
@@ -52,10 +52,17 @@ abstract class AbstractStage implements PipelineStageInterface
      * @param Event             $event Event object
      *
      * @return void
+     * @throws \Exception
      */
     protected function callSocketSubscribers(OperationMetadata $operationMetadata, Event $event)
     {
-        $this->eventCaller->callSocketSubscribers($operationMetadata, $event);
+        try {
+            $this->eventCaller->setCurrentOperation($operationMetadata);
+            $this->eventCaller->callSocketSubscribers($operationMetadata, $event);
+        } catch (\Exception $e) {
+            $this->eventCaller->clearCurrentOperation();
+            throw $e;
+        }
     }
 
     /**
@@ -66,13 +73,21 @@ abstract class AbstractStage implements PipelineStageInterface
      * @param Event           $event Event object
      *
      * @return void
+     * @throws \Exception
      */
     protected function callExceptionSubscribers(
         OperationMetadata $operationMetadata,
         SocketException $exception,
         Event $event = null
     ) {
-        $this->eventCaller->callExceptionSubscribers($operationMetadata, $exception, $event);
+        try {
+            $this->eventCaller->setCurrentOperation($operationMetadata);
+            $this->eventCaller->callExceptionSubscribers($operationMetadata, $exception, $event);
+            $this->eventCaller->clearCurrentOperation();
+        } catch (\Exception $e) {
+            $this->eventCaller->clearCurrentOperation();
+            throw $e;
+        }
     }
 
     /**

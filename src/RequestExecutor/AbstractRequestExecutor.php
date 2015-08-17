@@ -110,8 +110,8 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
         $this->solver           = $this->solver ?: new NoLimitationSolver();
 
         $this->isExecuting = true;
-        $eventCaller       = new EventCaller($this);
 
+        $eventCaller = new EventCaller($this);
         try {
             if ($this->eventHandler) {
                 $eventCaller->addHandler($this->eventHandler);
@@ -135,6 +135,7 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
             $this->disconnectItems($this->socketBag->getItems());
         } catch (SocketException $e) {
             foreach ($this->socketBag->getItems() as $item) {
+                $eventCaller->setCurrentOperation($item);
                 $eventCaller->callExceptionSubscribers($item, $e, null);
             }
 

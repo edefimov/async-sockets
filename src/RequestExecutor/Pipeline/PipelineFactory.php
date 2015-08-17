@@ -21,8 +21,8 @@ class PipelineFactory
     /**
      * Create Pipeline
      *
-     * @param RequestExecutorInterface   $executor Request executor
-     * @param EventCaller                $eventCaller Event caller
+     * @param RequestExecutorInterface  $executor Request executor
+     * @param EventCaller               $eventCaller Event caller
      * @param LimitationSolverInterface $limitationDecider Limitation solver
      *
      * @return Pipeline
@@ -42,7 +42,11 @@ class PipelineFactory
                     $eventCaller,
                     [
                         new SelectStage($executor, $eventCaller, $selector),
-                        new IoStage($executor, $eventCaller),
+                        new IoStage($executor, $eventCaller, [
+                            new ReadIoHandler(),
+                            new WriteIoHandler(),
+                            new SslHandshakeIoHandler()
+                        ]),
                         $disconnectStage
                     ]
                 ),
