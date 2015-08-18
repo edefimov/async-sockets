@@ -67,6 +67,26 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
     abstract protected function createIoHandlerInterface();
 
     /**
+     * testExceptionWillBeThrownOnInvalidOperation
+     *
+     * @return void
+     * @expectedException \LogicException
+     */
+    public function testExceptionWillBeThrownOnInvalidOperation()
+    {
+        $mock = $this->getMockBuilder('AsyncSockets\RequestExecutor\OperationInterface')
+                     ->enableProxyingToOriginalMethods()
+                     ->getMockForAbstractClass();
+
+        $this->handler->handle(
+            $mock,
+            $this->socket,
+            $this->executor,
+            $this->mockEventHandler
+        );
+    }
+
+    /**
      * Validate event user context
      *
      * @param Event $event Event object

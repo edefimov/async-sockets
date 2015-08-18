@@ -109,11 +109,12 @@ class IoStageTest extends AbstractStageTest
     }
 
     /**
-     * testThatIncorrectOperationWontProcessed
+     * testThatIfNoHandlerFoundExceptionWillBeThrown
      *
      * @return void
+     * @expectedException \LogicException
      */
-    public function testThatIncorrectOperationWontProcessed()
+    public function testThatIfNoHandlerFoundExceptionWillBeThrown()
     {
         $operation = $this->getMockForAbstractClass(
             'AsyncSockets\RequestExecutor\OperationInterface',
@@ -129,17 +130,81 @@ class IoStageTest extends AbstractStageTest
         $request = $this->createOperationMetadata();
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
 
+        $this->setupSocketForRequest($request);
+
+        $this->mockHandler->expects(self::any())
+            ->method('supports')
+            ->with($operation)
+            ->willReturn(false);
+        $this->stage->processStage([$request]);
+        self::fail('Exception was not thrown');
+    }
+
+    /**
+     * testThatIfSupportsThenHandleRequest
+     *
+     * @return void
+     */
+    public function testThatIfSupportsThenHandleRequest()
+    {
+        $eventCaller = $this->getMock(
+            'AsyncSockets\RequestExecutor\Pipeline\EventCaller',
+            [ 'setCurrentOperation', 'clearCurrentOperation' ],
+            [ $this->executor ]
+        );
+
+        $operation = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\OperationInterface');
+
+        $request = $this->createOperationMetadata();
+        $request->expects(self::any())->method('getOperation')->willReturn($operation);
+
         $socket = $this->setupSocketForRequest($request);
-        $socket->expects(self::never())->method('read')->willReturn(new PartialFrame(new Frame('')));
+
+        $this->mockHandler
+            ->expects(self::any())
+            ->method('supports')
+            ->with($operation)
+            ->willReturn(true);
+        $this->mockHandler->expects(self::once())->method('handle')
+            ->with($operation, $socket, $this->executor, $eventCaller);
 
         $this->metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 5;
         $request->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
 
-        $this->eventCaller->expects(self::never())->method('callSocketSubscribers');
+        $eventCaller->expects(self::once())->method('setCurrentOperation')->with($request);
+        $eventCaller->expects(self::once())->method('clearCurrentOperation');
 
-        $this->mockHandler->expects(self::any())->method('supports')->willReturn(true);
-        $result = $this->stage->processStage([$request]);
-        self::assertTrue(in_array($request, $result, true), 'Operation with wrong type must be returned');
+        $stage = new IoStage($this->executor, $eventCaller, [$this->mockHandler]);
+        $stage->processStage([$request]);
+    }
+
+    /**
+     * testThatIfNotSupportsThenSkipRequest
+     *
+     * @return void
+     */
+    public function testThatIfNotSupportsThenSkipRequest()
+    {
+        $operation = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\OperationInterface');
+
+        $request = $this->createOperationMetadata();
+        $request->expects(self::any())->method('getOperation')->willReturn($operation);
+
+        $this->setupSocketForRequest($request);
+
+        $this->mockHandler
+            ->expects(self::any())
+            ->method('supports')
+            ->with($operation)
+            ->willReturn(false);
+        $this->mockHandler->expects(self::never())->method('handle');
+
+        try {
+            $stage = new IoStage($this->executor, $this->eventCaller, [$this->mockHandler]);
+            $stage->processStage([$request]);
+        } catch (\LogicException $e) {
+            // it's ok
+        }
     }
 
     /**
@@ -297,6 +362,29 @@ class IoStageTest extends AbstractStageTest
 
         $result = $this->stage->processStage([$request]);
         self::assertFalse(in_array($request, $result, true), 'Incorrect return result');
+    }
+
+    /**
+     * testRequestNotReturnedIfHandlerReturnedPassedOperation
+     *
+     * @return void
+     */
+    public function testRequestNotReturnedIfHandlerReturnedPassedOperation()
+    {
+        $request = $this->createOperationMetadata();
+        $socket  = $this->setupSocketForRequest($request);
+
+        $operation = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\OperationInterface');
+        $request->expects(self::any())->method('getOperation')->willReturn($operation);
+        $request->expects(self::any())->method('getSocket')->willReturn($socket);
+
+        $this->mockHandler->expects(self::any())->method('supports')->willReturn(true);
+        $this->mockHandler->expects(self::any())->method('handle')->willReturn($operation);
+        $result = $this->stage->processStage([$request]);
+        self::assertFalse(
+            in_array($request, $result, true),
+            'Request with returned operation passed as argument must not return'
+        );
     }
 
     /**

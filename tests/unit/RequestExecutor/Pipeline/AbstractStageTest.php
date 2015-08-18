@@ -99,22 +99,22 @@ abstract class AbstractStageTest extends AbstractTestCase
      */
     protected function createOperationMetadata()
     {
-        $operationMetadata = $this->getMock(
-            'AsyncSockets\RequestExecutor\Metadata\OperationMetadata',
-            [
-                'initialize',
-                'getMetadata',
-                'setMetadata',
-                'setRunning',
-                'getSocket',
-                'isRunning',
-                'getOperation',
-                'setOperation',
-            ],
-            [ ],
-            '',
-            false
-        );
+        $operationMetadata = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\OperationMetadata')
+                             ->setMethods(
+                                 [
+                                     'initialize',
+                                     'getMetadata',
+                                     'setMetadata',
+                                     'setRunning',
+                                     'getSocket',
+                                     'isRunning',
+                                     'getOperation',
+                                     'setOperation',
+                                 ]
+                             )
+                             ->disableOriginalConstructor()
+                             ->enableProxyingToOriginalMethods()
+                             ->getMockForAbstractClass();
 
         return $operationMetadata;
     }

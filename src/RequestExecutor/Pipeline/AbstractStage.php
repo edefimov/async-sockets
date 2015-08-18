@@ -59,6 +59,7 @@ abstract class AbstractStage implements PipelineStageInterface
         try {
             $this->eventCaller->setCurrentOperation($operationMetadata);
             $this->eventCaller->callSocketSubscribers($operationMetadata, $event);
+            $this->eventCaller->clearCurrentOperation();
         } catch (\Exception $e) {
             $this->eventCaller->clearCurrentOperation();
             throw $e;
