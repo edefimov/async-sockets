@@ -1,5 +1,5 @@
 language: php
-sudo: require
+sudo: false
 
 php:
   - 5.4
@@ -11,6 +11,11 @@ php:
 
 env:
   - ASYNC_SOCKETS_CONFIG=tests/travis/config.yml
+
+addons:
+  apt:
+    packages:
+    - libevent-dev
 
 before_install:
   - composer self-update
