@@ -46,6 +46,13 @@ abstract class AbstractClientIo extends AbstractIo
     private $state = self::STATE_DISCONNECTED;
 
     /**
+     * Amount of attempts to write data before treat request as failed
+     *
+     * @var int
+     */
+    private $writeAttempts = self::IO_ATTEMPTS;
+
+    /**
      * Read raw data from network into given picker
      *
      * @param FramePickerInterface $picker Frame picker
@@ -114,32 +121,13 @@ abstract class AbstractClientIo extends AbstractIo
     {
         $this->setConnectedState();
 
-        $result       = 0;
-        $dataLength   = strlen($data);
-        $microseconds = self::SELECT_DELAY;
-        $attempts     = self::IO_ATTEMPTS;
-        $resource     = $this->socket->getStreamResource();
+        $result              = $this->writeRawData($data);
+        $this->writeAttempts = $result > 0 ? self::IO_ATTEMPTS : $this->writeAttempts - 1;
 
-        do {
-            $write    = [ $resource ];
-            $nomatter = null;
-            $select   = stream_select($nomatter, $write, $nomatter, 0, $microseconds);
-            $this->throwNetworkSocketExceptionIf($select === false, 'Failed to send data.');
-            if (!$write) {
-                break;
-            }
-
-            $bytesWritten = $this->writeRawData($data);
-            $attempts     = $bytesWritten > 0 ? self::IO_ATTEMPTS : $attempts - 1;
-
-            $this->throwNetworkSocketExceptionIf(
-                !$attempts && $result !== $dataLength,
-                'Failed to send data.'
-            );
-
-            $data    = substr($data, $bytesWritten);
-            $result += $bytesWritten;
-        } while ($result < $dataLength && $data !== false);
+        $this->throwNetworkSocketExceptionIf(
+            !$this->writeAttempts && $result !== strlen($data),
+            'Failed to send data.'
+        );
 
         return $result;
     }

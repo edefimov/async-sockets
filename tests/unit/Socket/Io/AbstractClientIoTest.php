@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket\Io;
 
-use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Socket\Io\AbstractClientIo;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 
@@ -38,15 +38,11 @@ class AbstractClientIoTest extends AbstractIoTest
     /** {@inheritdoc} */
     protected function createIoInterface(SocketInterface $socket)
     {
-        $object = $this->getMockForAbstractClass(
-            'AsyncSockets\Socket\Io\AbstractClientIo',
-            [$socket],
-            '',
-            true,
-            true,
-            true,
-            ['isConnected']
-        );
+        $object = $this->getMockBuilder('AsyncSockets\Socket\Io\AbstractClientIo')
+                    ->setConstructorArgs([$socket])
+                    ->setMethods(['isConnected'])
+                    ->enableProxyingToOriginalMethods()
+                    ->getMockForAbstractClass();
 
         return $object;
     }
@@ -76,7 +72,9 @@ class AbstractClientIoTest extends AbstractIoTest
         $this->ensureSocketIsOpened();
         $this->setExpectedException('AsyncSockets\Exception\NetworkSocketException', 'Failed to send data.');
         $this->setConnectedStateForTestObject(true);
-        $this->object->write('something');
+        for ($i = 0; $i < AbstractClientIo::IO_ATTEMPTS; $i++) {
+            $this->object->write('something');
+        }
     }
 
     /**
@@ -125,11 +123,19 @@ class AbstractClientIoTest extends AbstractIoTest
      * testWriteSocketSendToFail
      *
      * @return void
-     * @expectedException \AsyncSockets\Exception\NetworkSocketException
-     * @expectedExceptionMessage Failed to send data.
      */
     public function testWriteSocketSendToFail()
     {
+        $hasWriteMethod = get_class() !== get_called_class();
+        if (!$hasWriteMethod) {
+            return;
+        }
+
+        $this->setExpectedException(
+            '\AsyncSockets\Exception\NetworkSocketException',
+            'Failed to send data.'
+        );
+
         $this->prepareFor(__FUNCTION__);
         $this->setConnectedStateForTestObject(true);
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable(
@@ -137,34 +143,6 @@ class AbstractClientIoTest extends AbstractIoTest
                 return -1;
             }
         );
-        $this->ensureSocketIsOpened();
-        $this->object->write('data');
-    }
-
-    /**
-     * testThatIoWillNotTryWriteIfNotSelected
-     *
-     * @return void
-     */
-    public function testThatIoWillNotTryWriteIfNotSelected()
-    {
-        $this->prepareFor(__FUNCTION__);
-        $this->setConnectedStateForTestObject(true);
-        foreach (['stream_socket_sendto', 'fwrite'] as $f) {
-            PhpFunctionMocker::getPhpFunctionMocker($f)->setCallable(
-                function () use ($f) {
-                    self::fail("{$f} shouldn't be called");
-                }
-            );
-        }
-
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-        $mocker->setCallable(function (array &$read = null, array &$write = null) {
-            $read  = [];
-            $write = [];
-            return 0;
-        });
-
         $this->ensureSocketIsOpened();
         $this->object->write('data');
     }
