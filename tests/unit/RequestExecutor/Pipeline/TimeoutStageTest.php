@@ -93,22 +93,13 @@ class TimeoutStageTest extends AbstractStageTest
         $metadata[RequestExecutorInterface::META_CONNECTION_TIMEOUT]    = 1;
         $request->expects(self::any())->method('getMetadata')->willReturn($metadata);
 
-        $this->eventCaller->expects(self::once())
+        $this->eventCaller->expects(self::at(0))
                           ->method('callSocketSubscribers')
                           ->with($request)
                           ->willThrowException(new NetworkSocketException($request->getSocket()));
         $this->eventCaller->expects(self::once())
             ->method('callExceptionSubscribers')
-            ->with($request)
-            ->willReturnCallback(function (OperationMetadata $request, $exception, Event $event) use ($metadata) {
-                self::assertSame($request->getSocket(), $event->getSocket());
-                self::assertSame(EventType::TIMEOUT, $event->getType());
-                self::assertSame(
-                    $metadata[ RequestExecutorInterface::META_USER_CONTEXT ],
-                    $event->getContext(),
-                    'Incorrect context'
-                );
-            });
+            ->with($request);
 
         $result = $this->stage->processStage([$request]);
         self::assertNotEmpty($result, 'Timeout socket was not returned');

@@ -31,7 +31,7 @@ class TimeoutStage extends AbstractTimeAwareStage
                 try {
                     $this->callSocketSubscribers($operation, $event);
                 } catch (SocketException $e) {
-                    $this->callExceptionSubscribers($operation, $e, $event);
+                    $this->callExceptionSubscribers($operation, $e);
                 }
 
                 $result[$key] = $operation;

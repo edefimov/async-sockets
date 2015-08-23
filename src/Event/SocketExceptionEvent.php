@@ -29,31 +29,21 @@ class SocketExceptionEvent extends Event
     private $exception;
 
     /**
-     * Event caused the exception
-     *
-     * @var Event|null
-     */
-    private $originalEvent;
-
-    /**
      * Constructor
      *
      * @param SocketException          $exception Exception occurred during request
      * @param RequestExecutorInterface $executor Request executor object
      * @param SocketInterface          $socket   Socket for this request
      * @param mixed                    $context  Any optional user data for event
-     * @param Event                    $originalEvent Original event
      */
     public function __construct(
         SocketException          $exception,
         RequestExecutorInterface $executor,
         SocketInterface          $socket,
-        $context,
-        Event                    $originalEvent = null
+        $context
     ) {
         parent::__construct($executor, $socket, $context, EventType::EXCEPTION);
-        $this->exception     = $exception;
-        $this->originalEvent = $originalEvent;
+        $this->exception = $exception;
     }
 
     /**
@@ -64,15 +54,5 @@ class SocketExceptionEvent extends Event
     public function getException()
     {
         return $this->exception;
-    }
-
-    /**
-     * Return event caused exception
-     *
-     * @return Event|null Null means that exception occurred outside another Event
-     */
-    public function getOriginalEvent()
-    {
-        return $this->originalEvent;
     }
 }

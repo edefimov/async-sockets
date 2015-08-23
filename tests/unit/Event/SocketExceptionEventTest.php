@@ -66,7 +66,6 @@ class SocketExceptionEventTest extends EventTest
         $event = parent::testGetters();
         /** @var SocketExceptionEvent $event */
         self::assertSame($this->exception, $event->getException(), 'Incorrect exception object');
-        self::assertSame($this->originalEvent, $event->getOriginalEvent(), 'Incorrect original event object');
 
         return $event;
     }

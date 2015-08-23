@@ -71,19 +71,17 @@ abstract class AbstractStage implements PipelineStageInterface
      *
      * @param OperationMetadata $operationMetadata Socket operation object
      * @param SocketException $exception Thrown exception
-     * @param Event           $event Event object
      *
      * @return void
      * @throws \Exception
      */
     protected function callExceptionSubscribers(
         OperationMetadata $operationMetadata,
-        SocketException $exception,
-        Event $event = null
+        SocketException $exception
     ) {
         try {
             $this->eventCaller->setCurrentOperation($operationMetadata);
-            $this->eventCaller->callExceptionSubscribers($operationMetadata, $exception, $event);
+            $this->eventCaller->callExceptionSubscribers($operationMetadata, $exception);
             $this->eventCaller->clearCurrentOperation();
         } catch (\Exception $e) {
             $this->eventCaller->clearCurrentOperation();

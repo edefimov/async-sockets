@@ -136,7 +136,7 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
         } catch (SocketException $e) {
             foreach ($this->socketBag->getItems() as $item) {
                 $eventCaller->setCurrentOperation($item);
-                $eventCaller->callExceptionSubscribers($item, $e, null);
+                $eventCaller->callExceptionSubscribers($item, $e);
             }
 
             $this->disconnectItems($this->socketBag->getItems());

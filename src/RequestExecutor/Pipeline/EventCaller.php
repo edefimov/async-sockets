@@ -120,14 +120,12 @@ class EventCaller implements EventHandlerInterface
      *
      * @param OperationMetadata $operationMetadata Socket operation object
      * @param SocketException $exception Thrown exception
-     * @param Event           $event Event object
      *
      * @return void
      */
     public function callExceptionSubscribers(
         OperationMetadata $operationMetadata,
-        SocketException $exception,
-        Event $event = null
+        SocketException $exception
     ) {
         if ($exception instanceof StopSocketOperationException) {
             return;
@@ -138,8 +136,7 @@ class EventCaller implements EventHandlerInterface
             $exception,
             $this->executor,
             $operationMetadata->getSocket(),
-            $meta[RequestExecutorInterface::META_USER_CONTEXT],
-            $event
+            $meta[RequestExecutorInterface::META_USER_CONTEXT]
         );
         $this->callSocketSubscribers($operationMetadata, $exceptionEvent);
     }

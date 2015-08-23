@@ -163,7 +163,7 @@ class IoStage extends AbstractTimeAwareStage
             try {
                 $this->callSocketSubscribers($operationMetadata, $event);
             } catch (SocketException $e) {
-                $this->callExceptionSubscribers($operationMetadata, $e, $event);
+                $this->callExceptionSubscribers($operationMetadata, $e);
                 return false;
             }
         }

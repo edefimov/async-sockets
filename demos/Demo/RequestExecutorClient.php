@@ -221,7 +221,7 @@ class RequestExecutorClient extends Command
      */
     public function onException(SocketExceptionEvent $event)
     {
-        $this->output->writeln('<error>Exception during processing ' . $event->getOriginalEvent()->getType() . ': ' .
+        $this->output->writeln('<error>Exception occured: ' .
             $event->getException()->getMessage() . '</error>');
     }
 

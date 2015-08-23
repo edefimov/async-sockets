@@ -171,9 +171,8 @@ class SocketPool extends Command
         $output  = $context['output'];
         /** @var OutputInterface $output */
         $message = $event->getException()->getMessage();
-        $type    = $event->getOriginalEvent() ? $event->getOriginalEvent()->getType() : 'unknown';
         $output->writeln(
-            "<error>Exception during processing {$type}: {$message}</error>"
+            "<error>Exception: {$message}</error>"
         );
     }
 

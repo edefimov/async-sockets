@@ -190,7 +190,7 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
         try {
             $this->eventCaller->callSocketSubscribers($operationMetadata, $event);
         } catch (SocketException $e) {
-            $this->eventCaller->callExceptionSubscribers($operationMetadata, $e, $event);
+            $this->eventCaller->callExceptionSubscribers($operationMetadata, $e);
         }
     }
 }

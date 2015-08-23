@@ -147,7 +147,7 @@ class ConnectStage extends AbstractTimeAwareStage
             $result = true;
         } catch (SocketException $e) {
             $item->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
-            $this->callExceptionSubscribers($item, $e, $event);
+            $this->callExceptionSubscribers($item, $e);
 
             $result = false;
         }

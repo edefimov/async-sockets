@@ -161,9 +161,8 @@ class SimpleServer extends Command
     private function getExceptionHandler(OutputInterface $output)
     {
         return function (SocketExceptionEvent $event) use ($output) {
-            $type = $event->getOriginalEvent() ? $event->getOriginalEvent()->getType() : '';
             $output->writeln(
-                '<error>Exception during processing ' . $type . ': ' .
+                '<error>Exception: ' .
                 $event->getException()->getMessage() . '</error>'
             );
         };
