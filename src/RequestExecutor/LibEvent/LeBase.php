@@ -75,16 +75,6 @@ class LeBase
     }
 
     /**
-     * Return Handle
-     *
-     * @return resource
-     */
-    public function getHandle()
-    {
-        return $this->handle;
-    }
-
-    /**
      * Start event loop
      *
      * @return int

@@ -627,12 +627,14 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             self::fail($event->getType() . ' mustn\'t have been called');
         };
 
+        $context = sha1(microtime(true));
         $this->executor->socketBag()->addSocket(
             $this->socket,
             $operation,
             [
-                NativeRequestExecutor::META_ADDRESS            => 'php://temp',
-                NativeRequestExecutor::META_CONNECTION_TIMEOUT => 1,
+                RequestExecutorInterface::META_ADDRESS            => 'php://temp',
+                RequestExecutorInterface::META_CONNECTION_TIMEOUT => 1,
+                RequestExecutorInterface::META_USER_CONTEXT       => $context,
             ]
         );
 
@@ -648,7 +650,12 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
                     $eventType              => $failHandler,
                     EventType::DISCONNECTED => $failHandler,
                     EventType::FINALIZE     => [ $mock, 'count' ],
-                    EventType::TIMEOUT      => [ $mock, 'count' ],
+                    EventType::TIMEOUT      => [
+                        [ $mock, 'count' ],
+                        function (Event $event) use ($context) {
+                            self::assertSame($context, $event->getContext(), 'Incorect context');
+                        }
+                    ]
                 ]
             )
         );

@@ -18,6 +18,8 @@ use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
+use AsyncSockets\RequestExecutor\Pipeline\LibEventStageFactory;
+use AsyncSockets\RequestExecutor\Pipeline\NativeStageFactory;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -110,8 +112,15 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
         ];
 
         return [
-            [ new NativeRequestExecutor(new PipelineFactory()), $urls ],
-            [ new LibEventRequestExecutor(), $urls ],
+            [
+                new NativeRequestExecutor(
+                    new PipelineFactory(
+                        new NativeStageFactory()
+                    )
+                ),
+                $urls,
+            ],
+            [ new LibEventRequestExecutor(new LibEventStageFactory()), $urls ],
         ];
     }
 }

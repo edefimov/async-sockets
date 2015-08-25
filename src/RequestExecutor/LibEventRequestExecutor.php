@@ -16,14 +16,9 @@ use AsyncSockets\RequestExecutor\LibEvent\LeBase;
 use AsyncSockets\RequestExecutor\LibEvent\LeCallbackInterface;
 use AsyncSockets\RequestExecutor\LibEvent\LeEvent;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\Pipeline\ConnectStage;
-use AsyncSockets\RequestExecutor\Pipeline\DisconnectStage;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
-use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
-use AsyncSockets\RequestExecutor\Pipeline\ReadIoHandler;
-use AsyncSockets\RequestExecutor\Pipeline\SslHandshakeIoHandler;
-use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
+use AsyncSockets\RequestExecutor\Pipeline\StageFactoryInterface;
 use AsyncSockets\RequestExecutor\Specification\ConnectionLessSocketSpecification;
 
 /**
@@ -66,6 +61,24 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
      */
     private $eventCaller;
 
+    /**
+     * Stage factory
+     *
+     * @var StageFactoryInterface
+     */
+    private $stageFactory;
+
+    /**
+     * LibEventRequestExecutor constructor.
+     *
+     * @param StageFactoryInterface $stageFactory Stage factory
+     */
+    public function __construct(StageFactoryInterface $stageFactory)
+    {
+        parent::__construct();
+        $this->stageFactory = $stageFactory;
+    }
+
     /** {@inheritdoc} */
     protected function doExecuteRequest(EventCaller $eventCaller)
     {
@@ -80,13 +93,9 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
         $this->base        = new LeBase();
         $this->eventCaller = $eventCaller;
 
-        $this->connectStage    = new ConnectStage($this, $eventCaller, $this->solver);
-        $this->ioStage         = new IoStage($this, $eventCaller, [
-            new ReadIoHandler(),
-            new WriteIoHandler(),
-            new SslHandshakeIoHandler()
-        ]);
-        $this->disconnectStage = new DisconnectStage($this, $eventCaller);
+        $this->connectStage    = $this->stageFactory->createConnectStage($this, $eventCaller, $this->solver);
+        $this->ioStage         = $this->stageFactory->createIoStage($this, $eventCaller);
+        $this->disconnectStage = $this->stageFactory->createDisconnectStage($this, $eventCaller);
     }
 
     /** {@inheritdoc} */
@@ -184,9 +193,9 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
      */
     private function handleTimeout(OperationMetadata $operationMetadata)
     {
-        $operation = $operationMetadata->getOperation();
-        $socket    = $operationMetadata->getSocket();
-        $event     = new Event($this, $socket, $operation, EventType::TIMEOUT);
+        $meta   = $operationMetadata->getMetadata();
+        $socket = $operationMetadata->getSocket();
+        $event  = new Event($this, $socket, $meta[self::META_USER_CONTEXT], EventType::TIMEOUT);
         try {
             $this->eventCaller->callSocketSubscribers($operationMetadata, $event);
         } catch (SocketException $e) {

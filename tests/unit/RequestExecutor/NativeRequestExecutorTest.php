@@ -12,6 +12,7 @@ namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
+use AsyncSockets\RequestExecutor\Pipeline\NativeStageFactory;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use Tests\Application\Mock\PhpFunctionMocker;
 
@@ -23,7 +24,11 @@ class NativeRequestExecutorTest extends AbstractRequestExecutorTest
     /** {@inheritdoc} */
     protected function createRequestExecutor()
     {
-        return new NativeRequestExecutor(new PipelineFactory());
+        return new NativeRequestExecutor(
+            new PipelineFactory(
+                new NativeStageFactory()
+            )
+        );
     }
 
     /**

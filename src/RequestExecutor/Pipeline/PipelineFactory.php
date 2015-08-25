@@ -19,6 +19,23 @@ use AsyncSockets\Socket\AsyncSelector;
 class PipelineFactory
 {
     /**
+     * Stage factory
+     *
+     * @var StageFactoryInterface
+     */
+    private $stageFactory;
+
+    /**
+     * PipelineFactory constructor.
+     *
+     * @param StageFactoryInterface $stageFactory Stage factory
+     */
+    public function __construct(StageFactoryInterface $stageFactory)
+    {
+        $this->stageFactory = $stageFactory;
+    }
+
+    /**
      * Create Pipeline
      *
      * @param RequestExecutorInterface  $executor Request executor
@@ -33,20 +50,16 @@ class PipelineFactory
         LimitationSolverInterface $limitationDecider
     ) {
         $selector        = $this->createSelector();
-        $disconnectStage = $this->createDisconnectStage($executor, $eventCaller, $selector);
+        $disconnectStage = $this->stageFactory->createDisconnectStage($executor, $eventCaller, $selector);
         return new Pipeline(
-            new ConnectStageReturningAllActiveSockets($executor, $eventCaller, $limitationDecider),
+            $this->stageFactory->createConnectStage($executor, $eventCaller, $limitationDecider),
             [
                 new ExcludedOperationsStage(
                     $executor,
                     $eventCaller,
                     [
                         new SelectStage($executor, $eventCaller, $selector),
-                        new IoStage($executor, $eventCaller, [
-                            new ReadIoHandler(),
-                            new WriteIoHandler(),
-                            new SslHandshakeIoHandler()
-                        ]),
+                        $this->stageFactory->createIoStage($executor, $eventCaller),
                         $disconnectStage
                     ]
                 ),
@@ -65,22 +78,5 @@ class PipelineFactory
     protected function createSelector()
     {
         return new AsyncSelector();
-    }
-
-    /**
-     * Create DisconnectStage
-     *
-     * @param RequestExecutorInterface $executor Request executor
-     * @param EventCaller              $eventCaller Event caller
-     * @param AsyncSelector            $selector Selector object
-     *
-     * @return DisconnectStage
-     */
-    protected function createDisconnectStage(
-        RequestExecutorInterface $executor,
-        EventCaller $eventCaller,
-        AsyncSelector $selector
-    ) {
-        return new DisconnectStage($executor, $eventCaller, $selector);
     }
 }

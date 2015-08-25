@@ -49,7 +49,7 @@ class LeEvent
      *
      * @param LeCallbackInterface $callback Callback object
      * @param OperationMetadata   $operationMetadata Operation metadata object
-     * @param int|null                 $timeout Timeout for event
+     * @param int|null            $timeout Timeout for event
      */
     public function __construct(LeCallbackInterface $callback, OperationMetadata $operationMetadata, $timeout)
     {
