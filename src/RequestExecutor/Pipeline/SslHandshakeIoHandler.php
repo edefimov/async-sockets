@@ -42,7 +42,7 @@ class SslHandshakeIoHandler implements IoHandlerInterface
         }
 
         $resource = $socket->getStreamResource();
-        $result = stream_socket_enable_crypto($resource, true, $operation->getCipher());
+        $result   = stream_socket_enable_crypto($resource, true, $operation->getCipher());
         if ($result === true) {
             return $operation->getNextOperation();
         } elseif ($result === false) {

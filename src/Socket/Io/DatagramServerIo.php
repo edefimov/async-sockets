@@ -46,7 +46,7 @@ class DatagramServerIo extends AbstractServerIo
         $data = stream_socket_recvfrom(
             $this->socket->getStreamResource(),
             self::SOCKET_BUFFER_SIZE,
-            MSG_PEEK,
+            STREAM_PEEK,
             $remoteAddress
         );
 

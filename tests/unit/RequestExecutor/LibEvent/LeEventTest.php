@@ -101,6 +101,9 @@ class LeEventTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
+        if (!extension_loaded('libevent')) {
+            self::markTestSkipped('To pass this test libevent extension must be installed');
+        }
 
         $this->callback = $this->getMockBuilder('AsyncSockets\RequestExecutor\LibEvent\LeCallbackInterface')
                             ->setMethods(['onEvent'])

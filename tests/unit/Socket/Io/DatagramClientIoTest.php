@@ -58,7 +58,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
                 $address = $this->address;
                 $result  = $data;
 
-                if (!($flags & MSG_PEEK)) {
+                if (!($flags & STREAM_PEEK)) {
                     $data = '';
                 }
                 return $result;
@@ -84,7 +84,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
                 $address = '192.192.192.192:1';
                 $result  = $data;
 
-                if (!($flags & MSG_PEEK)) {
+                if (!($flags & STREAM_PEEK)) {
                     $data = '';
                 }
 
@@ -117,7 +117,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
                 $address = $this->address;
                 $result  = $data;
 
-                if (!($flags & MSG_PEEK)) {
+                if (!($flags & STREAM_PEEK)) {
                     $data = '';
                 }
                 return substr($result, 0, $size);
@@ -158,7 +158,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
                 $address = $this->address;
                 $result  = $data;
 
-                if (!($flags & MSG_PEEK)) {
+                if (!($flags & STREAM_PEEK)) {
                     $data = '';
                 }
                 return $result;

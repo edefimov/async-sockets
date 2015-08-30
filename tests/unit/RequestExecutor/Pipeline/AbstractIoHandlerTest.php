@@ -122,7 +122,7 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
                                        ->getMockForAbstractClass();
 
         $this->socket = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
-             ->setMethods([ 'read', 'write' ])
+             ->setMethods([ 'read', 'write', 'getStreamResource' ])
              ->getMockForAbstractClass();
 
         $this->handler = $this->createIoHandlerInterface();

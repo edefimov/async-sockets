@@ -9,7 +9,6 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -68,8 +67,6 @@ class SelectStage extends AbstractTimeAwareStage
             );
         } catch (TimeoutException $e) {
             return [];
-        } catch (SocketException $e) {
-            throw $e;
         }
     }
 

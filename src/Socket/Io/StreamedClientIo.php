@@ -131,6 +131,6 @@ class StreamedClientIo extends AbstractClientIo
      */
     private function getDataInSocket()
     {
-        return stream_socket_recvfrom($this->socket->getStreamResource(), 1, MSG_PEEK);
+        return stream_socket_recvfrom($this->socket->getStreamResource(), 1, STREAM_PEEK);
     }
 }

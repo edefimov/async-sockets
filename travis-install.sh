@@ -19,6 +19,6 @@ if [[ "$TRAVIS_PHP_VERSION" != "hhvm" &&
 fi
 
 composer install --prefer-dist --dev
-composer require phpunit/phpunit:4.7.*
+composer require phpunit/phpunit:~4.7
 alias phpunit=vendor/bin/phpunit
 php tests/console.php async_sockets:test:warmup --configuration=$ASYNC_SOCKETS_CONFIG
