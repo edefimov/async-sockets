@@ -10,6 +10,7 @@
 
 namespace AsyncSockets\Socket;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
 use AsyncSockets\RequestExecutor\Pipeline\LibEventStageFactory;
 use AsyncSockets\RequestExecutor\Pipeline\NativeStageFactory;
@@ -33,6 +34,23 @@ class AsyncSocketFactory
      * Create server socket
      */
     const SOCKET_SERVER = 'server';
+
+    /**
+     * Default configuration for this factory
+     *
+     * @var Configuration
+     */
+    private $configuration;
+
+    /**
+     * AsyncSocketFactory constructor.
+     *
+     * @param Configuration $configuration Default configuration for this factory
+     */
+    public function __construct(Configuration $configuration = null)
+    {
+        $this->configuration = $configuration ?: new Configuration();
+    }
 
     /**
      * Create socket client
@@ -65,14 +83,25 @@ class AsyncSocketFactory
      */
     public function createRequestExecutor()
     {
-        if (extension_loaded('libevent')) {
-            return new LibEventRequestExecutor(new LibEventStageFactory());
+        foreach ($this->configuration->getPreferredEngines() as $engine) {
+            switch ($engine) {
+                case 'libevent':
+                    if (extension_loaded('libevent')) {
+                        return new LibEventRequestExecutor(new LibEventStageFactory(), $this->configuration);
+                    }
+                    break;
+                case 'native':
+                    return new NativeRequestExecutor(
+                        new PipelineFactory(
+                            new NativeStageFactory()
+                        ),
+                        $this->configuration
+                    );
+            }
         }
 
-        return new NativeRequestExecutor(
-            new PipelineFactory(
-                new NativeStageFactory()
-            )
+        throw new \InvalidArgumentException(
+            'Provided configuration does not contain any supported RequestExecutor engine.'
         );
     }
 }

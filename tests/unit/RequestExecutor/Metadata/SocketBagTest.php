@@ -10,11 +10,8 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
-use AsyncSockets\Event\EventType;
-use AsyncSockets\RequestExecutor\CallbackEventHandler;
-use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -36,6 +33,20 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
      * @var SocketBag
      */
     private $bag;
+
+    /**
+     * Connect timeout
+     *
+     * @var double
+     */
+    private $connectTimeout;
+
+    /**
+     * I/O timeout
+     *
+     * @var double
+     */
+    private $ioTimeout;
 
     /**
      * RequestExecutorInterface
@@ -66,6 +77,19 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
             $this->getMock('AsyncSockets\RequestExecutor\EventHandlerInterface')
         );
         self::assertCount(1, $this->bag, 'Count haven\'t changed');
+
+        $meta = $this->bag->getSocketMetaData($this->socket);
+        self::assertSame(
+            $this->connectTimeout,
+            $meta[ RequestExecutorInterface::META_CONNECTION_TIMEOUT ],
+            'Incorrect initial connect timeout'
+        );
+
+        self::assertSame(
+            $this->ioTimeout,
+            $meta[ RequestExecutorInterface::META_IO_TIMEOUT ],
+            'Incorrect initial I/O timeout'
+        );
     }
 
     /**
@@ -297,6 +321,9 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
         );
         $this->operation = $this->getMock('AsyncSockets\RequestExecutor\OperationInterface');
         $this->socket    = $this->getMock('AsyncSockets\Socket\SocketInterface');
-        $this->bag       = new SocketBag($this->executor);
+
+        $this->connectTimeout = (double) mt_rand(1, PHP_INT_MAX);
+        $this->ioTimeout      = (double) mt_rand(1, PHP_INT_MAX);
+        $this->bag            = new SocketBag($this->executor, $this->connectTimeout, $this->ioTimeout);
     }
 }

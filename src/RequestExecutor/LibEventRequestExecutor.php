@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
@@ -72,10 +73,11 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
      * LibEventRequestExecutor constructor.
      *
      * @param StageFactoryInterface $stageFactory Stage factory
+     * @param Configuration   $configuration Configuration for executor
      */
-    public function __construct(StageFactoryInterface $stageFactory)
+    public function __construct(StageFactoryInterface $stageFactory, Configuration $configuration)
     {
-        parent::__construct();
+        parent::__construct($configuration);
         $this->stageFactory = $stageFactory;
     }
 

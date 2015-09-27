@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopRequestExecuteException;
@@ -65,10 +66,12 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
 
     /**
      * AbstractRequestExecutor constructor.
+     *
+     * @param Configuration $configuration Configuration for executor
      */
-    public function __construct()
+    public function __construct(Configuration $configuration)
     {
-        $this->socketBag = new SocketBag($this);
+        $this->socketBag = new SocketBag($this, $configuration->getConnectTimeout(), $configuration->getIoTimeout());
     }
 
     /** {@inheritdoc} */

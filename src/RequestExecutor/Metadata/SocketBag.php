@@ -35,22 +35,32 @@ class SocketBag implements SocketBagInterface
     private $items;
 
     /**
-     * Default socket timeout, seconds
+     * Default connection timeout
      *
-     * @var int
+     * @var double
      */
-    private $defaultSocketTimeout;
+    private $connectTimeout;
+
+    /**
+     * Default I/O timeout
+     *
+     * @var double
+     */
+    private $ioTimeout;
 
     /**
      * SocketBag constructor.
      *
      * @param RequestExecutorInterface $executor Owner RequestExecutor
+     * @param double                   $connectTimeout Default connection timeout
+     * @param double                   $ioTimeout Default I/O timeout
      */
-    public function __construct(RequestExecutorInterface $executor)
+    public function __construct(RequestExecutorInterface $executor, $connectTimeout, $ioTimeout)
     {
-        $this->executor             = $executor;
-        $this->items                = [ ];
-        $this->defaultSocketTimeout = (int) ini_get('default_socket_timeout');
+        $this->executor       = $executor;
+        $this->items          = [ ];
+        $this->connectTimeout = $connectTimeout;
+        $this->ioTimeout      = $ioTimeout;
     }
 
     /** {@inheritdoc} */
@@ -77,8 +87,8 @@ class SocketBag implements SocketBagInterface
                 RequestExecutorInterface::META_ADDRESS               => null,
                 RequestExecutorInterface::META_USER_CONTEXT          => null,
                 RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => null,
-                RequestExecutorInterface::META_CONNECTION_TIMEOUT    => (int) $this->defaultSocketTimeout,
-                RequestExecutorInterface::META_IO_TIMEOUT            => (double) $this->defaultSocketTimeout,
+                RequestExecutorInterface::META_CONNECTION_TIMEOUT    => $this->connectTimeout,
+                RequestExecutorInterface::META_IO_TIMEOUT            => $this->ioTimeout,
             ],
             $metadata ?: [],
             [

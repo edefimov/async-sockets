@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
@@ -159,7 +160,7 @@ class RemoveFinishedSocketsEventHandlerTest extends EventHandlerInterfaceTest
     {
         $executor = $this->getMockForAbstractClass(
             'AsyncSockets\RequestExecutor\RequestExecutorInterface',
-            ['socketBag'],
+            [],
             '',
             true,
             true,
@@ -170,7 +171,7 @@ class RemoveFinishedSocketsEventHandlerTest extends EventHandlerInterfaceTest
         $socketBag = $this->getMock(
             'AsyncSockets\RequestExecutor\Metadata\SocketBag',
             ['hasSocket', 'removeSocket'],
-            [$executor]
+            [$executor, mt_rand(1, PHP_INT_MAX), mt_rand(1, PHP_INT_MAX)]
         );
         $executor->expects(self::any())->method('socketBag')->willReturn($socketBag);
 

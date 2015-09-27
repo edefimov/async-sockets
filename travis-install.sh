@@ -18,7 +18,7 @@ if [[ "$TRAVIS_PHP_VERSION" != "hhvm" &&
     echo "extension=libevent.so" >> "$(php -r 'echo php_ini_loaded_file();')"
 fi
 
-composer install --prefer-dist --dev
+composer install --prefer-dist
 composer require phpunit/phpunit:~4.7
 alias phpunit=vendor/bin/phpunit
 php tests/console.php async_sockets:test:warmup --configuration=$ASYNC_SOCKETS_CONFIG

@@ -10,6 +10,7 @@
 
 namespace AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\Pipeline;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
@@ -37,10 +38,11 @@ class NativeRequestExecutor extends AbstractRequestExecutor
      * RequestExecutor constructor.
      *
      * @param PipelineFactory $pipelineFactory Pipeline factory
+     * @param Configuration   $configuration Configuration for executor
      */
-    public function __construct(PipelineFactory $pipelineFactory)
+    public function __construct(PipelineFactory $pipelineFactory, Configuration $configuration)
     {
-        parent::__construct();
+        parent::__construct($configuration);
         $this->pipelineFactory = $pipelineFactory;
     }
 

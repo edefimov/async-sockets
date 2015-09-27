@@ -28,11 +28,6 @@ abstract class AbstractIo implements IoInterface
     const IO_ATTEMPTS = 10;
 
     /**
-     * Delay for select operation, microseconds
-     */
-    const SELECT_DELAY = 50000;
-
-    /**
      * Socket
      *
      * @var SocketInterface

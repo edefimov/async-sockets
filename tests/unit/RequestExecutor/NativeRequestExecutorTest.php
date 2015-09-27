@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
 use AsyncSockets\RequestExecutor\Pipeline\NativeStageFactory;
@@ -27,7 +28,8 @@ class NativeRequestExecutorTest extends AbstractRequestExecutorTest
         return new NativeRequestExecutor(
             new PipelineFactory(
                 new NativeStageFactory()
-            )
+            ),
+            new Configuration()
         );
     }
 

@@ -10,6 +10,7 @@
 
 namespace Tests\Functional;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
@@ -116,11 +117,12 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
                 new NativeRequestExecutor(
                     new PipelineFactory(
                         new NativeStageFactory()
-                    )
+                    ),
+                    new Configuration()
                 ),
                 $urls,
             ],
-            [ new LibEventRequestExecutor(new LibEventStageFactory()), $urls ],
+            [ new LibEventRequestExecutor(new LibEventStageFactory(), new Configuration()), $urls ],
         ];
     }
 }

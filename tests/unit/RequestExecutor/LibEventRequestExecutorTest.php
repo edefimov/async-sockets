@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
@@ -39,7 +40,7 @@ class LibEventRequestExecutorTest extends AbstractRequestExecutorTest
         if (!extension_loaded('libevent')) {
             self::markTestSkipped('To pass this test libevent extension must be installed');
         }
-        return new LibEventRequestExecutor(new LibEventStageFactory());
+        return new LibEventRequestExecutor(new LibEventStageFactory(), new Configuration());
     }
 
     /** {@inheritdoc} */
@@ -135,7 +136,7 @@ class LibEventRequestExecutorTest extends AbstractRequestExecutorTest
         PhpFunctionMocker::getPhpFunctionMocker('event_new')->setCallable([$libEventHandler, 'count']);
 
         $factory  = new LibEventTestStageFactory();
-        $executor = new LibEventRequestExecutor($factory);
+        $executor = new LibEventRequestExecutor($factory, new Configuration());
 
         $stub = $this->getMockBuilder('AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface')
                             ->setMethods(['processStage'])
