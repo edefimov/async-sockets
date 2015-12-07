@@ -11,7 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\RequestExecutor\Pipeline\SslHandshakeIoHandler;
-use AsyncSockets\RequestExecutor\SslHandshakeOperation;
+use AsyncSockets\Operation\SslHandshakeOperation;
 use Tests\Application\Mock\PhpFunctionMocker;
 
 /**
@@ -26,7 +26,7 @@ class SslHandshakeIoHandlerTest extends AbstractIoHandlerTest
      */
     public function testSupportsMethod()
     {
-        $operation = $this->getMockBuilder('AsyncSockets\RequestExecutor\SslHandshakeOperation')
+        $operation = $this->getMockBuilder('AsyncSockets\Operation\SslHandshakeOperation')
                         ->disableOriginalConstructor()
                         ->getMock();
         self::assertTrue(
@@ -50,7 +50,7 @@ class SslHandshakeIoHandlerTest extends AbstractIoHandlerTest
                     ->getMockForAbstractClass();
 
         /** @var SslHandshakeOperation|\PHPUnit_Framework_MockObject_MockObject $operation */
-        $operation = $this->getMockBuilder('AsyncSockets\RequestExecutor\SslHandshakeOperation')
+        $operation = $this->getMockBuilder('AsyncSockets\Operation\SslHandshakeOperation')
                           ->disableOriginalConstructor()
                           ->setMethods(['getCipher'])
                           ->getMock();
@@ -78,7 +78,7 @@ class SslHandshakeIoHandlerTest extends AbstractIoHandlerTest
                     ->getMockForAbstractClass();
 
         /** @var SslHandshakeOperation|\PHPUnit_Framework_MockObject_MockObject $operation */
-        $operation = $this->getMockBuilder('AsyncSockets\RequestExecutor\SslHandshakeOperation')
+        $operation = $this->getMockBuilder('AsyncSockets\Operation\SslHandshakeOperation')
                           ->disableOriginalConstructor()
                           ->getMock();
         $mock->expects(self::once())->method('count')
@@ -102,11 +102,11 @@ class SslHandshakeIoHandlerTest extends AbstractIoHandlerTest
                     ->getMockForAbstractClass();
 
         /** @var SslHandshakeOperation|\PHPUnit_Framework_MockObject_MockObject $operation */
-        $operation = $this->getMockBuilder('AsyncSockets\RequestExecutor\SslHandshakeOperation')
+        $operation = $this->getMockBuilder('AsyncSockets\Operation\SslHandshakeOperation')
                           ->disableOriginalConstructor()
                           ->setMethods(['getNextOperation'])
                           ->getMock();
-        $nextOperation = $this->getMockBuilder('AsyncSockets\RequestExecutor\OperationInterface')
+        $nextOperation = $this->getMockBuilder('AsyncSockets\Operation\OperationInterface')
                               ->getMockForAbstractClass();
 
         $operation->expects(self::at(0))->method('getNextOperation')->willReturn($nextOperation);

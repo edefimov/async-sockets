@@ -17,7 +17,7 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\EventMultiHandler;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;

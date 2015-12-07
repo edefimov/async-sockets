@@ -74,7 +74,7 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
      */
     public function testExceptionWillBeThrownOnInvalidOperation()
     {
-        $mock = $this->getMockBuilder('AsyncSockets\RequestExecutor\OperationInterface')
+        $mock = $this->getMockBuilder('AsyncSockets\Operation\OperationInterface')
                      ->enableProxyingToOriginalMethods()
                      ->getMockForAbstractClass();
 

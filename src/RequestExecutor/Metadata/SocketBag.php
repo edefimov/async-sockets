@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\SocketBagInterface;

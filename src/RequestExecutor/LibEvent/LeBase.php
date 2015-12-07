@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\LibEvent;
 
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 
 /**
  * Class LeBase

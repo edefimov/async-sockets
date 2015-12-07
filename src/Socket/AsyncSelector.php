@@ -12,7 +12,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 
 /**
  * Class AsyncSelector

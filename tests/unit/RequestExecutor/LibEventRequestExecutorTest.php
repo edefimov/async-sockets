@@ -12,11 +12,9 @@ namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\EventType;
-use AsyncSockets\RequestExecutor\CallbackEventHandler;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
 use AsyncSockets\RequestExecutor\Pipeline\LibEventStageFactory;
-use AsyncSockets\RequestExecutor\ReadOperation;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\RequestExecutor\LibEvent\LibEventEmulatedEvent;
 use Tests\AsyncSockets\RequestExecutor\LibEvent\LibEventLoopEmulator;

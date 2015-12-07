@@ -10,7 +10,7 @@
 namespace AsyncSockets\RequestExecutor\Specification;
 
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\Socket\UdpClientSocket;
 
 /**

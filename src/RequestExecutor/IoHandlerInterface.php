@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor;
 
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**

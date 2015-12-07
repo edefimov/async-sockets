@@ -10,7 +10,7 @@
 namespace AsyncSockets\Event;
 
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 
 /**

@@ -15,14 +15,14 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\PartialFrame;
-use AsyncSockets\RequestExecutor\InProgressWriteOperation;
+use AsyncSockets\Operation\InProgressWriteOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 
@@ -117,7 +117,7 @@ class IoStageTest extends AbstractStageTest
     public function testThatIfNoHandlerFoundExceptionWillBeThrown()
     {
         $operation = $this->getMockForAbstractClass(
-            'AsyncSockets\RequestExecutor\OperationInterface',
+            'AsyncSockets\Operation\OperationInterface',
             [],
             '',
             true,
@@ -153,7 +153,7 @@ class IoStageTest extends AbstractStageTest
             [ $this->executor ]
         );
 
-        $operation = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\OperationInterface');
+        $operation = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
 
         $request = $this->createOperationMetadata();
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
@@ -185,7 +185,7 @@ class IoStageTest extends AbstractStageTest
      */
     public function testThatIfNotSupportsThenSkipRequest()
     {
-        $operation = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\OperationInterface');
+        $operation = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
 
         $request = $this->createOperationMetadata();
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
@@ -346,7 +346,7 @@ class IoStageTest extends AbstractStageTest
         $request->expects(self::once())->method('setOperation')->willReturnCallback(
             function (OperationInterface $operation) use ($chunks) {
                 self::assertInstanceOf(
-                    'AsyncSockets\RequestExecutor\InProgressWriteOperation',
+                    'AsyncSockets\Operation\InProgressWriteOperation',
                     $operation,
                     'Incorrect operation'
                 );
@@ -374,7 +374,7 @@ class IoStageTest extends AbstractStageTest
         $request = $this->createOperationMetadata();
         $socket  = $this->setupSocketForRequest($request);
 
-        $operation = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\OperationInterface');
+        $operation = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
         $request->expects(self::any())->method('getSocket')->willReturn($socket);
 
@@ -399,8 +399,8 @@ class IoStageTest extends AbstractStageTest
     public function testSettingNextOperation($currentOperation, $nextOperation)
     {
         $map = [
-            'read'  => 'AsyncSockets\RequestExecutor\ReadOperation',
-            'write' => 'AsyncSockets\RequestExecutor\WriteOperation'
+            'read'  => 'AsyncSockets\Operation\ReadOperation',
+            'write' => 'AsyncSockets\Operation\WriteOperation'
         ];
 
         $request = $this->createOperationMetadata();

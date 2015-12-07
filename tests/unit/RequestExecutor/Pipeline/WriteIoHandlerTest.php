@@ -14,10 +14,10 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\RequestExecutor\InProgressWriteOperation;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\InProgressWriteOperation;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 
 /**
  * Class WriteIoHandlerTest
@@ -226,7 +226,7 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
         );
 
         self::assertInstanceOf(
-            'AsyncSockets\RequestExecutor\InProgressWriteOperation',
+            'AsyncSockets\Operation\InProgressWriteOperation',
             $result,
             'Incorrect return result'
         );
@@ -240,8 +240,8 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
     public function writeOperationsDataProvider()
     {
         return [
-            ['AsyncSockets\RequestExecutor\WriteOperation'],
-            ['AsyncSockets\RequestExecutor\InProgressWriteOperation']
+            ['AsyncSockets\Operation\WriteOperation'],
+            ['AsyncSockets\Operation\InProgressWriteOperation']
         ];
     }
 

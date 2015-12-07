@@ -17,15 +17,14 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Frame\MarkerFramePicker;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
+use AsyncSockets\RequestExecutor\NativeRequestExecutor;
 use AsyncSockets\RequestExecutor\Pipeline\LibEventStageFactory;
 use AsyncSockets\RequestExecutor\Pipeline\NativeStageFactory;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
-use AsyncSockets\RequestExecutor\NativeRequestExecutor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
-use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ClientSocket;
 
 /**

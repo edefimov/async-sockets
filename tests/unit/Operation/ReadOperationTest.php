@@ -8,10 +8,10 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Tests\AsyncSockets\RequestExecutor;
+namespace Tests\AsyncSockets\Operation;
 
-use AsyncSockets\RequestExecutor\OperationInterface;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
 
 /**
  * Class ReadOperationTest

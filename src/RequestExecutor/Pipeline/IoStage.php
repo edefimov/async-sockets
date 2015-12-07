@@ -14,7 +14,7 @@ use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**

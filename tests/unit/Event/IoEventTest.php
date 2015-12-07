@@ -12,7 +12,7 @@ namespace Tests\AsyncSockets\Event;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\IoEvent;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 
 /**
  * Class IoEventTest

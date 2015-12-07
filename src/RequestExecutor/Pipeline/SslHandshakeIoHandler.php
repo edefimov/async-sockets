@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Exception\SslHandshakeException;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\SslHandshakeOperation;
+use AsyncSockets\Operation\SslHandshakeOperation;
 use AsyncSockets\Socket\SocketInterface;
 
 /**

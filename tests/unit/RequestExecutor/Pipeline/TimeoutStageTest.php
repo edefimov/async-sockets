@@ -15,7 +15,7 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\Pipeline\TimeoutStage;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 

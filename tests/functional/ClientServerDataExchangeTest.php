@@ -17,7 +17,7 @@ use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Frame\PartialFrame;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ClientSocket;

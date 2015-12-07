@@ -11,7 +11,7 @@ namespace AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\StreamResourceInterface;
 

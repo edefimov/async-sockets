@@ -12,11 +12,11 @@ namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\Pipeline\SelectStage;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\SelectContext;
 use AsyncSockets\Socket\SocketInterface;

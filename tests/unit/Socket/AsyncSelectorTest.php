@@ -9,7 +9,7 @@
  */
 namespace Tests\AsyncSockets\Socket;
 
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\Application\Mock\PhpFunctionMocker;

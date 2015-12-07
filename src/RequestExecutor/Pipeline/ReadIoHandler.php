@@ -16,8 +16,8 @@ use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 

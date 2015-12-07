@@ -11,9 +11,9 @@
 namespace AsyncSockets\Event;
 
 use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
-use AsyncSockets\RequestExecutor\ReadOperation;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
+use AsyncSockets\Operation\WriteOperation;
 
 /**
  * Class IoEvent

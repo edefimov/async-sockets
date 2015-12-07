@@ -11,11 +11,11 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\InProgressWriteOperation;
+use AsyncSockets\Operation\InProgressWriteOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 
 /**

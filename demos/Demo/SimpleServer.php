@@ -16,7 +16,7 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;

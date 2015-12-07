@@ -11,7 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -167,7 +167,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     {
         parent::setUp();
         $this->socket            = $this->getMockForAbstractClass('AsyncSockets\Socket\AbstractSocket');
-        $this->operation         = $this->getMock('AsyncSockets\RequestExecutor\OperationInterface');
+        $this->operation         = $this->getMock('AsyncSockets\Operation\OperationInterface');
         $this->operationMetadata = new OperationMetadata($this->socket, $this->operation, [ ]);
     }
 }

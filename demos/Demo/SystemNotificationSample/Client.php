@@ -17,7 +17,7 @@ use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\EventHandlerFromSymfonyEventDispatcher;
 use AsyncSockets\RequestExecutor\EventMultiHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
 use Symfony\Component\Console\Output\OutputInterface;
