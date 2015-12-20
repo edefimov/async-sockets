@@ -52,9 +52,11 @@ class LibEventRequestExecutorTest extends AbstractRequestExecutorTest
     protected function tearDown()
     {
         parent::tearDown();
-        PhpFunctionMocker::getPhpFunctionMocker('event_set')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('event_add')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('event_new')->restoreNativeHandler();
+        if (extension_loaded('libevent')) {
+            PhpFunctionMocker::getPhpFunctionMocker('event_set')->restoreNativeHandler();
+            PhpFunctionMocker::getPhpFunctionMocker('event_add')->restoreNativeHandler();
+            PhpFunctionMocker::getPhpFunctionMocker('event_new')->restoreNativeHandler();
+        }
     }
 
     /**

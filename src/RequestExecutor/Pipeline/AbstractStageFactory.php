@@ -18,6 +18,14 @@ use AsyncSockets\Socket\AsyncSelector;
 abstract class AbstractStageFactory implements StageFactoryInterface
 {
     /** {@inheritdoc} */
+    public function createDelayStage(
+        RequestExecutorInterface $executor,
+        EventCaller $caller
+    ) {
+        return new DelayStage($executor, $caller);
+    }
+
+    /** {@inheritdoc} */
     public function createIoStage(RequestExecutorInterface $executor, EventCaller $caller)
     {
         return new IoStage(

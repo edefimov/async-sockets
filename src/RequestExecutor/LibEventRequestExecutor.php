@@ -42,6 +42,13 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     private $connectStage;
 
     /**
+     * Delay stage
+     *
+     * @var PipelineStageInterface
+     */
+    private $delayStage;
+
+    /**
      * I/O stage
      *
      * @var PipelineStageInterface
@@ -98,6 +105,7 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
         $this->connectStage    = $this->stageFactory->createConnectStage($this, $eventCaller, $this->solver);
         $this->ioStage         = $this->stageFactory->createIoStage($this, $eventCaller);
         $this->disconnectStage = $this->stageFactory->createDisconnectStage($this, $eventCaller);
+        $this->delayStage      = $this->stageFactory->createDelayStage($this, $eventCaller);
     }
 
     /** {@inheritdoc} */
@@ -153,8 +161,12 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
             case LeCallbackInterface::EVENT_READ:
                 // fall down
             case LeCallbackInterface::EVENT_WRITE:
-                $result       = $this->ioStage->processStage([$operationMetadata]);
-                $doResetEvent = empty($result);
+                if ($this->delayStage->processStage([$operationMetadata])) {
+                    $result       = $this->ioStage->processStage([$operationMetadata]);
+                    $doResetEvent = empty($result);
+                } else {
+                    $doResetEvent = true;
+                }
 
                 break;
             case LeCallbackInterface::EVENT_TIMEOUT:

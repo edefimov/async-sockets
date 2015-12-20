@@ -48,7 +48,7 @@ class IoEvent extends Event
      */
     public function nextIsRead(FramePickerInterface $framePicker = null)
     {
-        $this->nextOperation = new ReadOperation($framePicker);
+        $this->nextIs(new ReadOperation($framePicker));
     }
 
     /**
@@ -60,7 +60,19 @@ class IoEvent extends Event
      */
     public function nextIsWrite($data = null)
     {
-        $this->nextOperation = new WriteOperation($data);
+        $this->nextIs(new WriteOperation($data));
+    }
+
+    /**
+     * Changed next operation to given one
+     *
+     * @param OperationInterface $operation Next operation
+     *
+     * @return void
+     */
+    public function nextIs(OperationInterface $operation)
+    {
+        $this->nextOperation = $operation;
     }
 
     /**

@@ -59,6 +59,7 @@ class PipelineFactory
                     $eventCaller,
                     [
                         new SelectStage($executor, $eventCaller, $selector),
+                        $this->stageFactory->createDelayStage($executor, $eventCaller),
                         $this->stageFactory->createIoStage($executor, $eventCaller),
                         $disconnectStage
                     ]

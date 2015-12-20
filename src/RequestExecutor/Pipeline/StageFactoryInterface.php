@@ -19,6 +19,19 @@ use AsyncSockets\Socket\AsyncSelector;
 interface StageFactoryInterface
 {
     /**
+     * Create delay stage handler
+     *
+     * @param RequestExecutorInterface  $executor Request executor
+     * @param EventCaller               $caller Event caller
+     *
+     * @return PipelineStageInterface
+     */
+    public function createDelayStage(
+        RequestExecutorInterface $executor,
+        EventCaller $caller
+    );
+
+    /**
      * Create connect stage handler
      *
      * @param RequestExecutorInterface  $executor Request executor

@@ -134,8 +134,10 @@ class LeEventTest extends \PHPUnit_Framework_TestCase
     {
         parent::tearDown();
         $this->object = null;
-        PhpFunctionMocker::getPhpFunctionMocker('event_new')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('event_del')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('event_free')->restoreNativeHandler();
+        if (extension_loaded('libevent')) {
+            PhpFunctionMocker::getPhpFunctionMocker('event_new')->restoreNativeHandler();
+            PhpFunctionMocker::getPhpFunctionMocker('event_del')->restoreNativeHandler();
+            PhpFunctionMocker::getPhpFunctionMocker('event_free')->restoreNativeHandler();
+        }
     }
 }
