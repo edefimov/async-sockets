@@ -101,7 +101,9 @@ class SimpleServer extends Command
                         $output->writeln("<info>Incoming connection from {$event->getRemoteAddress()}</info>");
                         $event->getExecutor()->socketBag()->addSocket(
                             $event->getClientSocket(),
-                            new ReadOperation(new MarkerFramePicker(null, "\r\n\r\n")),
+                            new ReadOperation(
+                                new MarkerFramePicker(null, "\r\n\r\n")
+                            ),
                             [ ],
                             $this->getAcceptedClientHandlers($output)
                         );

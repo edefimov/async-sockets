@@ -51,7 +51,7 @@ class AsyncSelector
 
         $read     = $this->getSocketsForOperation(OperationInterface::OPERATION_READ);
         $write    = $this->getSocketsForOperation(OperationInterface::OPERATION_WRITE);
-        $attempts = ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY);
+        $attempts = $this->calculateAttemptsCount($seconds, $usec);
 
         do {
             $result = $this->doStreamSelect($seconds, $usec, $read, $write);
@@ -194,8 +194,10 @@ class AsyncSelector
         $result = [];
         foreach ($this->streamResources[$operation] as $socket) {
             /** @var StreamResourceInterface $socket */
-            $isReadySocket = in_array($socket->getStreamResource(), $resources, true) &&
-                             $this->isActuallyReadyForIo($socket->getStreamResource(), $operation);
+            $socketResource = $socket->getStreamResource();
+            $isReadySocket  = in_array($socketResource, $resources, true) &&
+                                 $this->isActuallyReadyForIo($socketResource, $operation);
+
             if ($isReadySocket) {
                 $this->removeSocketOperation($socket, $operation);
                 $result[] = $socket;
@@ -215,7 +217,7 @@ class AsyncSelector
      */
     private function isActuallyReadyForIo($stream, $operation)
     {
-        return (
+        return $this->isSocketServer($stream) || (
             $operation === OperationInterface::OPERATION_READ &&
 
             // https://bugs.php.net/bug.php?id=65137
@@ -260,5 +262,31 @@ class AsyncSelector
         $result = stream_select($read, $write, $except, $seconds, $usec);
 
         return $result === false ? $result : count($read) + count($write);
+    }
+
+    /**
+     * Calculate amount of attempts for select operation
+     *
+     * @param int|null $seconds Amount of seconds
+     * @param int|null $usec Amount of microseconds
+     *
+     * @return int
+     */
+    private function calculateAttemptsCount($seconds, $usec)
+    {
+        return $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) : 1;
+    }
+
+    /**
+     * Check whether given resource is server socket
+     *
+     * @param resource $resource Resource to test
+     *
+     * @return bool
+     */
+    private function isSocketServer($resource)
+    {
+        return stream_socket_get_name($resource, false) &&
+               !stream_socket_get_name($resource, true);
     }
 }
