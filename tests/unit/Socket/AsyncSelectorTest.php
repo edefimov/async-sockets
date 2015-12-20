@@ -245,6 +245,39 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testReadForIoWithServerSocket
+     *
+     * @return void
+     */
+    public function testReadForIoWithServerSocket()
+    {
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () {
+                return false;
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(
+            function () {
+                return $this->socket->getStreamResource();
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
+            function ($resource, $wantPeer) {
+                if ($resource !== $this->socket->getStreamResource()) {
+                    return \stream_socket_get_name($resource, $wantPeer);
+                }
+                return $wantPeer ? null : '127.0.0.1:35424';
+            }
+        );
+
+        $this->selector->addSocketOperation($this->socket, OperationInterface::OPERATION_READ);
+        $context = $this->selector->select(null);
+        self::assertCount(1, $context->getRead(), 'Server socket was not returned');
+    }
+
+    /**
      * socketOperationDataProvider
      *
      * @return array
@@ -294,6 +327,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     protected function tearDown()
     {
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('usleep')->restoreNativeHandler();
         $this->socket->close();
