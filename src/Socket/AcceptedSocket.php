@@ -14,7 +14,7 @@ use AsyncSockets\Exception\NetworkSocketException;
 /**
  * Class AcceptedSocket
  */
-class AcceptedSocket extends ClientSocket
+class AcceptedSocket extends AbstractClientSocket
 {
     /**
      * Accepted client

@@ -13,6 +13,7 @@ use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\Operation\DelayedOperation;
 use AsyncSockets\RequestExecutor\LibEvent\LeBase;
 use AsyncSockets\RequestExecutor\LibEvent\LeCallbackInterface;
 use AsyncSockets\RequestExecutor\LibEvent\LeEvent;
@@ -161,7 +162,9 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
             case LeCallbackInterface::EVENT_READ:
                 // fall down
             case LeCallbackInterface::EVENT_WRITE:
-                if ($this->delayStage->processStage([$operationMetadata])) {
+                $isProcessed = $this->delayStage->processStage([$operationMetadata]) &&
+                               !($operationMetadata->getOperation() instanceof DelayedOperation);
+                if ($isProcessed) {
                     $result       = $this->ioStage->processStage([$operationMetadata]);
                     $doResetEvent = empty($result);
                 } else {

@@ -27,6 +27,7 @@ class DelayStage extends AbstractStage
             $operation = $operationMetadata->getOperation();
             if ($operation instanceof DelayedOperation) {
                 if ($this->checkDelayIsFinished($operationMetadata)) {
+                    $operationMetadata->setOperation($operation->getOriginalOperation());
                     $result[] = $operationMetadata;
                 }
             } else {

@@ -67,6 +67,7 @@ class AsyncSelector
             $readyWrite = $this->popSocketsByResources((array) $write, OperationInterface::OPERATION_WRITE);
 
             if ($readyRead || $readyWrite) {
+                $this->streamResources = [];
                 return new SelectContext($readyRead, $readyWrite);
             }
 

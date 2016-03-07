@@ -36,6 +36,16 @@ class AsyncSocketFactory
     const SOCKET_SERVER = 'server';
 
     /**
+     * Boolean flag whether it is persistent socket, applicable only for SOCKET_CLIENT type
+     */
+    const SOCKET_OPTION_IS_PERSISTENT = 'soIsPersistent';
+
+    /**
+     * Key in php storage to allow multiple persistent connections to the same host [a-zA-Z0-9_-]
+     */
+    const SOCKET_OPTION_PERSISTENT_KEY = 'soPersistentKey';
+
+    /**
      * Default configuration for this factory
      *
      * @var Configuration
@@ -55,18 +65,25 @@ class AsyncSocketFactory
     /**
      * Create socket client
      *
-     * @param string $type Socket type to create, one of SOCKET_* consts
+     * @param string      $type Socket type to create, one of SOCKET_* consts
+     * @param array       $options  $flags Flags with socket settings, see SOCKET_OPTION_* consts
      *
      * @return SocketInterface
-     * @throws \InvalidArgumentException If type parameter is unknown
-     *
      * @api
      */
-    public function createSocket($type = self::SOCKET_CLIENT)
+    public function createSocket($type = self::SOCKET_CLIENT, array $options = [])
     {
         switch ($type) {
             case self::SOCKET_CLIENT:
-                return new ClientSocket();
+                $isPersistent  = isset($options[ self::SOCKET_OPTION_IS_PERSISTENT ]) &&
+                                 $options[ self::SOCKET_OPTION_IS_PERSISTENT ];
+                $persistentKey = isset($options[ self::SOCKET_OPTION_PERSISTENT_KEY ]) ?
+                    $options[ self::SOCKET_OPTION_PERSISTENT_KEY ] :
+                    null;
+
+                return $isPersistent ?
+                    new PersistentClientSocket($persistentKey) :
+                    new ClientSocket();
             case self::SOCKET_SERVER:
                 return new ServerSocket();
             default:

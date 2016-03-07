@@ -10,6 +10,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\LibEvent;
 
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
+use AsyncSockets\RequestExecutor\Pipeline\DelayStage;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
 use AsyncSockets\RequestExecutor\Pipeline\StageFactoryInterface;
@@ -100,5 +101,13 @@ class LibEventTestStageFactory implements StageFactoryInterface
     public function setIoStage(PipelineStageInterface $ioStage)
     {
         $this->ioStage = $ioStage;
+    }
+
+    /** {@inheritdoc} */
+    public function createDelayStage(
+        RequestExecutorInterface $executor,
+        EventCaller $caller
+    ) {
+        return new DelayStage($executor, $caller);
     }
 }

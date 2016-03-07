@@ -14,6 +14,7 @@ use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\PersistentClientSocket;
 
 /**
  * Class ConnectStageAbstract
@@ -77,11 +78,26 @@ class ConnectStage extends AbstractTimeAwareStage
      */
     private function decide(OperationMetadata $operationMetadata, $totalItems)
     {
+        $meta = $operationMetadata->getMetadata();
         if ($operationMetadata->isRunning()) {
-            return LimitationSolverInterface::DECISION_SKIP_CURRENT;
+            $socket         = $operationMetadata->getSocket();
+            $isDisconnected = $socket instanceof PersistentClientSocket &&
+                              $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] &&
+                              $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] &&
+                              !stream_socket_get_name($socket->getStreamResource(), true);
+            if ($isDisconnected) {
+                $operationMetadata->setMetadata(
+                    [
+                        RequestExecutorInterface::META_CONNECTION_START_TIME  => null,
+                        RequestExecutorInterface::META_CONNECTION_FINISH_TIME => null,
+                        RequestExecutorInterface::META_LAST_IO_START_TIME     => null,
+                    ]
+                );
+            } else {
+                return LimitationSolverInterface::DECISION_SKIP_CURRENT;
+            }
         }
 
-        $meta           = $operationMetadata->getMetadata();
         $isSkippingThis = $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] !== null;
 
         if ($isSkippingThis) {
@@ -130,12 +146,13 @@ class ConnectStage extends AbstractTimeAwareStage
         $item->initialize();
 
         $socket = $item->getSocket();
-        $meta   = $item->getMetadata();
         $event  = $this->createEvent($item, EventType::INITIALIZE);
 
         try {
             $this->callSocketSubscribers($item, $event);
             $this->setSocketOperationTime($item, RequestExecutorInterface::META_CONNECTION_START_TIME);
+
+            $meta = $item->getMetadata();
 
             $socket->open(
                 $meta[ RequestExecutorInterface::META_ADDRESS ],

@@ -14,6 +14,7 @@ use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
+use AsyncSockets\Socket\PersistentClientSocket;
 
 /**
  * Class DisconnectStage
@@ -68,25 +69,28 @@ class DisconnectStage extends AbstractStage
             return;
         }
 
-        $operation->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
-
         $socket = $operation->getSocket();
         $event  = $this->createEvent($operation, EventType::DISCONNECTED);
 
-        try {
-            $socket->close();
-            if ($meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null) {
-                $this->callSocketSubscribers($operation, $event);
+        if (!($socket instanceof PersistentClientSocket)) {
+            $operation->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
+
+            try {
+                $socket->close();
+                if ($meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null) {
+                    $this->callSocketSubscribers($operation, $event);
+                }
+            } catch (SocketException $e) {
+                $this->callExceptionSubscribers($operation, $e);
             }
-        } catch (SocketException $e) {
-            $this->callExceptionSubscribers($operation, $e);
+
+            $this->callSocketSubscribers(
+                $operation,
+                $this->createEvent($operation, EventType::FINALIZE)
+            );
         }
 
         $this->removeOperationsFromSelector($operation);
-        $this->callSocketSubscribers(
-            $operation,
-            $this->createEvent($operation, EventType::FINALIZE)
-        );
     }
 
     /**

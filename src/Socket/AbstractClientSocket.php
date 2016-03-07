@@ -10,34 +10,14 @@
 
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Socket\Io\StreamedClientIo;
 use AsyncSockets\Socket\Io\DatagramClientIo;
+use AsyncSockets\Socket\Io\StreamedClientIo;
 
 /**
- * Class ClientSocket
+ * Class AbstractClientSocket
  */
-class ClientSocket extends AbstractClientSocket
+abstract class AbstractClientSocket extends AbstractSocket
 {
-    /** {@inheritdoc} */
-    protected function createSocketResource($address, $context)
-    {
-        $resource = stream_socket_client(
-            $address,
-            $errno,
-            $errstr,
-            null,
-            STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
-            $context
-        );
-
-        if ($errno || $resource === false) {
-            throw new NetworkSocketException($this, $errstr, $errno);
-        }
-
-        return $resource;
-    }
-
     /** {@inheritdoc} */
     protected function createIoInterface($type, $address)
     {

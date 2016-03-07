@@ -108,6 +108,7 @@ abstract class AbstractSocket implements SocketInterface
         $result = false;
         if (is_resource($this->resource)) {
             $result = true;
+
             // https://bugs.php.net/bug.php?id=51056
             stream_set_blocking($this->resource, 0);
 
@@ -126,8 +127,8 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function close()
     {
-        $this->setDisconnectedState();
         if ($this->resource) {
+            $this->setDisconnectedState();
             stream_socket_shutdown($this->resource, STREAM_SHUT_RDWR);
             fclose($this->resource);
             $this->resource = null;
