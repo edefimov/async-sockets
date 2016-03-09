@@ -64,8 +64,8 @@ class SocketPool extends Command
             $executor->socketBag()->addSocket(
                 $client,
                 new SslHandshakeOperation(
-                    STREAM_CRYPTO_METHOD_TLS_CLIENT,
-                    new WriteOperation("GET / HTTP/1.1\nHost: {$host}\n\n")
+                    new WriteOperation("GET / HTTP/1.1\nHost: {$host}\n\n"),
+                    STREAM_CRYPTO_METHOD_TLS_CLIENT
                 ),
                 [
                     RequestExecutorInterface::META_ADDRESS      => $destination,

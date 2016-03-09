@@ -31,13 +31,13 @@ class SslHandshakeOperation implements OperationInterface
     /**
      * SslHandshakeOperation constructor.
      *
-     * @param int                $cipher Cipher to use for SSL encryption
      * @param OperationInterface $nextOperation I/O operation after handshake will complete
+     * @param int                $cipher Cipher to use for SSL encryption
      */
-    public function __construct($cipher = STREAM_CRYPTO_METHOD_TLS_CLIENT, OperationInterface $nextOperation = null)
+    public function __construct(OperationInterface $nextOperation = null, $cipher = STREAM_CRYPTO_METHOD_TLS_CLIENT)
     {
-        $this->cipher = $cipher;
         $this->nextOperation = $nextOperation;
+        $this->cipher        = $cipher;
     }
 
     /** {@inheritdoc} */

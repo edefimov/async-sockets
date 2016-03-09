@@ -44,7 +44,7 @@ class SslHandshakeOperationTest extends \PHPUnit_Framework_TestCase
     {
         $mock       = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
         $cipher    = mt_rand(0, PHP_INT_MAX);
-        $operation = new SslHandshakeOperation($cipher, $mock);
+        $operation = new SslHandshakeOperation($mock, $cipher);
         self::assertSame($cipher, $operation->getCipher(), 'Incorrect cipher');
         self::assertSame($mock, $operation->getNextOperation(), 'Incorrect operation');
     }

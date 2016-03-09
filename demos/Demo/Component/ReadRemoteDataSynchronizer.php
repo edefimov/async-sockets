@@ -167,8 +167,8 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
     {
         $this->output->writeln('<info>Initialized persistent socket</info>');
         $writeOperation = new SslHandshakeOperation(
-            STREAM_CRYPTO_METHOD_TLS_CLIENT,
-            $this->writeOperation
+            $this->writeOperation,
+            STREAM_CRYPTO_METHOD_TLS_CLIENT
         );
 
         $socketBag = $event->getExecutor()->socketBag();
