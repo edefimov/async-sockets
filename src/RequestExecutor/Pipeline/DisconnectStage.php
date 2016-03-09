@@ -70,25 +70,38 @@ class DisconnectStage extends AbstractStage
         }
 
         $socket = $operation->getSocket();
-        $event  = $this->createEvent($operation, EventType::DISCONNECTED);
 
-        if (!($socket instanceof PersistentClientSocket)) {
-            $operation->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
+        $isTimeToLeave = (
+                            ($socket instanceof PersistentClientSocket) &&
+                            (
+                                feof($socket->getStreamResource()) !== false ||
+                                !stream_socket_get_name($socket->getStreamResource(), true)
+                            )
+                         ) || (
+                            !($socket instanceof PersistentClientSocket)
+                         );
 
-            try {
-                $socket->close();
-                if ($meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null) {
-                    $this->callSocketSubscribers($operation, $event);
-                }
-            } catch (SocketException $e) {
-                $this->callExceptionSubscribers($operation, $e);
-            }
-
-            $this->callSocketSubscribers(
-                $operation,
-                $this->createEvent($operation, EventType::FINALIZE)
-            );
+        if (!$isTimeToLeave) {
+            return;
         }
+
+        $operation->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
+        try {
+            $socket->close();
+            if ($meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null) {
+                $this->callSocketSubscribers(
+                    $operation,
+                    $this->createEvent($operation, EventType::DISCONNECTED)
+                );
+            }
+        } catch (SocketException $e) {
+            $this->callExceptionSubscribers($operation, $e);
+        }
+
+        $this->callSocketSubscribers(
+            $operation,
+            $this->createEvent($operation, EventType::FINALIZE)
+        );
 
         $this->removeOperationsFromSelector($operation);
     }

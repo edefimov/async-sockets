@@ -145,7 +145,10 @@ class PersistentSockets extends Command
                                 $socketBag->addSocket(
                                     $this->remoteSocket,
                                     $this->remoteSynchronizer->getWriteOperation(),
-                                    null,
+                                    [
+                                        RequestExecutorInterface::META_IO_TIMEOUT
+                                            => RequestExecutorInterface::WAIT_FOREVER
+                                    ],
                                     $this->remoteSynchronizer
                                 );
                             } else {

@@ -136,7 +136,7 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
                 $this->onWrite($event);
                 break;
             case EventType::FINALIZE:
-                $this->onFinalize();
+                $this->onFinalize($event);
                 break;
             case EventType::EXCEPTION:
                 $this->onException($event);
@@ -186,11 +186,14 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
     /**
      * Finalize event handler
      *
+     * @param Event $event Event object
+     *
      * @return void
      */
-    private function onFinalize()
+    private function onFinalize(Event $event)
     {
         $this->output->writeln('<info>Persistent socket finalized</info>');
+        $event->getExecutor()->socketBag()->removeSocket($event->getSocket());
     }
 
     /**
