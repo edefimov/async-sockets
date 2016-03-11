@@ -14,7 +14,6 @@ use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\PersistentClientSocket;
 
 /**
  * Class ConnectStageAbstract
@@ -80,22 +79,7 @@ class ConnectStage extends AbstractTimeAwareStage
     {
         $meta = $operationMetadata->getMetadata();
         if ($operationMetadata->isRunning()) {
-            $socket         = $operationMetadata->getSocket();
-            $isDisconnected = $socket instanceof PersistentClientSocket &&
-                              $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] &&
-                              $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] &&
-                              !stream_socket_get_name($socket->getStreamResource(), true);
-            if ($isDisconnected) {
-                $operationMetadata->setMetadata(
-                    [
-                        RequestExecutorInterface::META_CONNECTION_START_TIME  => null,
-                        RequestExecutorInterface::META_CONNECTION_FINISH_TIME => null,
-                        RequestExecutorInterface::META_LAST_IO_START_TIME     => null,
-                    ]
-                );
-            } else {
-                return LimitationSolverInterface::DECISION_SKIP_CURRENT;
-            }
+            return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
 
         $isSkippingThis = $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] !== null;

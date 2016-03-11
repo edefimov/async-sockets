@@ -49,10 +49,12 @@ class DelayStage extends AbstractStage
     {
         /** @var DelayedOperation $socketOperation */
         $socketOperation = $operation->getOperation();
-        return !call_user_func(
+        $arguments       = $socketOperation->getArguments();
+        array_unshift($arguments, $operation->getSocket(), $this->executor);
+
+        return !call_user_func_array(
             $socketOperation->getCallable(),
-            $operation->getSocket(),
-            $this->executor
+            $arguments
         );
     }
 }

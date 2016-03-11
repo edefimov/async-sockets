@@ -111,7 +111,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             'tls://google.com:443'
         ];
 
-        return [
+        $result = [
             [
                 new NativeRequestExecutor(
                     new PipelineFactory(
@@ -120,8 +120,13 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
                     new Configuration()
                 ),
                 $urls,
-            ],
-            [ new LibEventRequestExecutor(new LibEventStageFactory(), new Configuration()), $urls ],
+            ]
         ];
+
+        if (extension_loaded('libevent')) {
+            $result[] = [ new LibEventRequestExecutor(new LibEventStageFactory(), new Configuration()), $urls ];
+        }
+
+        return $result;
     }
 }

@@ -13,7 +13,7 @@ namespace AsyncSockets\Socket;
 use AsyncSockets\Exception\NetworkSocketException;
 
 /**
- * Class ClientSocket
+ * Class PersistentClientSocket
  */
 class PersistentClientSocket extends AbstractClientSocket
 {
