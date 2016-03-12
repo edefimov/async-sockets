@@ -67,7 +67,7 @@ abstract class AbstractTestCase extends \PHPUnit_Framework_TestCase
         $substr    = substr($className, strrpos($className, '\\') + 1);
         $fileName  = $dir . '/data/' . $substr . '.yml';
         $parser    = new Parser();
-        $yaml      = $parser->parse(file_get_contents($fileName), true, true, true);
+        $yaml      = $parser->parse(file_get_contents($fileName), true, true, false);
         if (!$yaml) {
             throw new \LogicException('Failed to parse ' . $fileName);
         }

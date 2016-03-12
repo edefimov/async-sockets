@@ -2,6 +2,11 @@ tools:
     external_code_coverage:
         timeout: 900
         runs: 2
+
+checks:
+    php:
+        code_rating: true
+
 filter:
     excluded_paths:
         - tests/*
