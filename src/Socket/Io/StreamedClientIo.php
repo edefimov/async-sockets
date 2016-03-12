@@ -63,7 +63,7 @@ class StreamedClientIo extends AbstractClientIo
      */
     private function resolveReadAttempts(array $context, $currentAttempts)
     {
-        return ($context['countCycles'] === 1 && $context['dataBeforeIo'] === false) ||
+        return ($context['countCycles'] === 1 && empty($context['dataBeforeIo'])) ||
                ($context['countCycles'] > 1   && $context['isStreamDataEmpty']) ?
             $currentAttempts - 1 :
             self::READ_ATTEMPTS;

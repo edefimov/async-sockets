@@ -11,6 +11,6 @@
 use Composer\Autoload\ClassLoader;
 
 /** @var ClassLoader $classLoader */
-$classLoader = require_once __DIR__ . '/../vendor/autoload.php';
+$classLoader = include __DIR__ . '/../vendor/autoload.php';
 $classLoader->addPsr4('Tests\\AsyncSockets\\', __DIR__ . '/unit');
 $classLoader->addPsr4('Tests\\Application\\', __DIR__ . DIRECTORY_SEPARATOR . 'Application');
