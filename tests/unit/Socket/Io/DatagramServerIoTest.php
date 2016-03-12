@@ -80,7 +80,7 @@ class DatagramServerIoTest extends AbstractServerIoTest
             function ($resource, $size, $flags, &$address) use ($remoteAddress, &$data) {
                 $address = $this->remoteAddress;
                 $result  = $data;
-                if (!($flags & MSG_PEEK)) {
+                if (!($flags & STREAM_PEEK)) {
                     $data = '';
                 }
                 return $result;
@@ -109,7 +109,7 @@ class DatagramServerIoTest extends AbstractServerIoTest
             function ($resource, $size, $flags, &$address) use ($mock) {
                 $address = '';
                 $result  = $this->data;
-                if (!($flags & MSG_PEEK)) {
+                if (!($flags & STREAM_PEEK)) {
                     /** @var \Countable $mock */
                     $mock->count();
                     $this->data = '';
@@ -134,7 +134,7 @@ class DatagramServerIoTest extends AbstractServerIoTest
             function ($resource, $size, $flags, &$address) {
                 $address = '';
                 $result  = $this->data;
-                if (!($flags & MSG_PEEK)) {
+                if (!($flags & STREAM_PEEK)) {
                     $this->data = '';
                 }
                 return $result;

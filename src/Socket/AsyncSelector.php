@@ -221,7 +221,7 @@ class AsyncSelector
             $operation === OperationInterface::OPERATION_READ &&
 
             // https://bugs.php.net/bug.php?id=65137
-            stream_socket_recvfrom($stream, 1, MSG_PEEK) !== false
+            stream_socket_recvfrom($stream, 1, STREAM_PEEK) !== false
         ) || (
             $operation === OperationInterface::OPERATION_WRITE
         );

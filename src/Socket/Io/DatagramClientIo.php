@@ -45,7 +45,7 @@ class DatagramClientIo extends AbstractClientIo
         $size     = self::SOCKET_BUFFER_SIZE;
         $resource = $this->socket->getStreamResource();
         do {
-            $data = stream_socket_recvfrom($resource, $size, MSG_PEEK, $actualRemoteAddress);
+            $data = stream_socket_recvfrom($resource, $size, STREAM_PEEK, $actualRemoteAddress);
             if ($this->remoteAddress && $actualRemoteAddress !== $this->remoteAddress) {
                 return '';
             }
