@@ -88,10 +88,8 @@ abstract class AbstractClientIo extends AbstractIo
     final public function read(FramePickerInterface $picker)
     {
         $this->setConnectedState();
-        $unhandledData = $picker->pickUpData($this->unhandledData);
-        $this->unhandledData = $unhandledData;
-        $isEndOfFrameReached = $this->isEndOfFrameReached($picker, false);
-        if (!$this->isEndOfFrameReached($picker, false)) {
+        $isEndOfFrameReached = $this->handleUnreadData($picker);
+        if (!$isEndOfFrameReached) {
             $this->unhandledData = $this->readRawDataIntoPicker($picker);
 
             $isEndOfTransfer     = $this->isEndOfTransfer();
@@ -198,5 +196,21 @@ abstract class AbstractClientIo extends AbstractIo
         return
             (!($picker instanceof NullFramePicker) && $picker->isEof()) ||
             ($picker instanceof NullFramePicker && $isTransferFinished);
+    }
+
+    /**
+     * Read unhandled data if there is something from the previous operation
+     *
+     * @param FramePickerInterface $picker Frame picker to use
+     *
+     * @return bool Flag whether it is the end of the frame
+     */
+    private function handleUnreadData(FramePickerInterface $picker)
+    {
+        if ($this->unhandledData) {
+            $this->unhandledData = $picker->pickUpData($this->unhandledData);
+        }
+
+        return $this->isEndOfFrameReached($picker, false);
     }
 }
