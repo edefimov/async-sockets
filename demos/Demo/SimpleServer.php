@@ -136,7 +136,7 @@ class SimpleServer extends Command
 
                             $event->nextIsWrite(
                                 "HTTP/1.1 200 OK \r\n" .
-                                "Content-Type: text/html;charset=utf8\r\n" .
+                                "Content-Type: text/html;charset=utf-8\r\n" .
                                 'Content-Length: ' . strlen($response) . "\r\n\r\n" .
                                 $response
                             );
