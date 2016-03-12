@@ -38,7 +38,7 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
         $mock = $this->getMockBuilder($class)
                      ->enableProxyingToOriginalMethods()
                      ->disableOriginalConstructor()
-                     ->getMock();
+                     ->getMockForAbstractClass();
 
         self::assertTrue($this->handler->supports($mock), 'Incorrect supports result');
     }
