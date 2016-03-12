@@ -1,5 +1,16 @@
 # Changelog
 
+0.2.2 (Mar 12, 2016)
+--------------------
+ Changes:
+   - fix: properly work on php versions when _socket_ extension is not available
+   - bug [#1](https://github.com/edefimov/async-sockets/issues/1): fixes bug leading to CPU overloading
+   
+0.2.1 (Dec 20, 2015)
+--------------------
+ Changes:
+   - fixes incorrect select operation processing on server sockets
+
 0.2.0 (Jul 25, 2015)
 --------------------
  Changes:
