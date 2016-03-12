@@ -51,6 +51,12 @@ class PipelineFactory
     ) {
         $selector        = $this->createSelector();
         $disconnectStage = $this->stageFactory->createDisconnectStage($executor, $eventCaller, $selector);
+        $guardianStage   = new GuardianStage(
+            $executor,
+            $eventCaller,
+            new DisconnectStage($executor, $eventCaller, $selector)
+        );
+
         return new Pipeline(
             $this->stageFactory->createConnectStage($executor, $eventCaller, $limitationDecider),
             [
@@ -61,13 +67,16 @@ class PipelineFactory
                         $this->stageFactory->createDelayStage($executor, $eventCaller),
                         new SelectStage($executor, $eventCaller, $selector),
                         $this->stageFactory->createIoStage($executor, $eventCaller),
-                        $disconnectStage
+                        $disconnectStage,
+                        $guardianStage
                     ]
                 ),
                 new TimeoutStage($executor, $eventCaller),
-                $disconnectStage
+                $disconnectStage,
+                $guardianStage
             ],
-            $disconnectStage
+            $disconnectStage,
+            $guardianStage
         );
     }
 

@@ -34,7 +34,8 @@ abstract class AbstractStageFactory implements StageFactoryInterface
             [
                 new ReadIoHandler(),
                 new WriteIoHandler(),
-                new SslHandshakeIoHandler()
+                new SslHandshakeIoHandler(),
+                new NullIoHandler()
             ]
         );
     }

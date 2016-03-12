@@ -37,7 +37,7 @@ class IoEventTest extends EventTest
 
         $event->nextIsRead();
         self::assertNotNull($event->getNextOperation(), 'Read operation was not changed');
-        self::assertEquals(
+        self::assertSame(
             OperationInterface::OPERATION_READ,
             $event->getNextOperation()->getType(),
             'Failed to switch to read operation'
@@ -45,7 +45,7 @@ class IoEventTest extends EventTest
 
         $event->nextIsWrite();
         self::assertNotNull($event->getNextOperation(), 'Write operation was not changed');
-        self::assertEquals(
+        self::assertSame(
             OperationInterface::OPERATION_WRITE,
             $event->getNextOperation()->getType(),
             'Failed to switch to write operation'

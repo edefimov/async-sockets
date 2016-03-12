@@ -65,6 +65,15 @@ final class EventType
     const WRITE = 'socket.event.write';
 
     /**
+     * There are new data in socket, but read operation is not set. In the response to
+     * this event you should either close a connection, or set appropriate read operation. If none of
+     * these is done, socket will be automatically closed with UnmanagedSocketException thrown.
+     *
+     * @see IoEvent
+     */
+    const DATA_ARRIVED = 'socket.event.data_arrived';
+
+    /**
      * Socket has disconnected. Event object will be given in argument.
      *
      * @see Event

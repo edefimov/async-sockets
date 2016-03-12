@@ -25,6 +25,7 @@ use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
 use Demo\Component\ReadRemoteDataSynchronizer;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -73,16 +74,15 @@ class PersistentSockets extends Command
                 InputOption::VALUE_OPTIONAL,
                 'Host to use for persistence connections',
                 'tcp://packagist.org:443'
-            )
-        ;
+            );
     }
 
     /** {@inheritdoc} */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $factory       = new AsyncSocketFactory();
-        $serverSocket  = $factory->createSocket(AsyncSocketFactory::SOCKET_SERVER);
-        $executor      = $factory->createRequestExecutor();
+        $factory      = new AsyncSocketFactory();
+        $serverSocket = $factory->createSocket(AsyncSocketFactory::SOCKET_SERVER);
+        $executor     = $factory->createRequestExecutor();
 
         $host        = $input->getOption('host');
         $port        = (int) $input->getOption('port');
@@ -96,8 +96,14 @@ class PersistentSockets extends Command
                 AsyncSocketFactory::SOCKET_OPTION_PERSISTENT_KEY => 'remote',
             ]
         );
-        $output->writeln("<info>Starting HTTP server on {$host}:{$port}</info>");
-        $output->writeln('<comment>Press CTRL+C to exit</comment>');
+
+        /** @var FormatterHelper $formatter */
+        $formatter = $this->getHelper('formatter');
+        $message   = $formatter->formatBlock(
+            [ "Starting HTTP server on {$host}:{$port}", 'Press CTRL+C to exit' ],
+            'info'
+        );
+        $output->writeln($message);
         $executor->socketBag()->addSocket(
             $serverSocket,
             new ReadOperation(),
@@ -108,7 +114,7 @@ class PersistentSockets extends Command
             ],
             new CallbackEventHandler(
                 [
-                    EventType::ACCEPT => function (AcceptEvent $event) use ($output) {
+                    EventType::ACCEPT    => function (AcceptEvent $event) use ($output) {
                         $output->writeln("<info>Incoming connection from {$event->getRemoteAddress()}</info>");
                         $event->getExecutor()->socketBag()->addSocket(
                             $event->getClientSocket(),
@@ -117,7 +123,7 @@ class PersistentSockets extends Command
                             $this->getAcceptedClientHandlers($output)
                         );
                     },
-                    EventType::EXCEPTION => $this->getExceptionHandler($output)
+                    EventType::EXCEPTION => $this->getExceptionHandler($output),
                 ]
             )
         );
@@ -138,16 +144,17 @@ class PersistentSockets extends Command
             $this->clientHandlers = new RemoveFinishedSocketsEventHandler(
                 new CallbackEventHandler(
                     [
-                        EventType::READ => function (ReadEvent $event) {
+                        EventType::READ         => function (ReadEvent $event) {
                             $socketBag = $event->getExecutor()->socketBag();
 
+                            /** Do *NOT* write such a fragment in real applications, it is just for simplicity! */
                             if (!$socketBag->hasSocket($this->remoteSocket)) {
                                 $socketBag->addSocket(
                                     $this->remoteSocket,
                                     $this->remoteSynchronizer->getWriteOperation(),
                                     [
                                         RequestExecutorInterface::META_IO_TIMEOUT
-                                            => RequestExecutorInterface::WAIT_FOREVER
+                                            => RequestExecutorInterface::WAIT_FOREVER,
                                     ],
                                     $this->remoteSynchronizer
                                 );
@@ -174,12 +181,13 @@ class PersistentSockets extends Command
                                             /** @var WriteOperation $operation */
                                             $operation->setData(
                                                 "HTTP/1.1 200 OK \r\n" .
-                                                "Content-Type: text/html;charset=utf8\r\n" .
+                                                "Content-Type: text/html;charset=utf-8\r\n" .
                                                 'Content-Length: ' . strlen($response) . "\r\n\r\n" .
                                                 $response
                                             );
 
                                             $executor->socketBag()->setSocketOperation($socket, $operation);
+
                                             return false;
                                         }
 
@@ -191,7 +199,7 @@ class PersistentSockets extends Command
                         EventType::DISCONNECTED => function () use ($output) {
                             $output->writeln('Client disconnected');
                         },
-                        EventType::EXCEPTION => $this->getExceptionHandler($output)
+                        EventType::EXCEPTION    => $this->getExceptionHandler($output),
                     ]
                 )
             );

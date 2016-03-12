@@ -25,7 +25,7 @@ class DelayedOperationTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         $mock     = $this->getMockBuilder('AsyncSockets\Operation\OperationInterface')
-                        ->setMethods(['getType'])
+                        ->setMethods([ 'getType'])
                         ->getMockForAbstractClass();
         $callable = [$this, __FUNCTION__];
 

@@ -66,4 +66,11 @@ interface SocketInterface extends StreamResourceInterface
      * @api
      */
     public function write($data);
+
+    /**
+     * Return debug information about this socket
+     *
+     * @return string
+     */
+    public function __toString();
 }

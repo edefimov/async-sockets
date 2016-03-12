@@ -930,6 +930,9 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             $ref    = new \ReflectionClass('AsyncSockets\Event\EventType');
             $result = [ ];
             foreach ($ref->getConstants() as $value) {
+                if ($value === EventType::DATA_ARRIVED) {
+                    continue;
+                }
 
                 $result[] = [ $value, new ReadOperation() ];
                 if ($value !== EventType::ACCEPT) {

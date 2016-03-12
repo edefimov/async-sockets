@@ -129,6 +129,9 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
             case EventType::INITIALIZE:
                 $this->onInitialize($event);
                 break;
+            case EventType::DATA_ARRIVED:
+                $this->output->writeln('<error>Some new data arrived while we don\'t have handler</error>');
+                break;
             case EventType::READ:
                 $this->onRead($event);
                 break;

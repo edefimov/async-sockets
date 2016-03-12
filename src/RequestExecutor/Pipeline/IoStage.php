@@ -12,6 +12,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\Operation\OperationInterface;
@@ -94,7 +95,7 @@ class IoStage extends AbstractTimeAwareStage
      * @param OperationMetadata  $operationMetadata
      * @param IoHandlerInterface $ioHandler
      *
-     * @return OperationInterface|null
+     * @return OperationInterface
      */
     private function handleIoOperation(OperationMetadata $operationMetadata, IoHandlerInterface $ioHandler)
     {
@@ -108,10 +109,10 @@ class IoStage extends AbstractTimeAwareStage
             );
             $this->eventCaller->clearCurrentOperation();
 
-            return $result;
+            return $result ?: NullOperation::getInstance();
         } catch (NetworkSocketException $e) {
             $this->callExceptionSubscribers($operationMetadata, $e);
-            return null;
+            return NullOperation::getInstance();
         }
     }
 
@@ -125,9 +126,10 @@ class IoStage extends AbstractTimeAwareStage
      */
     private function resolveNextOperation(
         OperationMetadata $operationMetadata,
-        OperationInterface $nextOperation = null
+        OperationInterface $nextOperation
     ) {
-        if (!$nextOperation) {
+        if ($nextOperation instanceof NullOperation) {
+            $operationMetadata->setOperation($nextOperation);
             return true;
         }
 
