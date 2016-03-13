@@ -1,0 +1,7 @@
+udpdelaytestserver:
+  build: ./
+  volumes:
+    - ../../../src:/async-sockets/src
+    - ../../../vendor:/async-sockets/vendor
+  ports:
+    - 10031

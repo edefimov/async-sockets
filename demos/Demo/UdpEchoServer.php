@@ -14,14 +14,19 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
+use AsyncSockets\Event\TimeoutEvent;
+use AsyncSockets\Frame\RawFramePicker;
+use AsyncSockets\Operation\DelayedOperation;
+use AsyncSockets\Operation\ReadOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\EventMultiHandler;
-use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -46,18 +51,17 @@ class UdpEchoServer extends Command
             ->setName('demo:udp_server')
             ->setDescription('Demonstrates example usage of udp server sockets')
             ->setHelp('Demonstrates example usage of udp server sockets')
-            ->setHelp('Starts HTTP server on passed host and port and allows to serve library files via browser')
+            ->setHelp('Starts udp echo server on passed host and port')
             ->addOption('host', null, InputOption::VALUE_OPTIONAL, 'Host name to bind', '127.0.0.1')
-            ->addOption('port', null, InputOption::VALUE_OPTIONAL, 'Port to listen', '10031')
-        ;
+            ->addOption('port', null, InputOption::VALUE_OPTIONAL, 'Port to listen', '10031');
     }
 
     /** {@inheritdoc} */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $factory       = new AsyncSocketFactory();
-        $serverSocket  = $factory->createSocket(AsyncSocketFactory::SOCKET_SERVER);
-        $executor      = $factory->createRequestExecutor();
+        $factory      = new AsyncSocketFactory();
+        $serverSocket = $factory->createSocket(AsyncSocketFactory::SOCKET_SERVER);
+        $executor     = $factory->createRequestExecutor();
 
         $host = $input->getOption('host');
         $port = (int) $input->getOption('port');
@@ -68,23 +72,26 @@ class UdpEchoServer extends Command
             new ReadOperation(),
             [
                 RequestExecutorInterface::META_ADDRESS            => "udp://{$host}:{$port}",
-                RequestExecutorInterface::META_CONNECTION_TIMEOUT => RequestExecutorInterface::WAIT_FOREVER,
-                RequestExecutorInterface::META_IO_TIMEOUT         => RequestExecutorInterface::WAIT_FOREVER,
+                RequestExecutorInterface::META_CONNECTION_TIMEOUT => 1,
+                RequestExecutorInterface::META_IO_TIMEOUT         => 1,
             ],
             new CallbackEventHandler(
                 [
-                    EventType::ACCEPT => function (AcceptEvent $event) use ($output) {
+                    EventType::ACCEPT    => function (AcceptEvent $event) use ($output) {
                         $output->writeln("<info>Incoming connection from {$event->getRemoteAddress()}</info>");
                         $event->getExecutor()->socketBag()->addSocket(
                             $event->getClientSocket(),
-                            new ReadOperation(),
+                            new ReadOperation(new RawFramePicker()),
                             [
-                                RequestExecutorInterface::META_USER_CONTEXT => $event->getRemoteAddress()
+                                RequestExecutorInterface::META_USER_CONTEXT => $event->getRemoteAddress(),
                             ],
                             $this->getAcceptedClientHandlers($output)
                         );
                     },
-                    EventType::EXCEPTION => $this->getExceptionHandler($output)
+                    EventType::TIMEOUT   => function (TimeoutEvent $event) {
+                        $event->enableOneMoreAttempt();
+                    },
+                    EventType::EXCEPTION => $this->getExceptionHandler($output),
                 ]
             )
         );
@@ -126,17 +133,37 @@ class UdpEchoServer extends Command
                             [
                                 EventType::READ => function (ReadEvent $event) use ($output) {
                                     $request       = $event->getFrame()->getData();
-                                    $remoteAddress = $event->getContext();
-                                    $output->writeln($remoteAddress . ' sent: ' . $request);
-                                    $event->nextIsWrite('Echo: ' . $request);
+                                    $progress      = new ProgressBar($output, 3);
+                                    $startedWaitAt = time();
+                                    $progress->start();
+                                    $event->nextIs(
+                                        new DelayedOperation(
+                                            new WriteOperation('Echo: ' . $request),
+                                            function () use ($startedWaitAt, $progress, $output) {
+                                                $step = (time() - $startedWaitAt) % $progress->getMaxSteps();
+                                                if ($step) {
+                                                    $progress->setProgress($step);
+                                                }
+
+                                                $result = time() - $startedWaitAt < $progress->getMaxSteps();
+                                                if (!$result) {
+                                                    $progress->finish();
+                                                    $output->writeln('');
+                                                }
+
+                                                return $result;
+                                            }
+                                        )
+                                    );
                                 },
+
                                 EventType::DISCONNECTED => function () use ($output) {
                                     $output->writeln('Client disconnected');
                                 },
-                                EventType::FINALIZE => function (Event $event) use ($output) {
+                                EventType::FINALIZE     => function (Event $event) use ($output) {
                                     $output->writeln('Sockets in bag: ' . count($event->getExecutor()->socketBag()));
                                 },
-                                EventType::EXCEPTION => $this->getExceptionHandler($output)
+                                EventType::EXCEPTION    => $this->getExceptionHandler($output),
                             ]
                         )
                     ),
@@ -144,9 +171,9 @@ class UdpEchoServer extends Command
                         [
                             EventType::FINALIZE => function (Event $event) use ($output) {
                                 $output->writeln('Sockets in bag: ' . count($event->getExecutor()->socketBag()));
-                            }
+                            },
                         ]
-                    )
+                    ),
                 ]
             );
         }

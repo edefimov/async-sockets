@@ -57,6 +57,7 @@ class TimeoutStageTest extends AbstractStageTest
             ->method('callSocketSubscribers')
             ->with($request)
             ->willReturnCallback(function (OperationMetadata $request, Event $event) use ($metadata) {
+                self::assertInstanceOf('AsyncSockets\Event\TimeoutEvent', $event);
                 self::assertSame($request->getSocket(), $event->getSocket());
                 self::assertSame(EventType::TIMEOUT, $event->getType());
                 self::assertSame(
