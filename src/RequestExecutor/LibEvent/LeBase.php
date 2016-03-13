@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\LibEvent;
 
+use AsyncSockets\Operation\DelayedOperation;
 use AsyncSockets\Operation\OperationInterface;
 
 /**
@@ -105,7 +106,7 @@ class LeBase
      */
     private function getEventKey(LeEvent $event)
     {
-        return spl_object_hash($event);
+        return spl_object_hash($event->getOperationMetadata());
     }
 
     /**
@@ -132,30 +133,30 @@ class LeBase
      */
     public function addEvent(LeEvent $event)
     {
-        $key = $this->getEventKey($event);
-        if (!isset($this->events[$key])) {
-            $this->events[$key] = $event;
+        $this->removeEvent($event);
 
-            $timeout = $event->getTimeout();
-            $flags   = $timeout !== null ? EV_TIMEOUT : 0;
+        $key                = $this->getEventKey($event);
+        $this->events[$key] = $event;
 
-            event_set(
-                $event->getHandle(),
-                $event->getOperationMetadata()->getSocket()->getStreamResource(),
-                $flags | $this->getEventFlags($event),
-                function ($streamResource, $eventFlags, $eventKey) {
-                    if (isset($this->events[$eventKey])) {
-                        $event = $this->events[$eventKey];
-                        $this->onEvent($event, $eventFlags);
-                        $this->removeEvent($event);
-                    }
-                },
-                $key
-            );
+        $timeout = $event->getTimeout();
+        $flags   = $timeout !== null ? EV_TIMEOUT : 0;
 
-            event_base_set($event->getHandle(), $this->handle);
-            event_add($event->getHandle(), $timeout !== null ? $timeout * 1E6 : -1);
-        }
+        event_set(
+            $event->getHandle(),
+            $event->getOperationMetadata()->getSocket()->getStreamResource(),
+            $flags | $this->getEventFlags($event),
+            function ($streamResource, $eventFlags, $eventKey) {
+                if (isset($this->events[$eventKey])) {
+                    $event = $this->events[$eventKey];
+                    $this->removeEvent($event);
+                    $this->onEvent($event, $eventFlags);
+                }
+            },
+            $key
+        );
+
+        event_base_set($event->getHandle(), $this->handle);
+        event_add($event->getHandle(), $timeout !== null ? $timeout * 1E6 : -1);
     }
 
     /**
@@ -167,6 +168,11 @@ class LeBase
      */
     private function getEventFlags(LeEvent $event)
     {
+        $operation = $event->getOperationMetadata()->getOperation();
+        if ($operation instanceof DelayedOperation) {
+            return 0;
+        }
+
         $map = [
             OperationInterface::OPERATION_READ  => EV_READ,
             OperationInterface::OPERATION_WRITE => EV_WRITE,

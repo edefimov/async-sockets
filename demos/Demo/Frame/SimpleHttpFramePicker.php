@@ -14,6 +14,7 @@ use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\MarkerFramePicker;
+use AsyncSockets\Frame\NullFramePicker;
 
 /**
  * Class SimpleHttpFrame
@@ -49,13 +50,7 @@ class SimpleHttpFramePicker extends AbstractFramePicker
         $result = $this->headerFrame->pickUpData($chunk);
         if ($result) {
             if (!$this->contentPicker) {
-                $this->contentPicker = new FixedLengthFramePicker(
-                    $this->getContentLength(
-                        (string) $this->headerFrame->createFrame()
-                    )
-                );
-
-                $this->contentPicker = new HttpChunkTransferEncodingPicker();
+                $this->contentPicker = $this->createContentFramePicker((string) $this->headerFrame->createFrame());
             }
 
             $result = $this->contentPicker->pickUpData($result);
@@ -78,21 +73,26 @@ class SimpleHttpFramePicker extends AbstractFramePicker
     }
 
     /**
-     * Return value of content-length header
+     * Return implementation of FramePickerInterface to read content body
      *
      * @param string $headers Headers
      *
-     * @return int|null
+     * @return FramePickerInterface
+     * @throws \InvalidArgumentException
      */
-    private function getContentLength($headers)
+    private function createContentFramePicker($headers)
     {
         foreach (explode("\r\n", $headers) as $header) {
             if (strpos($header, 'Content-Length: ') === 0) {
                 list(, $result) = explode(':', $header);
-                return (int) trim($result);
+                return new FixedLengthFramePicker((int) trim($result));
+            }
+
+            if (strpos($header, 'Transfer-Encoding: ') === 0) {
+                return new HttpChunkTransferEncodingPicker();
             }
         }
 
-        return null;
+        throw new \InvalidArgumentException('Can not resolve transfer type: ' . $headers);
     }
 }

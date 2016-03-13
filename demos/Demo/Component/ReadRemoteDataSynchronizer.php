@@ -141,6 +141,9 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
             case EventType::FINALIZE:
                 $this->onFinalize($event);
                 break;
+            case EventType::TIMEOUT:
+                $this->output->writeln('<comment>Timeout on persistent socket</comment>');
+                break;
             case EventType::EXCEPTION:
                 $this->onException($event);
                 break;
@@ -181,7 +184,7 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
             [
                 RequestExecutorInterface::META_ADDRESS            => $this->destinationHost,
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT => 60,
-                RequestExecutorInterface::META_IO_TIMEOUT         => 60,
+                RequestExecutorInterface::META_IO_TIMEOUT         => null,
             ]
         );
     }

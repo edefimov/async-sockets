@@ -13,7 +13,6 @@ use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
-use AsyncSockets\Operation\DelayedOperation;
 use AsyncSockets\RequestExecutor\LibEvent\LeBase;
 use AsyncSockets\RequestExecutor\LibEvent\LeCallbackInterface;
 use AsyncSockets\RequestExecutor\LibEvent\LeEvent;
@@ -78,6 +77,13 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     private $stageFactory;
 
     /**
+     * Array of connected sockets information indexed by OperationMetadata
+     *
+     * @var bool[]
+     */
+    private $connectedDescriptors = [];
+
+    /**
      * LibEventRequestExecutor constructor.
      *
      * @param StageFactoryInterface $stageFactory Stage factory
@@ -130,20 +136,20 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     /**
      * Setup libevent for given operation
      *
-     * @param OperationMetadata $operationMetadata Metadata object
+     * @param OperationMetadata $descriptor Metadata object
      * @param int|null          $timeout Timeout in seconds
      *
      * @return void
      */
-    private function setupEvent(OperationMetadata $operationMetadata, $timeout)
+    private function setupEvent(OperationMetadata $descriptor, $timeout)
     {
         $specification = new ConnectionLessSocketSpecification();
-        if (!$specification->isSatisfiedBy($operationMetadata)) {
-            $this->base->addEvent(
-                new LeEvent($this, $operationMetadata, $timeout)
-            );
+        if (!$specification->isSatisfiedBy($descriptor)) {
+            $this->delayStage->processStage([ $descriptor]);
+            $event = new LeEvent($this, $descriptor, $timeout);
+            $this->base->addEvent($event);
         } else {
-            $this->onEvent($operationMetadata, LeCallbackInterface::EVENT_READ);
+            $this->onEvent($descriptor, LeCallbackInterface::EVENT_READ);
         }
     }
 
@@ -162,14 +168,8 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
             case LeCallbackInterface::EVENT_READ:
                 // fall down
             case LeCallbackInterface::EVENT_WRITE:
-                $isProcessed = $this->delayStage->processStage([$operationMetadata]) &&
-                               !($operationMetadata->getOperation() instanceof DelayedOperation);
-                if ($isProcessed) {
-                    $result       = $this->ioStage->processStage([$operationMetadata]);
-                    $doResetEvent = empty($result);
-                } else {
-                    $doResetEvent = true;
-                }
+                $result       = $this->ioStage->processStage([ $operationMetadata ]);
+                $doResetEvent = empty($result);
 
                 break;
             case LeCallbackInterface::EVENT_TIMEOUT:
@@ -196,9 +196,28 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     {
         $items = $this->socketBag->getItems();
         foreach ($this->connectStage->processStage($items) as $item) {
-            $meta = $item->getMetadata();
-            $this->setupEvent($item, $meta[ self::META_CONNECTION_TIMEOUT ]);
+            $this->setupEvent($item, $this->resolveTimeout($item));
         }
+    }
+
+    /**
+     * Resolves timeout for setting up event
+     *
+     * @param OperationMetadata $descriptor Descriptor object
+     *
+     * @return int
+     */
+    private function resolveTimeout(OperationMetadata $descriptor)
+    {
+        $meta   = $descriptor->getMetadata();
+        $key    = spl_object_hash($descriptor);
+        $result = $meta[RequestExecutorInterface::META_IO_TIMEOUT];
+        if (!isset($this->connectedDescriptors[$key])) {
+            $result                             = $meta[RequestExecutorInterface::META_CONNECTION_TIMEOUT];
+            $this->connectedDescriptors[$key] = true;
+        }
+
+        return $result;
     }
 
     /**

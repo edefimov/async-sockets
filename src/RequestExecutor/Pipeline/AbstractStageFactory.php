@@ -46,6 +46,14 @@ abstract class AbstractStageFactory implements StageFactoryInterface
         EventCaller $caller,
         AsyncSelector $selector = null
     ) {
-        return new DisconnectStage($executor, $caller, $selector);
+        $disconnectStage = new DisconnectStage($executor, $caller, $selector);
+        $guardianStage   = new GuardianStage($executor, $caller, $disconnectStage);
+
+        return new CompositeStage(
+            [
+                $disconnectStage,
+                $guardianStage
+            ]
+        );
     }
 }

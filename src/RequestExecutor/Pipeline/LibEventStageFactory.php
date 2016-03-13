@@ -23,6 +23,6 @@ class LibEventStageFactory extends AbstractStageFactory
         EventCaller $caller,
         LimitationSolverInterface $limitationSolver
     ) {
-        return new ConnectStage($executor, $caller, $limitationSolver);
+        return new ConnectStageReturningAllActiveSockets($executor, $caller, $limitationSolver);
     }
 }

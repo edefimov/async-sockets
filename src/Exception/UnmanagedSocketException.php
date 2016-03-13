@@ -31,7 +31,7 @@ class UnmanagedSocketException extends NetworkSocketException
             sprintf(
                 'System has detected a zombie connection %s and closed it. '.
                 'If you see this message it means that application ' .
-                'has lost control on one of its connection.',
+                'has lost control on one of its sockets.',
                 (string) $socket
             )
         );
