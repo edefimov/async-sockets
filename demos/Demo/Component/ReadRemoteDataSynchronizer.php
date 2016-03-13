@@ -64,7 +64,7 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
     {
         $this->writeOperation = new WriteOperation(
             "GET / HTTP/1.1\r\n" .
-            "Host: " . parse_url($destinationHost, PHP_URL_HOST) . "\r\n" .
+            'Host: ' . parse_url($destinationHost, PHP_URL_HOST) . "\r\n" .
             "Connection: Keep-Alive\r\n" .
             "\r\n"
         );

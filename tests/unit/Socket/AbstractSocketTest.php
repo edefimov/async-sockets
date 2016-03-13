@@ -157,6 +157,24 @@ class AbstractSocketTest extends AbstractTestCase
     }
 
     /**
+     * testExceptionWillBeThrownIfSocketTypeIsUnknown
+     *
+     * @return void
+     */
+    public function testExceptionWillBeThrownIfSocketTypeIsUnknown()
+    {
+        if (!($this->socket instanceof \PHPUnit_Framework_MockObject_MockObject)) {
+            $this->setExpectedExceptionRegExp('\LogicException');
+
+            PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->setCallable(function () {
+                return [];
+            });
+
+            $this->socket->open('no matter');
+        }
+    }
+
+    /**
      * connectionExceptionChangesConnectStateDataProvider
      *
      * @return array

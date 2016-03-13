@@ -9,7 +9,6 @@
  */
 namespace AsyncSockets\Socket\Io;
 
-use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Frame\FramePickerInterface;
 
 /**

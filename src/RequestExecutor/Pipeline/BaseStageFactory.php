@@ -9,14 +9,24 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
 
 /**
- * Class AbstractStageFactory
+ * Class BaseStageFactory
  */
-abstract class AbstractStageFactory implements StageFactoryInterface
+class BaseStageFactory implements StageFactoryInterface
 {
+    /** {@inheritdoc} */
+    public function createConnectStage(
+        RequestExecutorInterface $executor,
+        EventCaller $caller,
+        LimitationSolverInterface $limitationSolver
+    ) {
+        return new ConnectStageReturningAllActiveSockets($executor, $caller, $limitationSolver);
+    }
+
     /** {@inheritdoc} */
     public function createDelayStage(
         RequestExecutorInterface $executor,

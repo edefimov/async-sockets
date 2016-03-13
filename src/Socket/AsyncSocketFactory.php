@@ -12,10 +12,9 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
-use AsyncSockets\RequestExecutor\Pipeline\LibEventStageFactory;
-use AsyncSockets\RequestExecutor\Pipeline\NativeStageFactory;
-use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
+use AsyncSockets\RequestExecutor\Pipeline\BaseStageFactory;
+use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -104,13 +103,13 @@ class AsyncSocketFactory
             switch ($engine) {
                 case 'libevent':
                     if (extension_loaded('libevent')) {
-                        return new LibEventRequestExecutor(new LibEventStageFactory(), $this->configuration);
+                        return new LibEventRequestExecutor(new BaseStageFactory(), $this->configuration);
                     }
                     break;
                 case 'native':
                     return new NativeRequestExecutor(
                         new PipelineFactory(
-                            new NativeStageFactory()
+                            new BaseStageFactory()
                         ),
                         $this->configuration
                     );

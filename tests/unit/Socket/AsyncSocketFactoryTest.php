@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use Tests\Application\Mock\PhpFunctionMocker;
 
@@ -112,6 +113,25 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     public function testCreateSocketWithInvalidArgument()
     {
         $this->factory->createSocket(md5(microtime()));
+    }
+
+    /**
+     * testCreateRequestExecutorWithInvalidArgument
+     *
+     * @return void
+     * @expectedException \InvalidArgumentException
+     */
+    public function testCreateRequestExecutorWithInvalidArgument()
+    {
+        $factory = new AsyncSocketFactory(
+            new Configuration(
+                [
+                    'preferredEngines' => md5(microtime())
+                ]
+            )
+        );
+
+        $factory->createRequestExecutor();
     }
 
     /**

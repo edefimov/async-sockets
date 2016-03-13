@@ -14,7 +14,6 @@ use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\MarkerFramePicker;
-use AsyncSockets\Frame\NullFramePicker;
 
 /**
  * Class SimpleHttpFrame

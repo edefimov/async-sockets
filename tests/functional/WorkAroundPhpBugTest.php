@@ -21,8 +21,7 @@ use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
-use AsyncSockets\RequestExecutor\Pipeline\LibEventStageFactory;
-use AsyncSockets\RequestExecutor\Pipeline\NativeStageFactory;
+use AsyncSockets\RequestExecutor\Pipeline\BaseStageFactory;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\ClientSocket;
@@ -115,7 +114,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             [
                 new NativeRequestExecutor(
                     new PipelineFactory(
-                        new NativeStageFactory()
+                        new BaseStageFactory()
                     ),
                     new Configuration()
                 ),
@@ -124,7 +123,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
         ];
 
         if (extension_loaded('libevent')) {
-            $result[] = [ new LibEventRequestExecutor(new LibEventStageFactory(), new Configuration()), $urls ];
+            $result[] = [ new LibEventRequestExecutor(new BaseStageFactory(), new Configuration()), $urls ];
         }
 
         return $result;

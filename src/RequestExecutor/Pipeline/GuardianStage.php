@@ -99,7 +99,7 @@ class GuardianStage extends AbstractStage
     }
 
     /**
-     * Closes connection, as we suppose it
+     * Closes connection, as we suppose it is unmanaged
      *
      * @param OperationMetadata $descriptor Descriptor object to kill
      *

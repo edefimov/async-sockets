@@ -62,7 +62,7 @@ class UdpClientSocketTest extends \PHPUnit_Framework_TestCase
             true,
             true,
             true,
-            ['open', 'close', 'getStreamResource']
+            ['open', 'close', 'getStreamResource', '__toString']
         );
 
         return $object;
@@ -88,6 +88,24 @@ class UdpClientSocketTest extends \PHPUnit_Framework_TestCase
     {
         $this->socket->expects(self::never())->method('close');
         $this->object->close();
+    }
+
+    /**
+     * testStringCastingAsOrigin
+     *
+     * @return void
+     */
+    public function testStringCastingAsOrigin()
+    {
+        $value = sha1(microtime(true));
+        $this->socket->expects(self::once())
+            ->method('__toString')
+            ->willReturn($value);
+        self::assertSame(
+            $value,
+            $this->object->__toString(),
+            'Incorrect string returned'
+        );
     }
 
     /**
