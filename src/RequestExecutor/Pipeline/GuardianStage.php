@@ -59,11 +59,14 @@ class GuardianStage extends AbstractStage
      */
     public function processStage(array $operations)
     {
-        foreach ($operations as $operation) {
-            $this->verifyOperationValidity($operation);
+        $result = [];
+        foreach ($operations as $key => $operation) {
+            if (!$this->handleDeadConnection($operation)) {
+                $result[$key] = $operation;
+            }
         }
 
-        return $operations;
+        return $result;
     }
 
     /**
@@ -71,17 +74,18 @@ class GuardianStage extends AbstractStage
      *
      * @param OperationMetadata $descriptor Object to test
      *
-     * @return void
+     * @return bool True if connection killed, false otherwise
      */
-    private function verifyOperationValidity(OperationMetadata $descriptor)
+    private function handleDeadConnection(OperationMetadata $descriptor)
     {
         $metadata = $descriptor->getMetadata();
         $key      = spl_object_hash($descriptor);
         if ($metadata[RequestExecutorInterface::META_REQUEST_COMPLETE]) {
             unset($this->candidates[$key]);
-            return;
+            return false;
         }
 
+        $result    = false;
         $operation = $descriptor->getOperation();
         if ($operation instanceof NullOperation) {
             if (!isset($this->candidates[$key])) {
@@ -90,12 +94,15 @@ class GuardianStage extends AbstractStage
 
             --$this->candidates[$key];
             if (!$this->candidates[$key]) {
+                $result = true;
                 $this->killZombieConnection($descriptor);
                 unset($this->candidates[$key]);
             }
         } else {
             unset($this->candidates[$key]);
         }
+
+        return $result;
     }
 
     /**

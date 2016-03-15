@@ -15,7 +15,6 @@ use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\Pipeline\DisconnectStage;
 use AsyncSockets\RequestExecutor\Pipeline\GuardianStage;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class GuardianStageTest
@@ -88,12 +87,14 @@ class GuardianStageTest extends AbstractStageTest
             ->willReturnCallback(function (OperationMetadata $descriptor, \Exception $e) {
                 self::assertInstanceOf('AsyncSockets\Exception\UnmanagedSocketException', $e, 'Incorrect exception');
             });
-        $result = [];
-        for ($i = 0; $i <= GuardianStage::MAX_ATTEMPTS_PER_SOCKET + 1; $i++) {
+        $result        = [ $descriptor ];
+        $safetyCounter = 200;
+        while ($result && $safetyCounter) {
             $result = $this->stage->processStage([$descriptor]);
+            --$safetyCounter;
         }
 
-        self::assertNotEmpty($result, 'GuardianHandler must return given objects.');
+        self::assertEmpty($result, 'GuardianHandler must return given objects.');
     }
 
     /**
