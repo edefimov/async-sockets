@@ -42,4 +42,10 @@ class PartialFrame implements FrameInterface
     {
         return (string) $this->original;
     }
+
+    /** {@inheritdoc} */
+    public function getRemoteAddress()
+    {
+        return $this->original->getRemoteAddress();
+    }
 }

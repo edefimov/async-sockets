@@ -23,11 +23,12 @@ class PartialFrameTest extends FrameTest
     {
         $mock = $this->getMock(
             'AsyncSockets\Frame\FrameInterface',
-            ['getData', '__toString']
+            ['getData', '__toString', 'getRemoteAddress']
         );
 
         $mock->expects(self::any())->method('getData')->willReturn($data);
         $mock->expects(self::any())->method('__toString')->willReturn($data);
+        $mock->expects(self::any())->method('getRemoteAddress')->willReturn($data);
 
         /** @var FrameInterface $mock */
         return new PartialFrame($mock);

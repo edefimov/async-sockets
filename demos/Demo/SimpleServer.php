@@ -129,10 +129,12 @@ class SimpleServer extends Command
             $this->clientHandlers = new RemoveFinishedSocketsEventHandler(
                 new CallbackEventHandler(
                     [
-                        EventType::READ => function (ReadEvent $event) {
-                            $request  = $event->getFrame()->getData();
+                        EventType::READ => function (ReadEvent $event) use ($output) {
+                            $frame    = $event->getFrame();
+                            $request  = $frame->getData();
                             $path     = $this->extractPath($request);
                             $response = $this->generateResponse($path);
+                            $output->writeln("<comment>Received request from {$frame->getRemoteAddress()}</comment>");
 
                             $event->nextIsWrite(
                                 "HTTP/1.1 200 OK \r\n" .

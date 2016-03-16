@@ -12,7 +12,7 @@ namespace AsyncSockets\Socket\Io;
 use AsyncSockets\Exception\AcceptException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\UdpClientSocket;
 
@@ -57,7 +57,7 @@ class DatagramServerIo extends AbstractServerIo
                     self::SOCKET_BUFFER_SIZE
                 );
             }
-            throw new AcceptException($this->socket, 'Can not accept client.');
+            throw new AcceptException($this->socket, 'Can not accept client: failed to receive remote address.');
         }
 
         $reader = new DatagramClientIo($this->socket, $this->isLocalIo ? null : $remoteAddress);
@@ -66,7 +66,7 @@ class DatagramServerIo extends AbstractServerIo
             new UdpClientSocket(
                 $this->socket,
                 $remoteAddress,
-                $reader->read(new NullFramePicker())
+                $reader->read(new RawFramePicker())
             )
         );
     }

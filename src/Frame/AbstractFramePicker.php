@@ -36,6 +36,13 @@ abstract class AbstractFramePicker implements FramePickerInterface
     private $buffer;
 
     /**
+     * Client's address sent this data
+     *
+     * @var string
+     */
+    private $remoteAddress;
+
+    /**
      * AbstractFramePicker constructor.
      */
     public function __construct()
@@ -51,34 +58,40 @@ abstract class AbstractFramePicker implements FramePickerInterface
     }
 
     /** {@inheritdoc} */
-    public function pickUpData($chunk)
+    public function pickUpData($chunk, $remoteAddress)
     {
         if ($this->isFinished) {
             return $chunk;
         }
 
+        if (!$this->remoteAddress && $remoteAddress) {
+            $this->remoteAddress = $remoteAddress;
+        }
+
         $this->frame = null;
-        return (string) $this->doHandleData($chunk, $this->buffer);
+        return (string) $this->doHandleData($chunk, $remoteAddress, $this->buffer);
     }
 
     /**
      * Process raw network data. Data should be used to determine end of this concrete framePicker
      *
      * @param string $chunk Chunk read from socket
+     * @param string $remoteAddress Client's address sent this data
      * @param string &$buffer Pointer to internal buffer for collecting data
      *
      * @return string Unprocessed data after the end of frame
      */
-    abstract protected function doHandleData($chunk, &$buffer);
+    abstract protected function doHandleData($chunk, $remoteAddress, &$buffer);
 
     /**
      * Create frame for picked up data
      *
      * @param string $buffer Buffer with collected data
+     * @param string $remoteAddress Remote socket address these data from
      *
      * @return FrameInterface
      */
-    abstract protected function doCreateFrame($buffer);
+    abstract protected function doCreateFrame($buffer, $remoteAddress);
 
     /**
      * Sets finished flag
@@ -96,7 +109,7 @@ abstract class AbstractFramePicker implements FramePickerInterface
     public function createFrame()
     {
         if (!$this->frame) {
-            $this->frame = $this->doCreateFrame($this->buffer);
+            $this->frame = $this->doCreateFrame($this->buffer, $this->remoteAddress);
         }
 
         return $this->frame;

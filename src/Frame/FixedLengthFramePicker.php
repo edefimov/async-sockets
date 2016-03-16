@@ -33,7 +33,7 @@ class FixedLengthFramePicker extends AbstractFramePicker
     }
 
     /** {@inheritdoc} */
-    protected function doHandleData($chunk, &$buffer)
+    protected function doHandleData($chunk, $remoteAddress, &$buffer)
     {
         $chunkLength   = strlen($chunk);
         $dataLength    = min($this->length - strlen($buffer), $chunkLength);
@@ -49,8 +49,8 @@ class FixedLengthFramePicker extends AbstractFramePicker
     }
 
     /** {@inheritdoc} */
-    protected function doCreateFrame($buffer)
+    protected function doCreateFrame($buffer, $remoteAddress)
     {
-        return new Frame($buffer);
+        return new Frame($buffer, $remoteAddress);
     }
 }

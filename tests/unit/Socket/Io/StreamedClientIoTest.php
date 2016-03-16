@@ -136,7 +136,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
         $this->prepareFor(__FUNCTION__);
         $this->setConnectedStateForTestObject(false);
         $this->ensureSocketIsOpened();
-        $this->object->read(new NullFramePicker());
+        $this->object->read($this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'));
     }
 
     /**

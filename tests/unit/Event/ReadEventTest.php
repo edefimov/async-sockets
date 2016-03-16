@@ -74,8 +74,8 @@ class ReadEventTest extends IoEventTest
     public function socketResponseDataProvider()
     {
         return [
-            [ new Frame(''), false ],
-            [ new PartialFrame(new Frame('')), true ],
+            [ new Frame('', ''), false ],
+            [ new PartialFrame(new Frame('', '')), true ],
         ];
     }
 
@@ -83,6 +83,6 @@ class ReadEventTest extends IoEventTest
     protected function setUp()
     {
         parent::setUp();
-        $this->frame = new Frame('Test data');
+        $this->frame = new Frame('Test data', '127.0.0.1:9098');
     }
 }

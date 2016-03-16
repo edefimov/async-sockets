@@ -11,7 +11,6 @@
 namespace Tests\AsyncSockets\Socket\Io;
 
 use AsyncSockets\Frame\AcceptedFrame;
-use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\Io\DatagramServerIo;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\UdpClientSocket;
@@ -118,7 +117,7 @@ class DatagramServerIoTest extends AbstractServerIoTest
             }
         );
 
-        $this->object->read(new NullFramePicker());
+        $this->object->read($this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'));
     }
 
     /**
@@ -141,7 +140,7 @@ class DatagramServerIoTest extends AbstractServerIoTest
             }
         );
 
-        $frame = $object->read(new NullFramePicker());
+        $frame = $object->read($this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'));
 
         /** @var AcceptedFrame $frame */
         self::assertInstanceOf('AsyncSockets\Frame\AcceptedFrame', $frame, 'Invalid frame created');

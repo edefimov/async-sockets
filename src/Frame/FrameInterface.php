@@ -15,6 +15,13 @@ namespace AsyncSockets\Frame;
 interface FrameInterface
 {
     /**
+     * Return remote address these data received from
+     *
+     * @return string
+     */
+    public function getRemoteAddress();
+
+    /**
      * Return content of this frame
      *
      * @return string

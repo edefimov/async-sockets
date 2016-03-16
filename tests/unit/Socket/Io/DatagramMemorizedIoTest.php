@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket\Io;
 
-use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Socket\Io\DatagramMemorizedIo;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -40,10 +40,10 @@ class DatagramMemorizedIoTest extends DatagramClientIoTest
     public function testReadData()
     {
         $this->ensureSocketIsOpened();
-        $frame = $this->object->read(new NullFramePicker());
+        $frame = $this->object->read(new RawFramePicker());
         self::assertEquals($this->data, (string) $frame, 'Incorrect frame');
 
-        $frame = $this->object->read(new NullFramePicker());
+        $frame = $this->object->read(new RawFramePicker());
         self::assertEmpty((string) $frame, 'Second read must not return anything');
     }
 

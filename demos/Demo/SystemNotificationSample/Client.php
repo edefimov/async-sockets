@@ -122,10 +122,13 @@ class Client
      */
     public function onRead(ReadEvent $event)
     {
-        $context = $event->getContext();
-        $socket  = $event->getSocket();
+        $context       = $event->getContext();
+        $socket        = $event->getSocket();
+        $remoteAddress = $event->getFrame()->getRemoteAddress();
 
-        $this->output->writeln("<info>Received headers</info>: \n\n" . $event->getFrame()->getData());
+        $this->output->writeln(
+            "<info>Received headers from {$remoteAddress}</info>: \n\n" . $event->getFrame()->getData()
+        );
 
         $event->getExecutor()->socketBag()->setSocketMetaData(
             $socket,

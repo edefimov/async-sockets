@@ -22,7 +22,7 @@ class DatagramClientIo extends AbstractClientIo
      *
      * @var string
      */
-    private $remoteAddress;
+    protected $remoteAddress;
 
     /**
      * Constructor
@@ -45,11 +45,7 @@ class DatagramClientIo extends AbstractClientIo
         $size     = self::SOCKET_BUFFER_SIZE;
         $resource = $this->socket->getStreamResource();
         do {
-            $data = stream_socket_recvfrom($resource, $size, STREAM_PEEK, $actualRemoteAddress);
-            if ($this->remoteAddress && $actualRemoteAddress !== $this->remoteAddress) {
-                return '';
-            }
-
+            $data = stream_socket_recvfrom($resource, $size, STREAM_PEEK);
             if (strlen($data) < $size) {
                 break;
             }
@@ -57,9 +53,9 @@ class DatagramClientIo extends AbstractClientIo
             $size += $size;
         } while (true);
 
-        return $picker->pickUpData(
-            stream_socket_recvfrom($resource, $size, 0)
-        );
+        $data = stream_socket_recvfrom($resource, $size, 0, $actualRemoteAddress);
+
+        return $picker->pickUpData($data, $actualRemoteAddress);
     }
 
     /** {@inheritdoc} */
@@ -68,6 +64,12 @@ class DatagramClientIo extends AbstractClientIo
         $result = stream_socket_sendto($this->socket->getStreamResource(), $data, 0, $this->remoteAddress);
         $this->throwNetworkSocketExceptionIf($result < 0, 'Failed to send data.');
         return $result;
+    }
+
+    /** {@inheritdoc} */
+    protected function getRemoteAddress()
+    {
+        return $this->remoteAddress;
     }
 
     /** {@inheritdoc} */

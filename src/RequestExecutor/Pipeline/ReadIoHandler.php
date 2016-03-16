@@ -60,7 +60,7 @@ class ReadIoHandler implements IoHandlerInterface
                         $socket,
                         $context,
                         $response->getClientSocket(),
-                        $response->getClientAddress()
+                        $response->getRemoteAddress()
                     );
 
                     $eventHandler->invokeEvent($event);

@@ -12,7 +12,6 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\Io\DisconnectedIo;
 use AsyncSockets\Socket\Io\IoInterface;
 
@@ -136,9 +135,8 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $picker = null)
+    public function read(FramePickerInterface $picker)
     {
-        $picker = $picker ?: new NullFramePicker();
         try {
             return $this->ioInterface->read($picker);
         } catch (ConnectionException $e) {
