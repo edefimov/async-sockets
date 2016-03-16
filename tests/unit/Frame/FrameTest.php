@@ -27,7 +27,7 @@ class FrameTest extends \PHPUnit_Framework_TestCase
      */
     protected function createFrame($data)
     {
-        return new Frame($data);
+        return new Frame($data, $data);
     }
 
     /**
@@ -41,5 +41,6 @@ class FrameTest extends \PHPUnit_Framework_TestCase
         $frame = $this->createFrame($data);
         self::assertEquals($data, $frame->getData(), 'Get data failed');
         self::assertEquals($data, (string) $frame, 'String casting failed');
+        self::assertEquals($data, $frame->getRemoteAddress(), 'Incorrect remote address');
     }
 }

@@ -91,6 +91,13 @@ abstract class AbstractClientIo extends AbstractIo
      */
     abstract protected function canReachFrame();
 
+    /**
+     * Return remote socket ip address
+     *
+     * @return string
+     */
+    abstract protected function getRemoteAddress();
+
     /** {@inheritdoc} */
     final public function read(FramePickerInterface $picker)
     {
@@ -196,7 +203,7 @@ abstract class AbstractClientIo extends AbstractIo
     private function handleUnreadData(FramePickerInterface $picker)
     {
         if ($this->unhandledData) {
-            $this->unhandledData = $picker->pickUpData($this->unhandledData);
+            $this->unhandledData = $picker->pickUpData($this->unhandledData, $this->getRemoteAddress());
         }
 
         return $this->isEndOfFrameReached($picker, false);

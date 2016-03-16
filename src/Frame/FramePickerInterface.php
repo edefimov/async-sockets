@@ -25,10 +25,11 @@ interface FramePickerInterface
      * Process raw network data. Data should be used to determine end of this concrete frame
      *
      * @param string $chunk Chunk read from socket
+     * @param string $remoteAddress Remote client address sent this chunk
      *
      * @return string Unprocessed data after end of frame
      */
-    public function pickUpData($chunk);
+    public function pickUpData($chunk, $remoteAddress);
 
     /**
      * Create frame from picked data

@@ -15,6 +15,7 @@ use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\MarkerFramePicker;
+use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
@@ -169,19 +170,19 @@ class ClientServerDataExchangeTest extends \PHPUnit_Framework_TestCase
             $data = md5(microtime(true));
             $client->write($data);
 
-            $acceptedFrame = $server->read();
+            $acceptedFrame = $server->read(new NullFramePicker());
             self::assertInstanceOf('AsyncSockets\Frame\AcceptedFrame', $acceptedFrame);
 
             /** @var AcceptedFrame $acceptedFrame */
             $acceptedSocket = $acceptedFrame->getClientSocket();
 
             $acceptedSocket->open(null);
-            $frame = $acceptedSocket->read();
+            $frame = $acceptedSocket->read(new FixedLengthFramePicker(strlen($data)));
             self::assertEquals($data, (string) $frame, 'Incorrect frame from client received');
 
             $anotherData = md5(microtime(true) * mt_rand(2, 4));
             $acceptedSocket->write($anotherData);
-            $frame = $client->read();
+            $frame = $client->read(new FixedLengthFramePicker(strlen($data)));
             self::assertEquals($anotherData, (string) $frame, 'Incorrect frame from server received');
 
             $client->close();

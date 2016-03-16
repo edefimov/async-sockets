@@ -90,7 +90,7 @@ class AbstractSocketTest extends AbstractTestCase
      */
     public function testCantReadFromClosedSocket()
     {
-        $this->socket->read();
+        $this->socket->read($this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'));
     }
 
     /**
@@ -109,13 +109,13 @@ class AbstractSocketTest extends AbstractTestCase
      * testThatConnectionExceptionChangesConnectState
      *
      * @param string $method Method name: read or write
+     * @param mixed  $argument Method argument
      *
-     * @return void
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionMessage Can not start io operation on uninitialized socket.
      * @dataProvider connectionExceptionChangesConnectStateDataProvider
      */
-    public function testThatConnectionExceptionChangesConnectState($method)
+    public function testThatConnectionExceptionChangesConnectState($method, $argument = null)
     {
         $mock = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\Io\IoInterface',
@@ -150,9 +150,9 @@ class AbstractSocketTest extends AbstractTestCase
         try {
             /** @var SocketInterface $socket */
             $socket->open('no matter');
-            $socket->{$method}(null);
+            $socket->{$method}($argument);
         } catch (ConnectionException $e) {
-            $socket->{$method}(null);
+            $socket->{$method}($argument);
         }
     }
 
@@ -163,9 +163,10 @@ class AbstractSocketTest extends AbstractTestCase
      */
     public function connectionExceptionChangesConnectStateDataProvider()
     {
+
         return [
-            ['read'],
-            ['write'],
+            ['read', $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface')],
+            ['write', null],
         ];
     }
 

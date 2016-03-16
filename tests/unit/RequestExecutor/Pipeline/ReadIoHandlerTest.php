@@ -92,7 +92,7 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
      */
     public function testPartialFrameReading()
     {
-        $testFrame = new PartialFrame(new Frame(md5(microtime(true))));
+        $testFrame = new PartialFrame(new Frame(md5(microtime(true)), (string) mt_rand(0, PHP_INT_MAX)));
 
         $this->socket->expects(self::any())->method('read')->willReturn($testFrame);
         $this->socket->expects(self::never())->method('write');
@@ -123,7 +123,7 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
      */
     public function testExceptionOnReading()
     {
-        $testFrame = new Frame(md5(microtime(true)));
+        $testFrame = new Frame(md5(microtime(true)), (string) mt_rand(0, PHP_INT_MAX));
 
         $this->socket->expects(self::any())->method('read')->willReturn($testFrame);
         $this->socket->expects(self::never())->method('write');
@@ -206,7 +206,7 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
 
         /** @var SocketInterface $socket */
         return [
-            [ new Frame(md5(microtime(true))), EventType::READ, false ],
+            [ new Frame(md5(microtime(true)), (string) mt_rand(0, PHP_INT_MAX)), EventType::READ, false ],
             [
                 new AcceptedFrame(
                     md5(microtime(true)),

@@ -50,13 +50,14 @@ class NullFramePickerTest extends \PHPUnit_Framework_TestCase
     {
         $picker    = $this->createFramePicker();
         $data      = str_repeat('x', $length);
-        $processed = $picker->pickUpData($data);
+        $processed = $picker->pickUpData($data, $data);
 
         $frame = $picker->createFrame();
         self::assertEquals($length, strlen((string) $frame));
         self::assertEquals($data, (string) $frame, 'Incorrect frame data');
         self::assertEmpty($processed, 'Null frame must not leave any data after frame');
         self::assertTrue($picker->isEof(), 'Incorrect eof state');
+        self::assertSame($data, $frame->getRemoteAddress(), 'Incorrect remote address');
     }
 
     /**

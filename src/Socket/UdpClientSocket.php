@@ -10,9 +10,8 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\Frame\NullFramePicker;
-use AsyncSockets\Socket\Io\IoInterface;
 use AsyncSockets\Socket\Io\DatagramMemorizedIo;
+use AsyncSockets\Socket\Io\IoInterface;
 
 /**
  * Class UdpClientSocket
@@ -59,9 +58,9 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     }
 
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $picker = null)
+    public function read(FramePickerInterface $picker)
     {
-        return $this->ioInterface->read($picker ?: new NullFramePicker());
+        return $this->ioInterface->read($picker);
     }
 
     /** {@inheritdoc} */

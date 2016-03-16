@@ -85,7 +85,7 @@ class MarkerFramePicker extends AbstractFramePicker
     }
 
     /** {@inheritdoc} */
-    protected function doHandleData($chunk, &$buffer)
+    protected function doHandleData($chunk, $remoteAddress, &$buffer)
     {
         $buffer .= $chunk;
         if (!$this->resolveStartOfFrame($buffer)) {
@@ -104,14 +104,14 @@ class MarkerFramePicker extends AbstractFramePicker
     }
 
     /** {@inheritdoc} */
-    protected function doCreateFrame($buffer)
+    protected function doCreateFrame($buffer, $remoteAddress)
     {
         if ($this->isEof()) {
-            return new Frame($buffer);
+            return new Frame($buffer, $remoteAddress);
         }
 
         $data = $this->startPos === null ? '' : substr($buffer, $this->startPos);
-        return new Frame($data);
+        return new Frame($data, $remoteAddress);
     }
 
     /**

@@ -33,10 +33,11 @@ class RawFramePickerTest extends AbstractFramePickerTest
     {
         $data   = md5(microtime(true));
         $picker = $this->createFramePicker();
-        $result = $picker->pickUpData($data);
+        $result = $picker->pickUpData($data, $data);
 
         self::assertEmpty($result, 'Raw frame picker must always collect data on first call');
         self::assertEquals($data, (string) $picker->createFrame(), 'Incorrect frame data');
+        self::assertEquals($data, (string) $picker->createFrame()->getRemoteAddress(), 'Incorrect remote address');
         self::assertTrue($picker->isEof(), 'EOF flag is not set');
     }
 
@@ -49,11 +50,12 @@ class RawFramePickerTest extends AbstractFramePickerTest
     {
         $data   = md5(microtime(true));
         $picker = $this->createFramePicker();
-        $picker->pickUpData($data);
+        $picker->pickUpData($data, $data);
 
         $secondData = sha1(microtime(true));
-        $result     = $picker->pickUpData($secondData);
+        $result     = $picker->pickUpData($secondData, $secondData);
         self::assertEquals($secondData, $result, 'Raw frame picker must ignore data on second call');
         self::assertEquals($data, (string) $picker->createFrame(), 'Incorrect frame data');
+        self::assertEquals($data, (string) $picker->createFrame()->getRemoteAddress(), 'Incorrect remote address');
     }
 }

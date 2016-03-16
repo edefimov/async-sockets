@@ -11,6 +11,7 @@
 namespace Tests\Application\Command;
 
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -35,9 +36,9 @@ class SimpleClient extends Command
             $factory = new AsyncSocketFactory();
 
             $client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
-            $client->open('tcp://127.0.0.1:10031');
+            $client->open('tls://google.com:443');
             $client->write("GET / HTTP/1.1\nHost: google.com\n\n");
-            $response = $client->read()->getData();
+            $response = $client->read(new NullFramePicker())->getData();
             $client->close();
 
             $output->writeln((string) $response);

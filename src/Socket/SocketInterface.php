@@ -53,7 +53,7 @@ interface SocketInterface extends StreamResourceInterface
      *
      * @api
      */
-    public function read(FramePickerInterface $picker = null);
+    public function read(FramePickerInterface $picker);
 
     /**
      * Write data to this socket

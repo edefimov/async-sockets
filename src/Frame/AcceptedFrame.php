@@ -64,12 +64,8 @@ class AcceptedFrame implements FrameInterface
         return $this->socket;
     }
 
-    /**
-     * Return ClientAddress
-     *
-     * @return string
-     */
-    public function getClientAddress()
+    /** {@inheritdoc} */
+    public function getRemoteAddress()
     {
         return $this->clientAddress;
     }

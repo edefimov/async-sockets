@@ -39,15 +39,17 @@ class FixedLengthFramePickerTest extends AbstractFramePickerTest
     {
         $picker = new FixedLengthFramePicker($length);
 
-        $unprocessed = '';
+        $unprocessed   = '';
+        $remoteAddress = sha1(microtime(true));
         foreach ($chunks as $chunk) {
-            $unprocessed = $picker->pickUpData($chunk);
+            $unprocessed = $picker->pickUpData($chunk, $remoteAddress);
         }
 
         $frame = $picker->createFrame();
         self::assertEquals($expectedFrame, (string) $frame, 'Incorrect frame');
         self::assertEquals($afterFrame, $unprocessed, 'Incorrect data after frame');
         self::assertEquals($isEof, $picker->isEof(), 'Incorrect eof state');
+        self::assertEquals($remoteAddress, $frame->getRemoteAddress(), 'Incorrect remote address');
     }
 
     /**

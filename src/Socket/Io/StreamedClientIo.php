@@ -28,6 +28,13 @@ class StreamedClientIo extends AbstractClientIo
      */
     private $readAttempts = self::READ_ATTEMPTS;
 
+    /**
+     * Remote socket address
+     *
+     * @var string
+     */
+    private $remoteAddress;
+
     /** {@inheritdoc} */
     protected function readRawDataIntoPicker(FramePickerInterface $picker)
     {
@@ -43,7 +50,7 @@ class StreamedClientIo extends AbstractClientIo
             $data = fread($resource, self::SOCKET_BUFFER_SIZE);
             $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
             $isDataEmpty = $data === '';
-            $result      = $picker->pickUpData($data);
+            $result      = $picker->pickUpData($data, $this->getRemoteAddress());
 
             $readContext['countCycles']      += 1;
             $readContext['isStreamDataEmpty'] = $this->isReadDataActuallyEmpty($data);
@@ -90,8 +97,17 @@ class StreamedClientIo extends AbstractClientIo
     /** {@inheritdoc} */
     protected function isConnected()
     {
-        $name = stream_socket_get_name($this->socket->getStreamResource(), true);
-        return $name !== false;
+        return $this->resolveRemoteAddress() !== false;
+    }
+
+    /** {@inheritdoc} */
+    protected function getRemoteAddress()
+    {
+        if ($this->remoteAddress === null) {
+            $this->remoteAddress = $this->resolveRemoteAddress();
+        }
+
+        return $this->remoteAddress;
     }
 
     /**
@@ -132,5 +148,15 @@ class StreamedClientIo extends AbstractClientIo
     private function getDataInSocket()
     {
         return stream_socket_recvfrom($this->socket->getStreamResource(), 1, STREAM_PEEK);
+    }
+
+    /**
+     * Return remote address if we connected or false otherwise
+     *
+     * @return string|bool
+     */
+    private function resolveRemoteAddress()
+    {
+        return stream_socket_get_name($this->socket->getStreamResource(), true);
     }
 }

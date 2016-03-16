@@ -65,14 +65,17 @@ class MarkerFramePickerTest extends AbstractFramePickerTest
         $picker = new MarkerFramePicker($start, $end, $isCaseSensitive);
 
         $actualEnd = '';
+
+        $remoteAddress = sha1(microtime(true));
         foreach ($chunks as $chunk) {
-            $actualEnd = $picker->pickUpData($chunk);
+            $actualEnd = $picker->pickUpData($chunk, $remoteAddress);
         }
 
         $frame = $picker->createFrame();
         self::assertEquals($expectedFrame, (string) $frame, 'Incorrect frame');
         self::assertEquals($afterFrame, $actualEnd, 'Incorrect data after frame');
         self::assertEquals($isEof, $picker->isEof(), 'Incorrect eof');
+        self::assertEquals($remoteAddress, $frame->getRemoteAddress(), 'Incorrect remote address');
     }
 
     /**

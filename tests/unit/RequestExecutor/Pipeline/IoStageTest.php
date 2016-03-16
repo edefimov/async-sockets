@@ -52,7 +52,7 @@ class IoStageTest extends AbstractStageTest
         $request = $this->createOperationMetadata();
 
         $socket = $this->setupSocketForRequest($request);
-        $socket->expects(self::any())->method('read')->willReturn(new Frame(''));
+        $socket->expects(self::any())->method('read')->willReturn(new Frame('', ''));
 
         $request->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
         $request->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
@@ -97,7 +97,7 @@ class IoStageTest extends AbstractStageTest
                 ->with(RequestExecutorInterface::META_CONNECTION_FINISH_TIME);
 
         $socket = $this->setupSocketForRequest($request);
-        $socket->expects(self::any())->method('read')->willReturn(new PartialFrame(new Frame('')));
+        $socket->expects(self::any())->method('read')->willReturn(new PartialFrame(new Frame('', '')));
 
         $this->metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 5;
         $request->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
@@ -251,7 +251,7 @@ class IoStageTest extends AbstractStageTest
      */
     public function testExceptionOnReading()
     {
-        $testFrame = new Frame(md5(microtime(true)));
+        $testFrame = new Frame(md5(microtime(true)), (string) mt_rand(0, PHP_INT_MAX));
 
         $request = $this->createOperationMetadata();
         $socket  = $this->setupSocketForRequest($request);
@@ -405,7 +405,7 @@ class IoStageTest extends AbstractStageTest
 
         $request = $this->createOperationMetadata();
         $socket  = $this->setupSocketForRequest($request);
-        $socket->expects(self::any())->method('read')->willReturn(new Frame(''));
+        $socket->expects(self::any())->method('read')->willReturn(new Frame('', ''));
         $socket->expects(self::any())->method('write');
 
         $operation = new $map[$currentOperation]();

@@ -22,6 +22,13 @@ final class NullFramePicker implements FramePickerInterface
      */
     private $buffer;
 
+    /**
+     * Remote socket address
+     *
+     * @var string
+     */
+    private $remoteAddress;
+
     /** {@inheritdoc} */
     public function isEof()
     {
@@ -29,15 +36,16 @@ final class NullFramePicker implements FramePickerInterface
     }
 
     /** {@inheritdoc} */
-    public function pickUpData($chunk)
+    public function pickUpData($chunk, $remoteAddress)
     {
-        $this->buffer .= $chunk;
+        $this->buffer       .= $chunk;
+        $this->remoteAddress = $remoteAddress;
         return '';
     }
 
     /** {@inheritdoc} */
     public function createFrame()
     {
-        return new Frame($this->buffer);
+        return new Frame($this->buffer, $this->remoteAddress);
     }
 }

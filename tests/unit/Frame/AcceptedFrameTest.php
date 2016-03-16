@@ -41,9 +41,9 @@ class AcceptedFrameTest extends FrameTest
         $clientAddress = '127.0.0.1:12345';
         $frame         = $this->createFrame($clientAddress);
         self::assertSame($this->socket, $frame->getClientSocket(), 'Incorrect socket');
-        self::assertEquals($clientAddress, $frame->getClientAddress(), 'Incorrect socket');
+        self::assertEquals($clientAddress, $frame->getRemoteAddress(), 'Incorrect socket');
         self::assertEquals(
-            $frame->getClientAddress(),
+            $frame->getRemoteAddress(),
             (string) $frame,
             'String casting for AcceptedFrame must return client address'
         );

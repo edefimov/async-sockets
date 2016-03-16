@@ -42,6 +42,6 @@ class DatagramMemorizedIo extends DatagramClientIo
     {
         $data       = $this->data;
         $this->data = '';
-        return $picker->pickUpData($data);
+        return $picker->pickUpData($data, $this->remoteAddress);
     }
 }

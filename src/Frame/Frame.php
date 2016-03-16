@@ -22,13 +22,22 @@ class Frame implements FrameInterface
     private $data;
 
     /**
+     * The source address of this frame
+     *
+     * @var string
+     */
+    private $remoteAddress;
+
+    /**
      * SocketResponse constructor.
      *
      * @param string $data Data from network for this response
+     * @param string $remoteAddress The source address of this frame
      */
-    public function __construct($data)
+    public function __construct($data, $remoteAddress)
     {
         $this->data = (string) $data;
+        $this->remoteAddress = $remoteAddress;
     }
 
     /** {@inheritdoc} */
@@ -41,5 +50,11 @@ class Frame implements FrameInterface
     public function __toString()
     {
         return $this->getData();
+    }
+
+    /** {@inheritdoc} */
+    public function getRemoteAddress()
+    {
+        return $this->remoteAddress;
     }
 }

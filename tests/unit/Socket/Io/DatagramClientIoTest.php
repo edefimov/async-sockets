@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket\Io;
 
-use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Socket\Io\AbstractIo;
 use AsyncSockets\Socket\Io\DatagramClientIo;
 use AsyncSockets\Socket\SocketInterface;
@@ -65,35 +65,8 @@ class DatagramClientIoTest extends AbstractClientIoTest
             }
         );
 
-        $frame = $this->object->read(new NullFramePicker());
+        $frame = $this->object->read(new RawFramePicker());
         self::assertEquals($expectedData, (string) $frame, 'Incorrect frame');
-    }
-
-    /**
-     * testThatIfRemoteAddressDiffersFromReadAddressDataWillBeSkipped
-     *
-     * @return void
-     */
-    public function testThatIfRemoteAddressDiffersFromReadAddressDataWillBeSkipped()
-    {
-        $this->setUpIoObject('127.0.0.1:1');
-
-        $data = md5(microtime(true));
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
-            function ($handle, $size, $flags, &$address) use (&$data) {
-                $address = '192.192.192.192:1';
-                $result  = $data;
-
-                if (!($flags & STREAM_PEEK)) {
-                    $data = '';
-                }
-
-                return $result;
-            }
-        );
-
-        $frame = $this->object->read(new NullFramePicker());
-        self::assertEmpty((string) $frame, 'Incorrect frame');
     }
 
     /**
@@ -124,7 +97,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
             }
         );
 
-        $frame = $this->object->read(new NullFramePicker());
+        $frame = $this->object->read(new RawFramePicker());
         self::assertEquals($expectedData, (string) $frame, 'Incorrect frame');
     }
 

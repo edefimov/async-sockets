@@ -15,7 +15,7 @@ namespace AsyncSockets\Frame;
 class RawFramePicker extends AbstractFramePicker
 {
     /** {@inheritdoc} */
-    protected function doHandleData($chunk, &$buffer)
+    protected function doHandleData($chunk, $remoteAddress, &$buffer)
     {
         $buffer = $chunk;
         $this->setFinished(true);
@@ -23,8 +23,8 @@ class RawFramePicker extends AbstractFramePicker
     }
 
     /** {@inheritdoc} */
-    protected function doCreateFrame($buffer)
+    protected function doCreateFrame($buffer, $remoteAddress)
     {
-        return new Frame($buffer);
+        return new Frame($buffer, $remoteAddress);
     }
 }
