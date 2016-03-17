@@ -145,18 +145,34 @@ class LeBase
             $event->getHandle(),
             $event->getOperationMetadata()->getSocket()->getStreamResource(),
             $flags | $this->getEventFlags($event),
-            function ($streamResource, $eventFlags, $eventKey) {
-                if (isset($this->events[$eventKey])) {
-                    $event = $this->events[$eventKey];
-                    $this->removeEvent($event);
-                    $this->onEvent($event, $eventFlags);
-                }
-            },
+            [$this, 'libeventHandler'],
             $key
         );
 
         event_base_set($event->getHandle(), $this->handle);
         event_add($event->getHandle(), $timeout !== null ? $timeout * 1E6 : -1);
+    }
+
+    /**
+     * Libevent event handler
+     *
+     * @param resource $streamResource Stream resource caused event
+     * @param int      $eventFlags Occurred event flags
+     * @param string   $eventKey Our internal event key
+     *
+     * @return void
+     * @internal
+     */
+    public function libeventHandler($streamResource, $eventFlags, $eventKey)
+    {
+        unset($streamResource); // make sensiolabs insight analyzer happy
+        if (!isset($this->events[$eventKey])) {
+            return;
+        }
+
+        $event = $this->events[$eventKey];
+        $this->removeEvent($event);
+        $this->onEvent($event, $eventFlags);
     }
 
     /**

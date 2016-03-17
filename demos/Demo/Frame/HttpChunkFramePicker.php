@@ -25,6 +25,13 @@ class HttpChunkFramePicker implements FramePickerInterface
      */
     private $picker;
 
+    /**
+     * Remote address
+     *
+     * @var string
+     */
+    private $remoteAddress;
+
     /** {@inheritDoc} */
     public function isEof()
     {
@@ -43,7 +50,8 @@ class HttpChunkFramePicker implements FramePickerInterface
             $this->picker = new FixedLengthFramePicker($length);
         }
 
-        $result = $this->picker->pickUpData($chunk);
+        $this->remoteAddress = $remoteAddress;
+        $result              = $this->picker->pickUpData($chunk, $remoteAddress);
         if ($result && isset($result[1]) && $result[0] === "\r" && $result[1] === "\n") {
             $result = substr($result, 2);
         }
@@ -54,7 +62,7 @@ class HttpChunkFramePicker implements FramePickerInterface
     /** {@inheritDoc} */
     public function createFrame()
     {
-        return $this->picker ? $this->picker->createFrame() : new Frame('');
+        return $this->picker ? $this->picker->createFrame() : new Frame('', $this->remoteAddress);
     }
 
     /**

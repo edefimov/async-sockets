@@ -31,6 +31,13 @@ class HttpChunkTransferEncodingPicker implements FramePickerInterface
      */
     private $chunkIndex = -1;
 
+    /**
+     * Remote address
+     *
+     * @var string
+     */
+    private $remoteAddress;
+
     /** {@inheritDoc} */
     public function isEof()
     {
@@ -45,7 +52,8 @@ class HttpChunkTransferEncodingPicker implements FramePickerInterface
             $this->chunks[]   = new HttpChunkFramePicker();
         }
 
-        $result = $this->chunks[$this->chunkIndex]->pickUpData($chunk, $remoteAddress);
+        $this->remoteAddress = $remoteAddress;
+        $result              = $this->chunks[$this->chunkIndex]->pickUpData($chunk, $remoteAddress);
         if ($result) {
             $object            = new HttpChunkFramePicker();
             $this->chunkIndex += 1;
@@ -64,6 +72,6 @@ class HttpChunkTransferEncodingPicker implements FramePickerInterface
             $buffer .= (string) $chunk->createFrame();
         }
 
-        return new Frame($buffer);
+        return new Frame($buffer, $this->remoteAddress);
     }
 }

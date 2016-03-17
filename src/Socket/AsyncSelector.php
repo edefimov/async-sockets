@@ -55,9 +55,6 @@ class AsyncSelector
 
         do {
             $result = $this->doStreamSelect($seconds, $usec, $read, $write);
-            if ($result === false) {
-                throw new SocketException('Failed to select sockets');
-            }
 
             if ($result === 0) {
                 break;
@@ -255,14 +252,18 @@ class AsyncSelector
      * @param resource[] $write List of sockets to check for write. After function return it will be filled with
      *      sockets, which are ready to write
      *
-     * @return bool|int False in case of system error, int - amount of sockets ready for I/O
+     * @return int Amount of sockets ready for I/O
+     * @throws SocketException
      */
     private function doStreamSelect($seconds, $usec = null, array &$read = null, array &$write = null)
     {
         $except = null;
         $result = stream_select($read, $write, $except, $seconds, $usec);
+        if ($result === false) {
+            throw new SocketException('Failed to select sockets');
+        }
 
-        return $result === false ? $result : count($read) + count($write);
+        return count($read) + count($write);
     }
 
     /**
