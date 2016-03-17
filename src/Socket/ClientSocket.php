@@ -11,8 +11,6 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Socket\Io\StreamedClientIo;
-use AsyncSockets\Socket\Io\DatagramClientIo;
 
 /**
  * Class ClientSocket
@@ -36,22 +34,5 @@ class ClientSocket extends AbstractClientSocket
         }
 
         return $resource;
-    }
-
-    /** {@inheritdoc} */
-    protected function createIoInterface($type, $address)
-    {
-        switch ($type) {
-            case self::SOCKET_TYPE_UNIX:
-                return new StreamedClientIo($this);
-            case self::SOCKET_TYPE_TCP:
-                return new StreamedClientIo($this);
-            case self::SOCKET_TYPE_UDG:
-                return new DatagramClientIo($this, null);
-            case self::SOCKET_TYPE_UDP:
-                return new DatagramClientIo($this, $address);
-            default:
-                throw new \LogicException("Unsupported socket resource type {$type}");
-        }
     }
 }

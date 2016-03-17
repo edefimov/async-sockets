@@ -44,15 +44,15 @@ class SimpleHttpFramePicker extends AbstractFramePicker
     }
 
     /** {@inheritDoc} */
-    protected function doHandleData($chunk, &$buffer)
+    protected function doHandleData($chunk, $remoteAddress, &$buffer)
     {
-        $result = $this->headerFrame->pickUpData($chunk);
+        $result = $this->headerFrame->pickUpData($chunk, $remoteAddress);
         if ($result) {
             if (!$this->contentPicker) {
                 $this->contentPicker = $this->createContentFramePicker((string) $this->headerFrame->createFrame());
             }
 
-            $result = $this->contentPicker->pickUpData($result);
+            $result = $this->contentPicker->pickUpData($result, $remoteAddress);
             if ($this->contentPicker->isEof()) {
                 $buffer = (string) $this->headerFrame->createFrame() .
                           (string) $this->contentPicker->createFrame();
@@ -66,9 +66,9 @@ class SimpleHttpFramePicker extends AbstractFramePicker
     }
 
     /** {@inheritDoc} */
-    protected function doCreateFrame($buffer)
+    protected function doCreateFrame($buffer, $remoteAddress)
     {
-        return new Frame($buffer);
+        return new Frame($buffer, $remoteAddress);
     }
 
     /**

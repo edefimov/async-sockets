@@ -41,7 +41,7 @@ class NullIoHandlerTest extends AbstractIoHandlerTest
         $this->mockEventHandler->expects(self::once())
             ->method('invokeEvent')
             ->willReturnCallback(function (IoEvent $event) use ($nextOperation) {
-                self::assertSame(EventType::DATA_ARRIVED, $event->getType());
+                self::assertSame(EventType::DATA_ALERT, $event->getType());
                 self::assertSame($this->socket, $event->getSocket(), 'Invalid socket');
                 $this->validateEventContext($event);
                 $event->nextIs($nextOperation);

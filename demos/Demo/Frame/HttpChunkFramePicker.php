@@ -32,7 +32,7 @@ class HttpChunkFramePicker implements FramePickerInterface
     }
 
     /** {@inheritDoc} */
-    public function pickUpData($chunk)
+    public function pickUpData($chunk, $remoteAddress)
     {
         if (!$this->picker) {
             $length = $this->resolveChunkLength($chunk);

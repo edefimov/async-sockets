@@ -71,7 +71,7 @@ final class EventType
      *
      * @see IoEvent
      */
-    const DATA_ARRIVED = 'socket.event.data_arrived';
+    const DATA_ALERT = 'socket.event.data_alert';
 
     /**
      * Socket has disconnected. Event object will be given as an argument.

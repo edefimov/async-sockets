@@ -53,7 +53,7 @@ class NullIoHandler implements IoHandlerInterface
             $executor,
             $socket,
             $meta[ RequestExecutorInterface::META_USER_CONTEXT ],
-            EventType::DATA_ARRIVED
+            EventType::DATA_ALERT
         );
         try {
             $eventHandler->invokeEvent($event);

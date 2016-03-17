@@ -38,19 +38,19 @@ class HttpChunkTransferEncodingPicker implements FramePickerInterface
     }
 
     /** {@inheritDoc} */
-    public function pickUpData($chunk)
+    public function pickUpData($chunk, $remoteAddress)
     {
         if (!$this->chunks) {
             $this->chunkIndex = 0;
             $this->chunks[]   = new HttpChunkFramePicker();
         }
 
-        $result = $this->chunks[$this->chunkIndex]->pickUpData($chunk);
+        $result = $this->chunks[$this->chunkIndex]->pickUpData($chunk, $remoteAddress);
         if ($result) {
             $object            = new HttpChunkFramePicker();
             $this->chunkIndex += 1;
             $this->chunks[]    = $object;
-            $result            = $object->pickUpData($result);
+            $result            = $object->pickUpData($result, $remoteAddress);
         }
 
         return $result;

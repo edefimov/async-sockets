@@ -132,13 +132,16 @@ class UdpEchoServer extends Command
                         new CallbackEventHandler(
                             [
                                 EventType::READ => function (ReadEvent $event) use ($output) {
-                                    $request       = $event->getFrame()->getData();
+                                    $frame         = $event->getFrame();
+                                    $request       = $frame->getData();
                                     $progress      = new ProgressBar($output, 3);
                                     $startedWaitAt = time();
                                     $progress->start();
                                     $event->nextIs(
                                         new DelayedOperation(
-                                            new WriteOperation('Echo: ' . $request),
+                                            new WriteOperation(
+                                                sprintf('Reply for %s: Echo: %s', $frame->getRemoteAddress(), $request)
+                                            ),
                                             function () use ($startedWaitAt, $progress, $output) {
                                                 $step = (time() - $startedWaitAt) % $progress->getMaxSteps();
                                                 if ($step) {

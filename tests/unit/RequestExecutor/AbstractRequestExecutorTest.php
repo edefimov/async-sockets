@@ -930,7 +930,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             $ref    = new \ReflectionClass('AsyncSockets\Event\EventType');
             $result = [ ];
             foreach ($ref->getConstants() as $value) {
-                if ($value === EventType::DATA_ARRIVED) {
+                if ($value === EventType::DATA_ALERT) {
                     continue;
                 }
 
