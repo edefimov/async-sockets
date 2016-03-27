@@ -281,8 +281,13 @@ class AsyncSelector
      */
     private function calculateAttemptsCount($seconds, $usec)
     {
-        return $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) :
+        $result = $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) :
             self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
+        if ($result < self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT) {
+            $result = self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
+        }
+        
+        return $result;
     }
 
     /**

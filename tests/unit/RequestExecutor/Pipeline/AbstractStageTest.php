@@ -110,6 +110,7 @@ abstract class AbstractStageTest extends AbstractTestCase
                                      'isRunning',
                                      'getOperation',
                                      'setOperation',
+                                     'invokeEvent'
                                  ]
                              )
                              ->disableOriginalConstructor()

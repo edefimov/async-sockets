@@ -67,6 +67,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
 
         $frame = $this->object->read(new RawFramePicker());
         self::assertEquals($expectedData, (string) $frame, 'Incorrect frame');
+        self::assertSame($remoteAddress, $frame->getRemoteAddress(), 'Incorrect remote address');
     }
 
     /**

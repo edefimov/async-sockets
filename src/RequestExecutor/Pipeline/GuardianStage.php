@@ -10,11 +10,9 @@
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\DataAlertEvent;
-use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\UnmanagedSocketException;
 use AsyncSockets\Frame\EmptyFramePicker;
 use AsyncSockets\Operation\NullOperation;
-use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -154,7 +152,7 @@ class GuardianStage extends AbstractStage
      * @param int               $attempt Current attempt number from 1
      * @param int               $totalAttempts Total attempts
      *
-     * @return OperationInterface|null
+     * @return void
      */
     private function notifyDataAlert(
         OperationMetadata $descriptor,
@@ -170,14 +168,12 @@ class GuardianStage extends AbstractStage
             $attempt,
             $totalAttempts
         );
-        try {
-            $this->callSocketSubscribers($descriptor, $event);
+        
+        $this->callSocketSubscribers($descriptor, $event);
 
-            return $event->getNextOperation();
-        } catch (SocketException $e) {
-            $this->callExceptionSubscribers($descriptor, $e);
-
-            return null;
+        $operation = $event->getNextOperation();
+        if ($operation) {
+            $descriptor->setOperation($operation);
         }
     }
 }

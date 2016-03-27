@@ -10,11 +10,6 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\Event\DataAlertEvent;
-use AsyncSockets\Event\EventType;
-use AsyncSockets\Event\IoEvent;
-use AsyncSockets\Event\SocketExceptionEvent;
-use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\RequestExecutor\Pipeline\NullIoHandler;
 
@@ -29,6 +24,26 @@ class NullIoHandlerTest extends AbstractIoHandlerTest
     protected function createIoHandlerInterface()
     {
         return new NullIoHandler();
+    }
+
+    /**
+     * testHandleOperation
+     *
+     * @return void
+     */
+    public function testHandleOperation()
+    {
+        $this->mockEventHandler->expects(self::never())
+            ->method('invokeEvent');
+        
+        $result = $this->handler->handle(
+            new NullOperation(),
+            $this->socket,
+            $this->executor,
+            $this->mockEventHandler
+        );
+
+        self::assertNull($result, 'NullIoHandler must not return anything from handler');
     }
 
     /**

@@ -11,8 +11,12 @@
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\DataAlertEvent;
+use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
+use AsyncSockets\Frame\EmptyFramePicker;
 use AsyncSockets\Operation\NullOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\Pipeline\DisconnectStage;
 use AsyncSockets\RequestExecutor\Pipeline\GuardianStage;
@@ -61,14 +65,17 @@ class GuardianStageTest extends AbstractStageTest
     /**
      * testKillZombie
      *
+     * @param OperationInterface $operation Operation to test
+     *
      * @return void
+     * @dataProvider operationDataProvider
      */
-    public function testKillZombie()
+    public function testKillZombie(OperationInterface $operation)
     {
         $descriptor  = $this->createOperationMetadata();
         $descriptor->expects(self::any())
                  ->method('getOperation')
-                 ->willReturn(new NullOperation());
+                 ->willReturn($operation);
         $descriptor->expects(self::any())
                  ->method('getSocket')
                  ->willReturn($this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface'));
@@ -83,6 +90,22 @@ class GuardianStageTest extends AbstractStageTest
         $this->disconnectStage->expects(self::once())
             ->method('disconnect')
             ->with($descriptor);
+
+        for ($i = 0; $i < GuardianStage::MAX_ATTEMPTS_PER_SOCKET; $i++) {
+            $descriptor->expects(self::at($i))
+                ->method('invokeEvent')
+                ->willReturnCallback(function (Event $event) use ($i) {
+                    self::assertInstanceOf('AsyncSockets\Event\DataAlertEvent', $event, 'Incorrect event class');
+                    self::assertSame(EventType::DATA_ALERT, $event->getType(), 'Incorrect event type');
+                    /** @var DataAlertEvent $event */
+                    self::assertSame($i, $event->getAttempt(), 'Incorrect attempt');
+                    self::assertSame(
+                        GuardianStage::MAX_ATTEMPTS_PER_SOCKET,
+                        $event->getTotalAttempts(),
+                        'Incorrect total attempts'
+                    );
+                });
+        }
 
         $this->eventCaller->expects(self::once())
             ->method('callExceptionSubscribers')
@@ -100,66 +123,46 @@ class GuardianStageTest extends AbstractStageTest
     }
 
     /**
-     * testDispatchEventAboutUnreadData
+     * testCanChangeNextOperationAfterEvent
+     *
+     * @param OperationInterface $operation Operation to test
      *
      * @return void
+     * @dataProvider operationDataProvider
      */
-    public function testDispatchEventAboutUnreadData()
+    public function testCanChangeNextOperationAfterEvent(OperationInterface $operation)
     {
-        return;
+        $descriptor  = $this->createOperationMetadata();
+        $descriptor->expects(self::any())
+                   ->method('getOperation')
+                   ->willReturn($operation);
+        $descriptor->expects(self::any())
+                   ->method('getSocket')
+                   ->willReturn($this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface'));
+        $descriptor->expects(self::any())
+                   ->method('getMetadata')
+                   ->willReturn(
+                       [
+                           RequestExecutorInterface::META_REQUEST_COMPLETE => false
+                       ]
+                   );
+
+
         $nextOperation = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
+        $descriptor->expects(self::once())
+                   ->method('setOperation')
+                   ->with($nextOperation);
+
         $this->eventCaller->expects(self::once())
-                          ->method('invokeEvent')
+                          ->method('callSocketSubscribers')
+                          ->with($descriptor)
                           ->willReturnCallback(
-                              function (DataAlertEvent $event) use ($nextOperation) {
-                                  self::assertSame(EventType::DATA_ALERT, $event->getType());
-                                  self::assertSame($this->socket, $event->getSocket(), 'Invalid socket');
-                                  $this->validateEventContext($event);
+                              function ($descriptor, DataAlertEvent $event) use ($nextOperation) {
                                   $event->nextIs($nextOperation);
                               }
                           );
 
-
-        $result = $this->stage->handle(
-            new NullOperation(),
-            $this->socket,
-            $this->executor,
-            $this->mockEventHandler
-        );
-
-        self::assertSame($nextOperation, $result, 'Incorrect return value of handle() method');
-    }
-
-    /**
-     * testExceptionDuringEventWillBeHandled
-     *
-     * @return void
-     */
-    public function testExceptionDuringEventWillBeHandled()
-    {
-        return;
-        $exception     = new SocketException();
-        $this->mockEventHandler->expects(self::at(0))
-                               ->method('invokeEvent')
-                               ->willThrowException($exception);
-
-        $this->mockEventHandler->expects(self::at(1))
-                               ->method('invokeEvent')
-                               ->willReturnCallback(function (SocketExceptionEvent $event) use ($exception) {
-                                   self::assertSame($this->socket, $event->getSocket(), 'Invalid socket');
-                                   self::assertSame($exception, $event->getException(), 'Invalid exception');
-                                   $this->validateEventContext($event);
-                               });
-
-
-        $result = $this->handler->handle(
-            new NullOperation(),
-            $this->socket,
-            $this->executor,
-            $this->mockEventHandler
-        );
-
-        self::assertNull($result, 'Incorrect return value of handle() method');
+        $this->stage->processStage([$descriptor]);
     }
 
     /**
@@ -171,6 +174,20 @@ class GuardianStageTest extends AbstractStageTest
     {
         return [ [false], [true] ];
     }
+
+    /**
+     * operationDataProvider
+     *
+     * @return array
+     */
+    public function operationDataProvider()
+    {
+        return [
+            [new NullOperation()],
+            [new ReadOperation(new EmptyFramePicker())]
+        ];
+    }
+
     /**
      * @inheritDoc
      */

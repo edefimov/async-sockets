@@ -1,6 +1,6 @@
 <?php
 /**
- * Async-sockets
+ * Async sockets
  *
  * @copyright Copyright (c) 2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
