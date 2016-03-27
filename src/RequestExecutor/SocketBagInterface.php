@@ -83,6 +83,18 @@ interface SocketBagInterface extends \Countable
     public function removeSocket(SocketInterface $socket);
 
     /**
+     * Completes processing this socket in event loop, but keep this socket connection opened. Applicable
+     * only to persistent sockets, all other socket types are ignored by this method.
+     *
+     * @param SocketInterface $socket Socket object
+     *
+     * @return void
+     *
+     * @api
+     */
+    public function postponeSocket(SocketInterface $socket);
+
+    /**
      * Return array with meta information about socket
      *
      * @param SocketInterface $socket Added socket

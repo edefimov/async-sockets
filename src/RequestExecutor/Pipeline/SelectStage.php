@@ -96,6 +96,10 @@ class SelectStage extends AbstractTimeAwareStage
     {
         $microtime  = microtime(true);
         $minTimeout = null;
+        $result     = [
+            'sec'      => null,
+            'microsec' => null,
+        ];
 
         foreach ($activeOperations as $activeOperation) {
             $timeout    = $this->getSingleSocketTimeout($activeOperation, $microtime);
@@ -109,11 +113,6 @@ class SelectStage extends AbstractTimeAwareStage
             $result = [
                 'sec'      => (int) floor($minTimeout),
                 'microsec' => round((double) $minTimeout - floor($minTimeout), 6) * 1000000,
-            ];
-        } else {
-            $result = [
-                'sec'      => null,
-                'microsec' => null,
             ];
         }
 

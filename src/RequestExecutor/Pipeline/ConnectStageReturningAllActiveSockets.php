@@ -35,8 +35,12 @@ class ConnectStageReturningAllActiveSockets extends ConnectStage
     {
         $result = [];
         foreach ($operations as $key => $item) {
-            $meta = $item->getMetadata();
-            if (!$meta[RequestExecutorInterface::META_REQUEST_COMPLETE] && $item->isRunning()) {
+            $meta     = $item->getMetadata();
+            $isActive = !$meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ] &&
+                        $item->isRunning() &&
+                        !$item->isPostponed();
+            
+            if ($isActive) {
                 $result[$key] = $item;
             }
         }

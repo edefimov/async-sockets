@@ -26,6 +26,11 @@ class AsyncSelector
     const ATTEMPT_DELAY = 250000;
 
     /**
+     * Attempt count to use when time out is not set
+     */
+    const ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT = 10;
+
+    /**
      * Array of resources indexed by operation
      *
      * @var StreamResourceInterface[][]
@@ -276,7 +281,8 @@ class AsyncSelector
      */
     private function calculateAttemptsCount($seconds, $usec)
     {
-        return $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) : 1;
+        return $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) :
+            self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
     }
 
     /**

@@ -139,6 +139,17 @@ class SocketBag implements SocketBagInterface
     }
 
     /** {@inheritdoc} */
+    public function postponeSocket(SocketInterface $socket)
+    {
+        $key = $this->getOperationStorageKey($socket);
+        if (!isset($this->items[$key])) {
+            return;
+        }
+
+        $this->items[$key]->postpone();
+    }
+
+    /** {@inheritdoc} */
     public function getSocketMetaData(SocketInterface $socket)
     {
         return $this->requireOperation($socket)->getMetadata();

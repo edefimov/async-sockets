@@ -35,12 +35,7 @@ class SslHandshakeIoHandler implements IoHandlerInterface
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
-        if (!($operation instanceof SslHandshakeOperation)) {
-            throw new \LogicException(
-                'Can not use ' . get_class($this) . ' for ' . get_class($operation) . ' operation'
-            );
-        }
-
+        /** @var SslHandshakeOperation $operation */
         $resource = $socket->getStreamResource();
         $result   = stream_socket_enable_crypto($resource, true, $operation->getCipher());
         if ($result === true) {

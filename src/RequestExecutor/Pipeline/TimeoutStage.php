@@ -27,10 +27,10 @@ class TimeoutStage extends AbstractTimeAwareStage
         $result    = [ ];
         $microTime = microtime(true);
         foreach ($operations as $key => $operation) {
-            if ($this->isSingleSocketTimeout($operation, $microTime)) {
-                if (!$this->handleTimeoutOnDescriptor($operation)) {
-                    $result[$key] = $operation;
-                }
+            $isTimeout = $this->isSingleSocketTimeout($operation, $microTime) &&
+                         !$this->handleTimeoutOnDescriptor($operation);
+            if ($isTimeout) {
+                $result[$key] = $operation;
             }
         }
 
@@ -58,11 +58,12 @@ class TimeoutStage extends AbstractTimeAwareStage
         );
         try {
             $this->callSocketSubscribers($descriptor, $event);
+            $result = $event->isNextAttemptEnabled();
         } catch (SocketException $e) {
             $this->callExceptionSubscribers($descriptor, $e);
+            $result = false;
         }
 
-        $result = $event->isNextAttemptEnabled();
         if ($result) {
             $this->updateMetadataForAttempt($descriptor, $event->when());
         }

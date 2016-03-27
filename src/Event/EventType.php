@@ -69,7 +69,7 @@ final class EventType
      * this event you should either close a connection, or set appropriate read operation. If none of
      * these is done, socket will be automatically closed with UnmanagedSocketException thrown.
      *
-     * @see IoEvent
+     * @see DataAlertEvent
      */
     const DATA_ALERT = 'socket.event.data_alert';
 

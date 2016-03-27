@@ -9,10 +9,6 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\Event\EventType;
-use AsyncSockets\Event\IoEvent;
-use AsyncSockets\Event\SocketExceptionEvent;
-use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
@@ -42,33 +38,6 @@ class NullIoHandler implements IoHandlerInterface
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
-        if (!($operation instanceof NullOperation)) {
-            throw new \LogicException(
-                'Can not use ' . get_class($this) . ' for ' . get_class($operation) . ' operation'
-            );
-        }
-
-        $meta  = $executor->socketBag()->getSocketMetaData($socket);
-        $event = new IoEvent(
-            $executor,
-            $socket,
-            $meta[ RequestExecutorInterface::META_USER_CONTEXT ],
-            EventType::DATA_ALERT
-        );
-        try {
-            $eventHandler->invokeEvent($event);
-
-            return $event->getNextOperation();
-        } catch (SocketException $e) {
-            $exceptionEvent = new SocketExceptionEvent(
-                $e,
-                $executor,
-                $socket,
-                $meta[ RequestExecutorInterface::META_USER_CONTEXT ]
-            );
-            $eventHandler->invokeEvent($exceptionEvent);
-
-            return null;
-        }
+        // empty body
     }
 }

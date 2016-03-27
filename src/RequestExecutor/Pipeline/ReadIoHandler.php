@@ -39,12 +39,6 @@ class ReadIoHandler implements IoHandlerInterface
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
-        if (!($operation instanceof ReadOperation)) {
-            throw new \LogicException(
-                'Can not use ' . get_class($this) . ' for ' . get_class($operation) . ' operation'
-            );
-        }
-
         $meta    = $executor->socketBag()->getSocketMetaData($socket);
         $context = $meta[RequestExecutorInterface::META_USER_CONTEXT];
 

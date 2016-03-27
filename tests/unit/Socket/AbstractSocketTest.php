@@ -56,32 +56,6 @@ class AbstractSocketTest extends AbstractTestCase
     }
 
     /**
-     * testCloseWillBeInvokedOnDestruct
-     *
-     * @return void
-     */
-    public function testCloseWillBeInvokedOnDestruct()
-    {
-        if (!method_exists($this->socket, '__destruct')) {
-            self::fail(
-                'You must implement __destruct in SocketInterface implementation and call \'close\' method inside'
-            );
-        }
-
-        $class  = get_class($this->socket);
-        $object = $this->getMockBuilder($class)
-            ->setMethods(['close'])
-            ->disableOriginalConstructor()
-            ->getMock();
-        $object->expects(self::once())
-            ->method('close')
-            ->with();
-
-        /** @var SocketInterface $object */
-        $object->__destruct();
-    }
-
-    /**
      * testCantReadFromClosedSocket
      *
      * @return void
@@ -94,7 +68,7 @@ class AbstractSocketTest extends AbstractTestCase
     }
 
     /**
-     * testCantReadFromClosedSocket
+     * testCantWriteToClosedSocket
      *
      * @return void
      * @expectedException \AsyncSockets\Exception\NetworkSocketException

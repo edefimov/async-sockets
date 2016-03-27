@@ -75,14 +75,6 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /**
-     * Destructor
-     */
-    public function __destruct()
-    {
-        $this->close();
-    }
-
-    /**
      * Create certain socket resource
      *
      * @param string   $address Network address to open in form transport://path:port
@@ -105,8 +97,6 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function open($address, $context = null)
     {
-        $this->close();
-
         $this->resource = $this->createSocketResource(
             $address,
             $context ?: stream_context_get_default()

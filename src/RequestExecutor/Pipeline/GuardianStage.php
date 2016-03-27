@@ -9,8 +9,13 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\Event\DataAlertEvent;
+use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\UnmanagedSocketException;
+use AsyncSockets\Frame\EmptyFramePicker;
 use AsyncSockets\Operation\NullOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -54,9 +59,7 @@ class GuardianStage extends AbstractStage
         $this->disconnectStage = $disconnectStage;
     }
 
-    /**
-     * @inheritDoc
-     */
+    /** {@inheritdoc} */
     public function processStage(array $operations)
     {
         $result = [];
@@ -85,12 +88,17 @@ class GuardianStage extends AbstractStage
             return false;
         }
 
-        $result    = false;
-        $operation = $descriptor->getOperation();
-        if ($operation instanceof NullOperation) {
+        $result = false;
+        if ($this->isZombieCandidate($descriptor)) {
             if (!isset($this->candidates[$key])) {
                 $this->candidates[$key] = self::MAX_ATTEMPTS_PER_SOCKET;
             }
+
+            $this->notifyDataAlert(
+                $descriptor,
+                self::MAX_ATTEMPTS_PER_SOCKET - $this->candidates[$key] + 1,
+                self::MAX_ATTEMPTS_PER_SOCKET
+            );
 
             --$this->candidates[$key];
             if (!$this->candidates[$key]) {
@@ -103,6 +111,23 @@ class GuardianStage extends AbstractStage
         }
 
         return $result;
+    }
+
+    /**
+     * Check if this socket can be a zombie
+     *
+     * @param OperationMetadata $descriptor Descriptor object
+     *
+     * @return bool
+     */
+    private function isZombieCandidate(OperationMetadata $descriptor)
+    {
+        $operation = $descriptor->getOperation();
+        return ($operation instanceof NullOperation) ||
+               (
+                   $operation instanceof ReadOperation &&
+                   $operation->getFramePicker() instanceof EmptyFramePicker
+               );
     }
 
     /**
@@ -120,5 +145,39 @@ class GuardianStage extends AbstractStage
         );
 
         $this->disconnectStage->disconnect($descriptor);
+    }
+
+    /**
+     * Notify client about unhandled data in socket
+     *
+     * @param OperationMetadata $descriptor Socket operation descriptor
+     * @param int               $attempt Current attempt number from 1
+     * @param int               $totalAttempts Total attempts
+     *
+     * @return OperationInterface|null
+     */
+    private function notifyDataAlert(
+        OperationMetadata $descriptor,
+        $attempt,
+        $totalAttempts
+    ) {
+        $socket = $descriptor->getSocket();
+        $meta   = $this->executor->socketBag()->getSocketMetaData($socket);
+        $event  = new DataAlertEvent(
+            $this->executor,
+            $socket,
+            $meta[ RequestExecutorInterface::META_USER_CONTEXT ],
+            $attempt,
+            $totalAttempts
+        );
+        try {
+            $this->callSocketSubscribers($descriptor, $event);
+
+            return $event->getNextOperation();
+        } catch (SocketException $e) {
+            $this->callExceptionSubscribers($descriptor, $e);
+
+            return null;
+        }
     }
 }

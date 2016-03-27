@@ -653,7 +653,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
                     EventType::TIMEOUT      => [
                         [ $mock, 'count' ],
                         function (Event $event) use ($context) {
-                            self::assertSame($context, $event->getContext(), 'Incorect context');
+                            self::assertSame($context, $event->getContext(), 'Incorrect context');
                         }
                     ]
                 ]

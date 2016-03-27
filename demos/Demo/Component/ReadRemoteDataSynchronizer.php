@@ -133,9 +133,11 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
                 $this->output->writeln('<error>Some new data arrived while we don\'t have handler</error>');
                 break;
             case EventType::READ:
+                /** @var ReadEvent $event */
                 $this->onRead($event);
                 break;
             case EventType::WRITE:
+                /** @var WriteEvent $event */
                 $this->onWrite($event);
                 break;
             case EventType::FINALIZE:
@@ -145,6 +147,7 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
                 $this->output->writeln('<comment>Timeout on persistent socket</comment>');
                 break;
             case EventType::EXCEPTION:
+                /** @var SocketExceptionEvent $event */
                 $this->onException($event);
                 break;
         }

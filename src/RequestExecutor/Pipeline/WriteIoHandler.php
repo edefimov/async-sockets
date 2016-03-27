@@ -36,12 +36,7 @@ class WriteIoHandler implements IoHandlerInterface
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
-        if (!($operation instanceof WriteOperation)) {
-            throw new \LogicException(
-                'Can not use ' . get_class($this) . ' for ' . get_class($operation) . ' operation'
-            );
-        }
-
+        /** @var WriteOperation $operation */
         $fireEvent = !($operation instanceof InProgressWriteOperation);
 
         if ($fireEvent) {
