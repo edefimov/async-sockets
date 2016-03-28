@@ -8,10 +8,10 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Tests\AsyncSockets\RequestExecutor;
+namespace Tests\AsyncSockets\Operation;
 
-use AsyncSockets\RequestExecutor\OperationInterface;
-use AsyncSockets\RequestExecutor\SslHandshakeOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\SslHandshakeOperation;
 
 /**
  * Class SslHandshakeOperationTest
@@ -28,7 +28,7 @@ class SslHandshakeOperationTest extends \PHPUnit_Framework_TestCase
         $operation = new SslHandshakeOperation();
         self::assertSame(STREAM_CRYPTO_METHOD_TLS_CLIENT, $operation->getCipher(), 'Incorrect initial cipher');
         self::assertNull($operation->getNextOperation(), 'Incorrect next operation initial state');
-        self::assertEquals(
+        self::assertSame(
             OperationInterface::OPERATION_WRITE,
             $operation->getType(),
             'Incorrect type for operation'
@@ -42,9 +42,9 @@ class SslHandshakeOperationTest extends \PHPUnit_Framework_TestCase
      */
     public function testConstructorParams()
     {
-        $mock       = $this->getMockForAbstractClass('AsyncSockets\RequestExecutor\OperationInterface');
+        $mock       = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
         $cipher    = mt_rand(0, PHP_INT_MAX);
-        $operation = new SslHandshakeOperation($cipher, $mock);
+        $operation = new SslHandshakeOperation($mock, $cipher);
         self::assertSame($cipher, $operation->getCipher(), 'Incorrect cipher');
         self::assertSame($mock, $operation->getNextOperation(), 'Incorrect operation');
     }

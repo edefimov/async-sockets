@@ -21,10 +21,10 @@ use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
 use AsyncSockets\RequestExecutor\NoLimitationSolver;
-use AsyncSockets\RequestExecutor\OperationInterface;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
@@ -653,7 +653,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
                     EventType::TIMEOUT      => [
                         [ $mock, 'count' ],
                         function (Event $event) use ($context) {
-                            self::assertSame($context, $event->getContext(), 'Incorect context');
+                            self::assertSame($context, $event->getContext(), 'Incorrect context');
                         }
                     ]
                 ]
@@ -930,6 +930,9 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             $ref    = new \ReflectionClass('AsyncSockets\Event\EventType');
             $result = [ ];
             foreach ($ref->getConstants() as $value) {
+                if ($value === EventType::DATA_ALERT) {
+                    continue;
+                }
 
                 $result[] = [ $value, new ReadOperation() ];
                 if ($value !== EventType::ACCEPT) {

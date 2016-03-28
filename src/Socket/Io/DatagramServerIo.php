@@ -43,7 +43,7 @@ class DatagramServerIo extends AbstractServerIo
     /** {@inheritdoc} */
     public function read(FramePickerInterface $picker)
     {
-        $data = stream_socket_recvfrom(
+        stream_socket_recvfrom(
             $this->socket->getStreamResource(),
             self::SOCKET_BUFFER_SIZE,
             STREAM_PEEK,
@@ -51,12 +51,7 @@ class DatagramServerIo extends AbstractServerIo
         );
 
         if (!$remoteAddress && !$this->isLocalIo) {
-            if ($data) {
-                stream_socket_recvfrom(
-                    $this->socket->getStreamResource(),
-                    self::SOCKET_BUFFER_SIZE
-                );
-            }
+            stream_socket_recvfrom($this->socket->getStreamResource(), self::SOCKET_BUFFER_SIZE);
             throw new AcceptException($this->socket, 'Can not accept client: failed to receive remote address.');
         }
 

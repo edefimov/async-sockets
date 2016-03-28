@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use Tests\Application\Mock\PhpFunctionMocker;
 
@@ -82,13 +83,14 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
      *
      * @param string $type Socket type
      * @param string $className Class name to check
+     * @param array  $options Options for socket
      *
      * @return void
      * @dataProvider socketTypeDataProvider
      */
-    public function testCreateSocket($type, $className)
+    public function testCreateSocket($type, $className, array $options = [])
     {
-        $object = $this->factory->createSocket($type);
+        $object = $this->factory->createSocket($type, $options);
         self::assertInstanceOf(
             $className,
             $object,
@@ -114,6 +116,25 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testCreateRequestExecutorWithInvalidArgument
+     *
+     * @return void
+     * @expectedException \InvalidArgumentException
+     */
+    public function testCreateRequestExecutorWithInvalidArgument()
+    {
+        $factory = new AsyncSocketFactory(
+            new Configuration(
+                [
+                    'preferredEngines' => md5(microtime())
+                ]
+            )
+        );
+
+        $factory->createRequestExecutor();
+    }
+
+    /**
      * socketTypeDataProvider
      *
      * @return array
@@ -121,8 +142,15 @@ class AsyncSocketFactoryTest extends \PHPUnit_Framework_TestCase
     public function socketTypeDataProvider()
     {
         return [
-            [AsyncSocketFactory::SOCKET_CLIENT, 'AsyncSockets\Socket\ClientSocket'],
-            [AsyncSocketFactory::SOCKET_SERVER, 'AsyncSockets\Socket\ServerSocket'],
+            [AsyncSocketFactory::SOCKET_CLIENT, 'AsyncSockets\Socket\ClientSocket', []],
+            [AsyncSocketFactory::SOCKET_SERVER, 'AsyncSockets\Socket\ServerSocket', []],
+            [
+                AsyncSocketFactory::SOCKET_CLIENT,
+                'AsyncSockets\Socket\PersistentClientSocket',
+                [
+                    AsyncSocketFactory::SOCKET_OPTION_IS_PERSISTENT => true
+                ],
+            ],
         ];
     }
 

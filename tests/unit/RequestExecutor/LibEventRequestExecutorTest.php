@@ -12,11 +12,9 @@ namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\EventType;
-use AsyncSockets\RequestExecutor\CallbackEventHandler;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
-use AsyncSockets\RequestExecutor\Pipeline\LibEventStageFactory;
-use AsyncSockets\RequestExecutor\ReadOperation;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\RequestExecutor\Pipeline\BaseStageFactory;
 use Tests\Application\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\RequestExecutor\LibEvent\LibEventEmulatedEvent;
 use Tests\AsyncSockets\RequestExecutor\LibEvent\LibEventLoopEmulator;
@@ -40,7 +38,7 @@ class LibEventRequestExecutorTest extends AbstractRequestExecutorTest
         if (!extension_loaded('libevent')) {
             self::markTestSkipped('To pass this test libevent extension must be installed');
         }
-        return new LibEventRequestExecutor(new LibEventStageFactory(), new Configuration());
+        return new LibEventRequestExecutor(new BaseStageFactory(), new Configuration());
     }
 
     /** {@inheritdoc} */
@@ -54,9 +52,11 @@ class LibEventRequestExecutorTest extends AbstractRequestExecutorTest
     protected function tearDown()
     {
         parent::tearDown();
-        PhpFunctionMocker::getPhpFunctionMocker('event_set')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('event_add')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('event_new')->restoreNativeHandler();
+        if (extension_loaded('libevent')) {
+            PhpFunctionMocker::getPhpFunctionMocker('event_set')->restoreNativeHandler();
+            PhpFunctionMocker::getPhpFunctionMocker('event_add')->restoreNativeHandler();
+            PhpFunctionMocker::getPhpFunctionMocker('event_new')->restoreNativeHandler();
+        }
     }
 
     /**

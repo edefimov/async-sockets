@@ -94,34 +94,41 @@ class SelectStage extends AbstractTimeAwareStage
      */
     private function calculateSelectorTimeout(array $activeOperations)
     {
-        $result    = [ 'sec' => 0, 'microsec' => 0 ];
-        $timeList  = [];
-        $microtime = microtime(true);
+        $microtime  = microtime(true);
+        $minTimeout = null;
+        $result     = [
+            'sec'      => null,
+            'microsec' => null,
+        ];
 
-        $hasInfiniteTimeout = false;
         foreach ($activeOperations as $activeOperation) {
-            $timeout            = $this->getSingleSocketTimeout($activeOperation, $microtime);
-            $hasInfiniteTimeout = $hasInfiniteTimeout || $timeout === null;
-            if ($timeout > 0) {
-                $timeList[] = $timeout;
-            }
+            $timeout    = $this->getSingleSocketTimeout($activeOperation, $microtime);
+            $minTimeout = $this->getMinTimeout($timeout, $minTimeout);
         }
 
-        $timeList = array_filter($timeList);
-        if ($timeList) {
-            $timeout = min($timeList);
+        if ($minTimeout !== null) {
             $result = [
-                'sec'      => (int) floor($timeout),
-                'microsec' => round((double) $timeout - floor($timeout), 6) * 1000000,
-            ];
-        } elseif ($hasInfiniteTimeout) {
-            $result = [
-                'sec'      => null,
-                'microsec' => null,
+                'sec'      => (int) floor($minTimeout),
+                'microsec' => round((double) $minTimeout - floor($minTimeout), 6) * 1000000,
             ];
         }
 
         return $result;
+    }
+
+    /**
+     * Return minimum timeout from two values
+     *
+     * @param double $newValue New value
+     * @param double $oldValue Old value
+     *
+     * @return double
+     */
+    private function getMinTimeout($newValue, $oldValue)
+    {
+        return (($newValue > 0 && $newValue < $oldValue) || $oldValue === null) ?
+            $newValue :
+            $oldValue;
     }
 
     /**
@@ -141,9 +148,11 @@ class SelectStage extends AbstractTimeAwareStage
             return null;
         }
 
-        return $lastOperationTime === null ?
+        $result = $lastOperationTime === null ?
             $desiredTimeout :
             $desiredTimeout - ($microTime - $lastOperationTime);
+
+        return $result >= 0 ? $result : 0;
     }
 
     /**

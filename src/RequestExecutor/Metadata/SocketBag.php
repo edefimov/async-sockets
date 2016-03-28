@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\SocketBagInterface;
@@ -136,6 +136,17 @@ class SocketBag implements SocketBagInterface
         }
 
         unset($this->items[$key]);
+    }
+
+    /** {@inheritdoc} */
+    public function postponeSocket(SocketInterface $socket)
+    {
+        $key = $this->getOperationStorageKey($socket);
+        if (!isset($this->items[$key])) {
+            return;
+        }
+
+        $this->items[$key]->postpone();
     }
 
     /** {@inheritdoc} */

@@ -14,3 +14,4 @@ use Composer\Autoload\ClassLoader;
 $classLoader = include __DIR__ . '/../vendor/autoload.php';
 $classLoader->addPsr4('Tests\\AsyncSockets\\', __DIR__ . '/unit');
 $classLoader->addPsr4('Tests\\Application\\', __DIR__ . DIRECTORY_SEPARATOR . 'Application');
+$classLoader->addPsr4('Demo\\Frame\\', __DIR__ . '/../demos/Demo/Frame');

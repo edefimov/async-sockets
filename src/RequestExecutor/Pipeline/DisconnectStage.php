@@ -14,6 +14,7 @@ use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
+use AsyncSockets\Socket\PersistentClientSocket;
 
 /**
  * Class DisconnectStage
@@ -56,41 +57,72 @@ class DisconnectStage extends AbstractStage
     /**
      * Disconnect given socket
      *
-     * @param OperationMetadata $operation Operation object
+     * @param OperationMetadata $descriptor Operation object
      *
      * @return void
      */
-    private function disconnectSingleSocket(OperationMetadata $operation)
+    private function disconnectSingleSocket(OperationMetadata $descriptor)
     {
-        $meta = $operation->getMetadata();
+        $meta = $descriptor->getMetadata();
 
         if ($meta[RequestExecutorInterface::META_REQUEST_COMPLETE]) {
             return;
         }
 
-        $operation->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
+        $socket = $descriptor->getSocket();
 
-        $socket = $operation->getSocket();
-        $event  = $this->createEvent($operation, EventType::DISCONNECTED);
+        $isTimeToLeave = (
+                            ($socket instanceof PersistentClientSocket) &&
+                            (
+                                feof($socket->getStreamResource()) !== false ||
+                                !stream_socket_get_name($socket->getStreamResource(), true)
+                            )
+                         ) || (
+                            !($socket instanceof PersistentClientSocket)
+                         );
 
-        try {
-            $socket->close();
-            if ($meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null) {
-                $this->callSocketSubscribers($operation, $event);
-            }
-        } catch (SocketException $e) {
-            $this->callExceptionSubscribers($operation, $e);
+        if (!$isTimeToLeave) {
+            return;
         }
 
-        $this->removeOperationsFromSelector($operation);
-        $this->callSocketSubscribers(
-            $operation,
-            $this->createEvent($operation, EventType::FINALIZE)
-        );
+        $this->disconnect($descriptor);
     }
 
     /**
-     * Remove given operation from selector
+     * Disconnects given socket descriptor
+     *
+     * @param OperationMetadata $descriptor Socket descriptor
+     *
+     * @return void
+     */
+    public function disconnect(OperationMetadata $descriptor)
+    {
+        $meta   = $descriptor->getMetadata();
+        $socket = $descriptor->getSocket();
+
+        $descriptor->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
+        try {
+            $socket->close();
+            if ($meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null) {
+                $this->callSocketSubscribers(
+                    $descriptor,
+                    $this->createEvent($descriptor, EventType::DISCONNECTED)
+                );
+            }
+        } catch (SocketException $e) {
+            $this->callExceptionSubscribers($descriptor, $e);
+        }
+
+        $this->callSocketSubscribers(
+            $descriptor,
+            $this->createEvent($descriptor, EventType::FINALIZE)
+        );
+
+        $this->removeOperationsFromSelector($descriptor);
+    }
+
+    /**
+     * Remove given descriptor from selector
      *
      * @param OperationMetadata $operation
      *

@@ -19,8 +19,8 @@ use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\ConstantLimitationSolver;
 use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\SslHandshakeOperation;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\SslHandshakeOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -64,8 +64,8 @@ class SocketPool extends Command
             $executor->socketBag()->addSocket(
                 $client,
                 new SslHandshakeOperation(
-                    STREAM_CRYPTO_METHOD_TLS_CLIENT,
-                    new WriteOperation("GET / HTTP/1.1\nHost: {$host}\n\n")
+                    new WriteOperation("GET / HTTP/1.1\nHost: {$host}\n\n"),
+                    STREAM_CRYPTO_METHOD_TLS_CLIENT
                 ),
                 [
                     RequestExecutorInterface::META_ADDRESS      => $destination,

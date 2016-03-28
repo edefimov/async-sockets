@@ -48,7 +48,7 @@ class Configuration
      */
     public function __construct(array $options = [])
     {
-        $options = $options + $this->getDefaultOptions();
+        $options += $this->getDefaultOptions();
 
         $this->connectTimeout   = (double) $options[ 'connectTimeout' ];
         $this->ioTimeout        = (double) $options[ 'ioTimeout' ];

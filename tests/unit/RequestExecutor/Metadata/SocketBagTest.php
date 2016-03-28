@@ -11,7 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -157,6 +157,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     public function testNonAddedSocketRemove()
     {
         $this->bag->removeSocket($this->socket);
+        $this->bag->postponeSocket($this->socket);
         self::assertFalse(
             $this->bag->hasSocket($this->socket),
             'hasSocket returned true for removed socket'
@@ -319,7 +320,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
                 'stopRequest',
             ]
         );
-        $this->operation = $this->getMock('AsyncSockets\RequestExecutor\OperationInterface');
+        $this->operation = $this->getMock('AsyncSockets\Operation\OperationInterface');
         $this->socket    = $this->getMock('AsyncSockets\Socket\SocketInterface');
 
         $this->connectTimeout = (double) mt_rand(1, PHP_INT_MAX);

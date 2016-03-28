@@ -7,7 +7,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-namespace AsyncSockets\RequestExecutor;
+namespace AsyncSockets\Operation;
 
 /**
  * Class SslHandshakeOperation
@@ -31,13 +31,13 @@ class SslHandshakeOperation implements OperationInterface
     /**
      * SslHandshakeOperation constructor.
      *
-     * @param int                $cipher Cipher to use for SSL encryption
      * @param OperationInterface $nextOperation I/O operation after handshake will complete
+     * @param int                $cipher Cipher to use for SSL encryption
      */
-    public function __construct($cipher = STREAM_CRYPTO_METHOD_TLS_CLIENT, OperationInterface $nextOperation = null)
+    public function __construct(OperationInterface $nextOperation = null, $cipher = STREAM_CRYPTO_METHOD_TLS_CLIENT)
     {
-        $this->cipher = $cipher;
         $this->nextOperation = $nextOperation;
+        $this->cipher        = $cipher;
     }
 
     /** {@inheritdoc} */

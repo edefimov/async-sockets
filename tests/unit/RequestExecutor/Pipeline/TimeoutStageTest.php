@@ -12,10 +12,11 @@ namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
+use AsyncSockets\Event\TimeoutEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 use AsyncSockets\RequestExecutor\Pipeline\TimeoutStage;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 
@@ -57,6 +58,7 @@ class TimeoutStageTest extends AbstractStageTest
             ->method('callSocketSubscribers')
             ->with($request)
             ->willReturnCallback(function (OperationMetadata $request, Event $event) use ($metadata) {
+                self::assertInstanceOf('AsyncSockets\Event\TimeoutEvent', $event);
                 self::assertSame($request->getSocket(), $event->getSocket());
                 self::assertSame(EventType::TIMEOUT, $event->getType());
                 self::assertSame(
@@ -161,6 +163,100 @@ class TimeoutStageTest extends AbstractStageTest
                 "Normal socket at index {$index} was returned as timeout"
             );
         }
+    }
+
+    /**
+     * testOneMoreAttempt
+     *
+     * @param int    $microtime Return value for microtime()
+     * @param string $when Moment when timeout occured
+     * @param array  $setMetadata Metadata to set before test in descriptor
+     * @param array  $expectations Expectations for descriptor
+     *
+     * @dataProvider oneMoreAttemptDataProvider
+     */
+    public function testOneMoreAttempt($microtime, $when, array $setMetadata, array $expectations)
+    {
+        PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable(
+            function () use ($microtime) {
+                return $microtime;
+            }
+        );
+
+        $request = $this->createOperationMetadata();
+        $request->expects(self::any())->method('getSocket')->willReturn(
+            $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
+        );
+
+        foreach ($expectations as $method => $args) {
+            $matcher = $request->expects(self::once())
+                    ->method($method);
+
+            call_user_func_array([$matcher, 'with'], $args);
+        }
+
+
+        $metadata = array_replace(
+            $this->getMetadataStructure(),
+            $setMetadata
+        );
+
+        $request->expects(self::any())->method('getMetadata')->willReturn($metadata);
+
+        $this->eventCaller->expects(self::once())
+                          ->method('callSocketSubscribers')
+                          ->with($request)
+                          ->willReturnCallback(function (OperationMetadata $request, TimeoutEvent $event) use ($when) {
+                              self::assertSame($when, $event->when(), 'Incorrect timeout moment');
+                              $event->enableOneMoreAttempt();
+                          });
+
+        $result = $this->stage->processStage([$request]);
+        self::assertEmpty($result, 'Socket with next attempt shouldn\'t return');
+    }
+
+    /**
+     * oneMoreAttemptDataProvider
+     *
+     * @return array
+     */
+    public function oneMoreAttemptDataProvider()
+    {
+        return [
+            [
+                10,
+                TimeoutEvent::DURING_IO,
+                [
+                    RequestExecutorInterface::META_CONNECTION_START_TIME  => 1,
+                    RequestExecutorInterface::META_CONNECTION_FINISH_TIME => 10,
+                    RequestExecutorInterface::META_LAST_IO_START_TIME     => 5,
+                    RequestExecutorInterface::META_IO_TIMEOUT             => 1,
+                ],
+                [
+                    'setMetadata' => [ RequestExecutorInterface::META_LAST_IO_START_TIME, null ]
+                ]
+            ],
+
+            [
+                10,
+                TimeoutEvent::DURING_CONNECTION,
+                [
+                    RequestExecutorInterface::META_CONNECTION_START_TIME  => 1,
+                    RequestExecutorInterface::META_CONNECTION_FINISH_TIME => null,
+                    RequestExecutorInterface::META_CONNECTION_TIMEOUT     => 5,
+                ],
+                [
+                    'setRunning' =>  [false],
+                    'setMetadata' => [
+                        [
+                            RequestExecutorInterface::META_LAST_IO_START_TIME     => null,
+                            RequestExecutorInterface::META_CONNECTION_START_TIME  => null,
+                            RequestExecutorInterface::META_CONNECTION_FINISH_TIME => null,
+                        ]
+                    ]
+                ]
+            ],
+        ];
     }
 
     /**

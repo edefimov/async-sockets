@@ -1,0 +1,17 @@
+zend_extension=/usr/local/lib/php/extensions/no-debug-zts-20131226/xdebug.so
+
+[xdebug]
+xdebug.remote_host =
+xdebug.idekey =
+xdebug.remote_port = 9000
+xdebug.default_enable = On
+xdebug.var_display_max_depth = 6
+xdebug.remote_enable = On
+xdebug.remote_handler = dbgp
+xdebug.remote_autostart = 0
+xdebug.remote_log=/tmp/xdebug/xdebug.log
+xdebug.profiler_enable_trigger = 1
+xdebug.profiler_enable = 0
+xdebug.profiler_output_dir = /tmp/xdebug/profiler/
+xdebug.show_local_vars = 1
+xdebug.overload_var_dump = 1

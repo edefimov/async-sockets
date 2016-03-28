@@ -56,32 +56,6 @@ class AbstractSocketTest extends AbstractTestCase
     }
 
     /**
-     * testCloseWillBeInvokedOnDestruct
-     *
-     * @return void
-     */
-    public function testCloseWillBeInvokedOnDestruct()
-    {
-        if (!method_exists($this->socket, '__destruct')) {
-            self::fail(
-                'You must implement __destruct in SocketInterface implementation and call \'close\' method inside'
-            );
-        }
-
-        $class  = get_class($this->socket);
-        $object = $this->getMockBuilder($class)
-            ->setMethods(['close'])
-            ->disableOriginalConstructor()
-            ->getMock();
-        $object->expects(self::once())
-            ->method('close')
-            ->with();
-
-        /** @var SocketInterface $object */
-        $object->__destruct();
-    }
-
-    /**
      * testCantReadFromClosedSocket
      *
      * @return void
@@ -94,7 +68,7 @@ class AbstractSocketTest extends AbstractTestCase
     }
 
     /**
-     * testCantReadFromClosedSocket
+     * testCantWriteToClosedSocket
      *
      * @return void
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
@@ -153,6 +127,24 @@ class AbstractSocketTest extends AbstractTestCase
             $socket->{$method}($argument);
         } catch (ConnectionException $e) {
             $socket->{$method}($argument);
+        }
+    }
+
+    /**
+     * testExceptionWillBeThrownIfSocketTypeIsUnknown
+     *
+     * @return void
+     */
+    public function testExceptionWillBeThrownIfSocketTypeIsUnknown()
+    {
+        if (!($this->socket instanceof \PHPUnit_Framework_MockObject_MockObject)) {
+            $this->setExpectedExceptionRegExp('\LogicException');
+
+            PhpFunctionMocker::getPhpFunctionMocker('stream_get_meta_data')->setCallable(function () {
+                return [];
+            });
+
+            $this->socket->open('no matter');
         }
     }
 

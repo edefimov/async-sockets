@@ -9,7 +9,7 @@
  */
 namespace Tests\AsyncSockets\Socket;
 
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
@@ -67,12 +67,12 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      * @param int    $countWrite Amount of sockets, that must be ready to write
      *
      * @return void
-     * @depends testSelectReadWrite
+     * @depends      testSelectReadWrite
      * @dataProvider socketOperationDataProvider
      */
     public function testAddSocketArrayReadWrite($operation, $countRead, $countWrite)
     {
-        $this->selector->addSocketOperationArray([$this->socket], $operation);
+        $this->selector->addSocketOperationArray([ $this->socket ], $operation);
         $this->verifySocketSelectOperation($countRead, $countWrite);
     }
 
@@ -84,14 +84,16 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      * @param int    $countWrite Amount of sockets, that must be ready to write
      *
      * @return void
-     * @depends testAddSocketArrayReadWrite
+     * @depends      testAddSocketArrayReadWrite
      * @dataProvider socketOperationDataProvider
      */
     public function testAddSocketArrayReadWriteComplexArray($operation, $countRead, $countWrite)
     {
-        $this->selector->addSocketOperationArray([
-            [ $this->socket, $operation ]
-        ]);
+        $this->selector->addSocketOperationArray(
+            [
+                [ $this->socket, $operation ],
+            ]
+        );
         $this->verifySocketSelectOperation($countRead, $countWrite);
     }
 
@@ -112,7 +114,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      * @param array $socketData Socket add getData
      *
      * @return void
-     * @depends testSelectReadWrite
+     * @depends      testSelectReadWrite
      * @dataProvider invalidSocketAddDataProvider
      * @expectedException \InvalidArgumentException
      */
@@ -127,7 +129,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      * @param string $operation Operation to execute
      *
      * @return void
-     * @depends testSelectReadWrite
+     * @depends      testSelectReadWrite
      * @dataProvider socketOperationDataProvider
      * @expectedException \InvalidArgumentException
      */
@@ -150,9 +152,11 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     public function testStreamSelectFail($operation)
     {
         $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-        $mocker->setCallable(function () {
-            return false;
-        });
+        $mocker->setCallable(
+            function () {
+                return false;
+            }
+        );
 
         $this->selector->addSocketOperation($this->socket, $operation);
         $this->selector->select(0);
@@ -170,11 +174,14 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     public function testTimeOutExceptionWillBeThrown($operation)
     {
         $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-        $mocker->setCallable(function (array &$read = null, array &$write = null) {
-            $read  = [];
-            $write = [];
-            return 0;
-        });
+        $mocker->setCallable(
+            function (array &$read = null, array &$write = null) {
+                $read  = [ ];
+                $write = [ ];
+
+                return 0;
+            }
+        );
 
         $this->selector->addSocketOperation($this->socket, $operation);
         $this->selector->select(0);
@@ -186,7 +193,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      * @param string $operation Operation to execute
      *
      * @return void
-     * @depends testSelectReadWrite
+     * @depends      testSelectReadWrite
      * @dataProvider socketOperationDataProvider
      * @expectedException \InvalidArgumentException
      */
@@ -205,15 +212,17 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      * @param int    $countWrite Amount of sockets, that must be ready to write
      *
      * @return void
-     * @depends testRemoveAllSocketOperations
+     * @depends      testRemoveAllSocketOperations
      * @dataProvider socketOperationDataProvider
      */
     public function testChangeSocketOperation($operation, $countRead, $countWrite)
     {
-        $this->selector->addSocketOperationArray([
-            [$this->socket, OperationInterface::OPERATION_READ],
-            [$this->socket, OperationInterface::OPERATION_WRITE],
-        ]);
+        $this->selector->addSocketOperationArray(
+            [
+                [ $this->socket, OperationInterface::OPERATION_READ ],
+                [ $this->socket, OperationInterface::OPERATION_WRITE ],
+            ]
+        );
 
         $this->selector->changeSocketOperation($this->socket, $operation);
         $this->verifySocketSelectOperation($countRead, $countWrite);
@@ -227,18 +236,24 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      */
     public function testThatIfSelectFailedIncompleteSleepWillBeCalled()
     {
-        $usleep = $this->getMock('Countable', ['count']);
-        $usleep->expects(self::exactly(1))->method('count')->with(AsyncSelector::ATTEMPT_DELAY);
+        $usleep = $this->getMock('Countable', [ 'count' ]);
+        $usleep->expects(self::exactly(AsyncSelector::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT - 1))
+            ->method('count')
+            ->with(AsyncSelector::ATTEMPT_DELAY);
 
-        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(function () {
-            return 1;
-        });
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->setCallable(
+            function () {
+                return 1;
+            }
+        );
 
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(function () {
-            return false;
-        });
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () {
+                return false;
+            }
+        );
 
-        PhpFunctionMocker::getPhpFunctionMocker('usleep')->setCallable([$usleep, 'count']);
+        PhpFunctionMocker::getPhpFunctionMocker('usleep')->setCallable([ $usleep, 'count' ]);
 
         $this->selector->addSocketOperation($this->socket, OperationInterface::OPERATION_READ);
         $this->selector->select(0, 2 * AsyncSelector::ATTEMPT_DELAY);
@@ -268,6 +283,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
                 if ($resource !== $this->socket->getStreamResource()) {
                     return \stream_socket_get_name($resource, $wantPeer);
                 }
+
                 return $wantPeer ? null : '127.0.0.1:35424';
             }
         );
@@ -286,8 +302,8 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     {
         // form: operation, ready to read, ready to write
         return [
-            [OperationInterface::OPERATION_READ, 1, 0],
-            [OperationInterface::OPERATION_WRITE, 0, 1],
+            [ OperationInterface::OPERATION_READ, 1, 0 ],
+            [ OperationInterface::OPERATION_WRITE, 0, 1 ],
         ];
     }
 
@@ -299,8 +315,8 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     public function invalidSocketAddDataProvider()
     {
         return [
-            [ [ [$this->socket] ] ],
-            [ [ $this->socket ] ]
+            [ [ [ $this->socket ] ] ],
+            [ [ $this->socket ] ],
         ];
     }
 
@@ -309,7 +325,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     {
         parent::setUp();
         $this->socketResource = fopen('php://temp', 'r+');
-        $this->socket = $this->getMockForAbstractClass(
+        $this->socket         = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\SocketInterface',
             [ ],
             '',

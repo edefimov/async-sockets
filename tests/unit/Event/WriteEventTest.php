@@ -12,7 +12,7 @@ namespace Tests\AsyncSockets\Event;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\WriteEvent;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 
 /**
  * Class ReadEventTest
@@ -53,6 +53,6 @@ class WriteEventTest extends IoEventTest
     protected function setUp()
     {
         parent::setUp();
-        $this->operation = $this->getMock('AsyncSockets\RequestExecutor\WriteOperation');
+        $this->operation = $this->getMock('AsyncSockets\Operation\WriteOperation');
     }
 }

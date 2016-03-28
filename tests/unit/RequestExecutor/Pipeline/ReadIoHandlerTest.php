@@ -20,9 +20,9 @@ use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\Pipeline\ReadIoHandler;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -37,7 +37,7 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
      */
     public function testReadOperationIsSupported()
     {
-        $mock = $this->getMockBuilder('AsyncSockets\RequestExecutor\ReadOperation')
+        $mock = $this->getMockBuilder('AsyncSockets\Operation\ReadOperation')
                     ->enableProxyingToOriginalMethods()
                     ->getMock();
 
@@ -101,7 +101,7 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
                           ->method('invokeEvent');
 
         /** @var OperationInterface $operation */
-        $operation = $this->getMockBuilder('AsyncSockets\RequestExecutor\ReadOperation')
+        $operation = $this->getMockBuilder('AsyncSockets\Operation\ReadOperation')
                         ->enableProxyingToOriginalMethods()
                         ->getMock();
 
@@ -187,7 +187,7 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
         );
 
         self::assertInstanceOf(
-            'AsyncSockets\RequestExecutor\ReadOperation',
+            'AsyncSockets\Operation\ReadOperation',
             $result,
             'Incorrect operation for accept event'
         );

@@ -11,7 +11,8 @@ namespace AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Socket\PersistentClientSocket;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\StreamResourceInterface;
 
@@ -54,6 +55,13 @@ class OperationMetadata implements StreamResourceInterface, EventHandlerInterfac
      * @var OperationInterface
      */
     private $operation;
+
+    /**
+     * Flag if this socket is postponed
+     *
+     * @var bool
+     */
+    private $isPostponed = false;
 
     /**
      * OperationMetadata constructor.
@@ -183,5 +191,30 @@ class OperationMetadata implements StreamResourceInterface, EventHandlerInterfac
         if ($this->handlers) {
             $this->handlers->invokeEvent($event);
         }
+    }
+
+    /**
+     * Completes processing this socket in event loop, but keep this socket connection opened. Applicable
+     * only to persistent sockets, all other socket types are ignored by this method.
+     *
+     * @return void
+     */
+    public function postpone()
+    {
+        if (!($this->socket instanceof PersistentClientSocket)) {
+            return;
+        }
+
+        $this->isPostponed = true;
+    }
+
+    /**
+     * Return true, if this socket shouldn't be processed by executor engine
+     *
+     * @return bool
+     */
+    public function isPostponed()
+    {
+        return $this->isPostponed;
     }
 }

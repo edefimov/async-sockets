@@ -11,7 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -50,6 +50,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
         self::assertSame($this->socket, $this->operationMetadata->getSocket(), 'Unknown socket returned');
         self::assertSame($this->operation, $this->operationMetadata->getOperation(), 'Unknown operation returned');
         self::assertFalse($this->operationMetadata->isRunning(), 'Invalid initial running flag');
+        self::assertFalse($this->operationMetadata->isPostponed(), 'Invalid initial postpone flag');
     }
 
     /**
@@ -94,6 +95,32 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
             count($this->operationMetadata->getMetadata()),
             'Meta data shouldn\'t have been cleared'
         );
+    }
+
+    /**
+     * testPostpone
+     *
+     * @param string $class Socket class
+     * @param bool   $isPostponed Expected result
+     *
+     * @return void
+     * @dataProvider socketClassDataProvider
+     */
+    public function testPostpone($class, $isPostponed)
+    {
+        $socket = $this->getMockBuilder($class)
+                    ->disableOriginalConstructor()
+                    ->getMockForAbstractClass();
+
+        $object = new OperationMetadata(
+            $socket,
+            $this->operation,
+            [],
+            null
+        );
+
+        $object->postpone();
+        self::assertSame($isPostponed, $object->isPostponed(), 'Incorrect postpone behaviour for ' . $class);
     }
 
     /**
@@ -150,6 +177,23 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * socketClassDataProvider
+     *
+     * @return array
+     */
+    public function socketClassDataProvider()
+    {
+        return [
+            ['AsyncSockets\Socket\AbstractSocket', false],
+            ['AsyncSockets\Socket\AcceptedSocket', false],
+            ['AsyncSockets\Socket\ClientSocket', false],
+            ['AsyncSockets\Socket\PersistentClientSocket', true],
+            ['AsyncSockets\Socket\ServerSocket', false],
+            ['AsyncSockets\Socket\UdpClientSocket', false],
+        ];
+    }
+
+    /**
      * boolDataProvider
      *
      * @return array
@@ -167,7 +211,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     {
         parent::setUp();
         $this->socket            = $this->getMockForAbstractClass('AsyncSockets\Socket\AbstractSocket');
-        $this->operation         = $this->getMock('AsyncSockets\RequestExecutor\OperationInterface');
+        $this->operation         = $this->getMock('AsyncSockets\Operation\OperationInterface');
         $this->operationMetadata = new OperationMetadata($this->socket, $this->operation, [ ]);
     }
 }

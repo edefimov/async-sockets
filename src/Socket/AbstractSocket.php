@@ -60,19 +60,18 @@ abstract class AbstractSocket implements SocketInterface
     private $ioInterface;
 
     /**
+     * Socket address
+     *
+     * @var string
+     */
+    private $remoteAddress;
+
+    /**
      * AbstractSocket constructor.
      */
     public function __construct()
     {
         $this->setDisconnectedState();
-    }
-
-    /**
-     * Destructor
-     */
-    public function __destruct()
-    {
-        $this->close();
     }
 
     /**
@@ -98,8 +97,6 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function open($address, $context = null)
     {
-        $this->close();
-
         $this->resource = $this->createSocketResource(
             $address,
             $context ?: stream_context_get_default()
@@ -107,7 +104,9 @@ abstract class AbstractSocket implements SocketInterface
 
         $result = false;
         if (is_resource($this->resource)) {
-            $result = true;
+            $result              = true;
+            $this->remoteAddress = $address;
+
             // https://bugs.php.net/bug.php?id=51056
             stream_set_blocking($this->resource, 0);
 
@@ -126,11 +125,12 @@ abstract class AbstractSocket implements SocketInterface
     /** {@inheritdoc} */
     public function close()
     {
-        $this->setDisconnectedState();
         if ($this->resource) {
+            $this->setDisconnectedState();
             stream_socket_shutdown($this->resource, STREAM_SHUT_RDWR);
             fclose($this->resource);
-            $this->resource = null;
+            $this->resource      = null;
+            $this->remoteAddress = null;
         }
     }
 
@@ -200,5 +200,13 @@ abstract class AbstractSocket implements SocketInterface
     private function setDisconnectedState()
     {
         $this->ioInterface = new DisconnectedIo($this);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function __toString()
+    {
+        return $this->remoteAddress ?: '"closed socket"';
     }
 }

@@ -12,7 +12,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 
 /**
  * Class AsyncSelector
@@ -24,6 +24,11 @@ class AsyncSelector
      * @link https://bugs.php.net/bug.php?id=65137
      */
     const ATTEMPT_DELAY = 250000;
+
+    /**
+     * Attempt count to use when time out is not set
+     */
+    const ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT = 10;
 
     /**
      * Array of resources indexed by operation
@@ -54,19 +59,13 @@ class AsyncSelector
         $attempts = $this->calculateAttemptsCount($seconds, $usec);
 
         do {
-            $result = $this->doStreamSelect($seconds, $usec, $read, $write);
-            if ($result === false) {
-                throw new SocketException('Failed to select sockets');
-            }
-
-            if ($result === 0) {
-                break;
-            }
+            $this->doStreamSelect($seconds, $usec, $read, $write);
 
             $readyRead  = $this->popSocketsByResources((array) $read, OperationInterface::OPERATION_READ);
             $readyWrite = $this->popSocketsByResources((array) $write, OperationInterface::OPERATION_WRITE);
 
             if ($readyRead || $readyWrite) {
+                $this->streamResources = [];
                 return new SelectContext($readyRead, $readyWrite);
             }
 
@@ -254,14 +253,23 @@ class AsyncSelector
      * @param resource[] $write List of sockets to check for write. After function return it will be filled with
      *      sockets, which are ready to write
      *
-     * @return bool|int False in case of system error, int - amount of sockets ready for I/O
+     * @return int Amount of sockets ready for I/O
+     * @throws SocketException
      */
     private function doStreamSelect($seconds, $usec = null, array &$read = null, array &$write = null)
     {
         $except = null;
         $result = stream_select($read, $write, $except, $seconds, $usec);
+        if ($result === false) {
+            throw new SocketException('Failed to select sockets');
+        }
 
-        return $result === false ? $result : count($read) + count($write);
+        $result = count($read) + count($write);
+        if ($result === 0) {
+            throw new TimeoutException('Select operation was interrupted during timeout');
+        }
+
+        return $result;
     }
 
     /**
@@ -274,7 +282,13 @@ class AsyncSelector
      */
     private function calculateAttemptsCount($seconds, $usec)
     {
-        return $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) : 1;
+        $result = $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) :
+            self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
+        if ($result < self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT) {
+            $result = self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
+        }
+        
+        return $result;
     }
 
     /**

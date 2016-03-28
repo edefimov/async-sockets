@@ -11,11 +11,11 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\InProgressWriteOperation;
+use AsyncSockets\Operation\InProgressWriteOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -36,12 +36,7 @@ class WriteIoHandler implements IoHandlerInterface
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
-        if (!($operation instanceof WriteOperation)) {
-            throw new \LogicException(
-                'Can not use ' . get_class($this) . ' for ' . get_class($operation) . ' operation'
-            );
-        }
-
+        /** @var WriteOperation $operation */
         $fireEvent = !($operation instanceof InProgressWriteOperation);
 
         if ($fireEvent) {

@@ -17,15 +17,13 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Frame\MarkerFramePicker;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LibEventRequestExecutor;
-use AsyncSockets\RequestExecutor\Pipeline\LibEventStageFactory;
-use AsyncSockets\RequestExecutor\Pipeline\NativeStageFactory;
-use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
+use AsyncSockets\RequestExecutor\Pipeline\BaseStageFactory;
+use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\WriteOperation;
-use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ClientSocket;
 
 /**
@@ -112,17 +110,22 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             'tls://google.com:443'
         ];
 
-        return [
+        $result = [
             [
                 new NativeRequestExecutor(
                     new PipelineFactory(
-                        new NativeStageFactory()
+                        new BaseStageFactory()
                     ),
                     new Configuration()
                 ),
                 $urls,
-            ],
-            [ new LibEventRequestExecutor(new LibEventStageFactory(), new Configuration()), $urls ],
+            ]
         ];
+
+        if (extension_loaded('libevent')) {
+            $result[] = [ new LibEventRequestExecutor(new BaseStageFactory(), new Configuration()), $urls ];
+        }
+
+        return $result;
     }
 }

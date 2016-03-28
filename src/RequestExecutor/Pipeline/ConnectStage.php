@@ -77,11 +77,11 @@ class ConnectStage extends AbstractTimeAwareStage
      */
     private function decide(OperationMetadata $operationMetadata, $totalItems)
     {
+        $meta = $operationMetadata->getMetadata();
         if ($operationMetadata->isRunning()) {
             return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
 
-        $meta           = $operationMetadata->getMetadata();
         $isSkippingThis = $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] !== null;
 
         if ($isSkippingThis) {
@@ -130,12 +130,13 @@ class ConnectStage extends AbstractTimeAwareStage
         $item->initialize();
 
         $socket = $item->getSocket();
-        $meta   = $item->getMetadata();
         $event  = $this->createEvent($item, EventType::INITIALIZE);
 
         try {
             $this->callSocketSubscribers($item, $event);
             $this->setSocketOperationTime($item, RequestExecutorInterface::META_CONNECTION_START_TIME);
+
+            $meta = $item->getMetadata();
 
             $socket->open(
                 $meta[ RequestExecutorInterface::META_ADDRESS ],

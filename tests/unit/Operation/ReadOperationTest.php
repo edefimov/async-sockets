@@ -8,10 +8,10 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Tests\AsyncSockets\RequestExecutor;
+namespace Tests\AsyncSockets\Operation;
 
-use AsyncSockets\RequestExecutor\OperationInterface;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
 
 /**
  * Class ReadOperationTest
@@ -37,7 +37,7 @@ class ReadOperationTest extends \PHPUnit_Framework_TestCase
             $this->operation->getFramePicker(),
             'Incorrect initial state for framePicker'
         );
-        self::assertEquals(
+        self::assertSame(
             OperationInterface::OPERATION_READ,
             $this->operation->getType(),
             'Incorrect type for operation'

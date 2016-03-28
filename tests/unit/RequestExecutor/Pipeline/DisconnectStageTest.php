@@ -16,6 +16,7 @@ use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\RequestExecutor\Pipeline\DisconnectStage;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
+use Tests\Application\Mock\PhpFunctionMocker;
 
 /**
  * Class DisconnectStageTest
@@ -65,13 +66,17 @@ class DisconnectStageTest extends AbstractStageTest
     /**
      * testDisconnectConnectedSocket
      *
+     * @param string     $socketClass Socket class to test
+     * @param callable[] $phpEnv Array php function name => callable for this test
+     *
      * @return void
+     * @dataProvider socketClassDataProvider
      */
-    public function testDisconnectConnectedSocket()
+    public function testDisconnectConnectedSocket($socketClass, array $phpEnv = [])
     {
         $request = $this->createOperationMetadata();
         $socket  = $this->getMockForAbstractClass(
-            'AsyncSockets\Socket\SocketInterface',
+            $socketClass,
             [],
             '',
             false,
@@ -79,6 +84,10 @@ class DisconnectStageTest extends AbstractStageTest
             true,
             ['close']
         );
+
+        foreach ($phpEnv as $functionName => $callable) {
+            PhpFunctionMocker::getPhpFunctionMocker($functionName)->setCallable($callable);
+        }
 
         $request->expects(self::any())->method('getSocket')->willReturn($socket);
 
@@ -176,6 +185,84 @@ class DisconnectStageTest extends AbstractStageTest
         self::assertNotEmpty($result, 'Operation must be returned as result');
     }
 
+    /**
+     * testConnectedPersistentSocketWillNotBeDisconnectedIfStillConnected
+     *
+     * @return void
+     */
+    public function testConnectedPersistentSocketWillNotBeDisconnectedIfStillConnected()
+    {
+        $request = $this->createOperationMetadata();
+        $socket  = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\PersistentClientSocket',
+            [],
+            '',
+            false,
+            false,
+            true,
+            ['close']
+        );
+
+        $request->expects(self::any())->method('getSocket')->willReturn($socket);
+
+        $metadata = $this->getMetadataStructure();
+        $metadata[RequestExecutorInterface::META_REQUEST_COMPLETE]       = false;
+        $metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 10;
+        $metadata[RequestExecutorInterface::META_CONNECTION_START_TIME]  = 0;
+        $request->expects(self::any())->method('getMetadata')->willReturn($metadata);
+
+        $request->expects(self::never())->method('setMetadata');
+        $socket->expects(self::never())->method('close');
+
+        $this->eventCaller->expects(self::never())->method('callSocketSubscribers');
+
+        $this->selector->expects(self::never())->method('removeAllSocketOperations')->with($request);
+
+        PhpFunctionMocker::getPhpFunctionMocker('feof')->setCallable(function () {
+            return false;
+        });
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(function () {
+            return '127.0.0.1:59678';
+        });
+
+        $result = $this->stage->processStage([$request]);
+        self::assertNotEmpty($result, 'Operation must not be returned as result');
+    }
+
+    /**
+     * socketClassDataProvider
+     *
+     * @return array
+     */
+    public function socketClassDataProvider()
+    {
+        return [
+            ['AsyncSockets\Socket\SocketInterface', []],
+            [
+                'AsyncSockets\Socket\PersistentClientSocket',
+                [
+                    'feof' => function () {
+                        return true;
+                    },
+                    'stream_socket_get_name' => function () {
+                        return '127.0.0.1:5436';
+                    }
+                ]
+            ],
+            [
+                'AsyncSockets\Socket\PersistentClientSocket',
+                [
+                    'feof' => function () {
+                        return false;
+                    },
+                    'stream_socket_get_name' => function () {
+                        return false;
+                    }
+                ]
+            ]
+        ];
+    }
+
     /** {@inheritdoc} */
     protected function createStage()
     {
@@ -187,5 +274,13 @@ class DisconnectStageTest extends AbstractStageTest
     {
         $this->selector = $this->getMock('AsyncSockets\Socket\AsyncSelector', ['removeAllSocketOperations']);
         parent::setUp();
+    }
+
+    /** {@inheritdoc} */
+    protected function tearDown()
+    {
+        parent::tearDown();
+        PhpFunctionMocker::getPhpFunctionMocker('feof')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
     }
 }

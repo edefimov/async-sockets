@@ -12,9 +12,9 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Exception\SslHandshakeException;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\RequestExecutor\SslHandshakeOperation;
+use AsyncSockets\Operation\SslHandshakeOperation;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -35,12 +35,7 @@ class SslHandshakeIoHandler implements IoHandlerInterface
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
-        if (!($operation instanceof SslHandshakeOperation)) {
-            throw new \LogicException(
-                'Can not use ' . get_class($this) . ' for ' . get_class($operation) . ' operation'
-            );
-        }
-
+        /** @var SslHandshakeOperation $operation */
         $resource = $socket->getStreamResource();
         $result   = stream_socket_enable_crypto($resource, true, $operation->getCipher());
         if ($result === true) {

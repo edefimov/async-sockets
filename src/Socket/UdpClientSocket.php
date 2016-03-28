@@ -74,4 +74,12 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     {
         return $this->origin->getStreamResource();
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function __toString()
+    {
+        return (string) $this->origin;
+    }
 }

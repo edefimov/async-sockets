@@ -16,8 +16,8 @@ use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\OperationInterface;
-use AsyncSockets\RequestExecutor\ReadOperation;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -39,12 +39,6 @@ class ReadIoHandler implements IoHandlerInterface
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
-        if (!($operation instanceof ReadOperation)) {
-            throw new \LogicException(
-                'Can not use ' . get_class($this) . ' for ' . get_class($operation) . ' operation'
-            );
-        }
-
         $meta    = $executor->socketBag()->getSocketMetaData($socket);
         $context = $meta[RequestExecutorInterface::META_USER_CONTEXT];
 

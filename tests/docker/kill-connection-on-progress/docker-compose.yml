@@ -1,0 +1,4 @@
+killconnectionserver:
+  build: ./
+  ports:
+    - 10080:80

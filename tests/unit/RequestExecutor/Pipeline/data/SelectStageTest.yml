@@ -96,4 +96,29 @@ timeoutDataProvider:
         expectedSeconds: 0
         expectedMicroseconds: 0
         sockets: []
+    - #8 min-max test
+        expectedSeconds: 1
+        expectedMicroseconds: 0
+        sockets:
+            -
+                META_CONNECTION_TIMEOUT: ~
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: ~
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 2
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: ~
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 3
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: ~
+                META_LAST_IO_START_TIME: ~
+            -
+                META_CONNECTION_TIMEOUT: 1
+                META_CONNECTION_FINISH_TIME: ~
+                META_IO_TIMEOUT: ~
+                META_LAST_IO_START_TIME: ~
+
 
