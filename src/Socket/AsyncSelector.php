@@ -59,11 +59,7 @@ class AsyncSelector
         $attempts = $this->calculateAttemptsCount($seconds, $usec);
 
         do {
-            $result = $this->doStreamSelect($seconds, $usec, $read, $write);
-
-            if ($result === 0) {
-                break;
-            }
+            $this->doStreamSelect($seconds, $usec, $read, $write);
 
             $readyRead  = $this->popSocketsByResources((array) $read, OperationInterface::OPERATION_READ);
             $readyWrite = $this->popSocketsByResources((array) $write, OperationInterface::OPERATION_WRITE);
@@ -268,7 +264,12 @@ class AsyncSelector
             throw new SocketException('Failed to select sockets');
         }
 
-        return count($read) + count($write);
+        $result = count($read) + count($write);
+        if ($result === 0) {
+            throw new TimeoutException('Select operation was interrupted during timeout');
+        }
+
+        return $result;
     }
 
     /**

@@ -35,16 +35,26 @@ class ConnectStageReturningAllActiveSockets extends ConnectStage
     {
         $result = [];
         foreach ($operations as $key => $item) {
-            $meta     = $item->getMetadata();
-            $isActive = !$meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ] &&
-                        $item->isRunning() &&
-                        !$item->isPostponed();
-            
-            if ($isActive) {
+            if ($this->isDescriptorActive($item)) {
                 $result[$key] = $item;
             }
         }
 
         return $result;
+    }
+
+    /**
+     * Check whether given descriptor is active
+     *
+     * @param OperationMetadata $descriptor
+     *
+     * @return bool
+     */
+    private function isDescriptorActive(OperationMetadata $descriptor)
+    {
+        $meta = $descriptor->getMetadata();
+        return !$meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ] &&
+                    $descriptor->isRunning() &&
+                    !$descriptor->isPostponed();
     }
 }

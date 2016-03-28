@@ -71,25 +71,19 @@ abstract class AbstractTimeAwareStage extends AbstractStage
      */
     protected function setSocketOperationTime(OperationMetadata $operationMetadata, $key)
     {
-        $meta = $operationMetadata->getMetadata();
-        switch ($key) {
-            case RequestExecutorInterface::META_CONNECTION_START_TIME:
-                $doSetValue = $meta[RequestExecutorInterface::META_CONNECTION_START_TIME] === null;
-                break;
+        $meta  = $operationMetadata->getMetadata();
+        $table = [
+            RequestExecutorInterface::META_CONNECTION_START_TIME =>
+                $meta[ RequestExecutorInterface::META_CONNECTION_START_TIME ] === null,
 
-            case RequestExecutorInterface::META_CONNECTION_FINISH_TIME:
-                $doSetValue = $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] === null;
-                break;
+            RequestExecutorInterface::META_CONNECTION_FINISH_TIME =>
+                $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] === null,
 
-            case RequestExecutorInterface::META_LAST_IO_START_TIME:
-                $doSetValue = $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] !== null;
-                break;
+            RequestExecutorInterface::META_LAST_IO_START_TIME =>
+                $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] !== null
+        ];
 
-            default:
-                throw new \InvalidArgumentException("Unexpected key parameter {$key} passed");
-        }
-
-        if ($doSetValue) {
+        if (isset($table[$key]) && $table[$key]) {
             $operationMetadata->setMetadata($key, microtime(true));
         }
     }

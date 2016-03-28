@@ -103,9 +103,7 @@ class SelectStage extends AbstractTimeAwareStage
 
         foreach ($activeOperations as $activeOperation) {
             $timeout    = $this->getSingleSocketTimeout($activeOperation, $microtime);
-            $minTimeout = (($timeout > 0 && $timeout < $minTimeout) || $minTimeout === null) ?
-                                $timeout :
-                                $minTimeout;
+            $minTimeout = $this->getMinTimeout($timeout, $minTimeout);
         }
 
         if ($minTimeout !== null) {
@@ -116,6 +114,21 @@ class SelectStage extends AbstractTimeAwareStage
         }
 
         return $result;
+    }
+
+    /**
+     * Return minimum timeout from two values
+     *
+     * @param double $newValue New value
+     * @param double $oldValue Old value
+     *
+     * @return double
+     */
+    private function getMinTimeout($newValue, $oldValue)
+    {
+        return (($newValue > 0 && $newValue < $oldValue) || $oldValue === null) ?
+            $newValue :
+            $oldValue;
     }
 
     /**
