@@ -79,32 +79,27 @@ class GuardianStage extends AbstractStage
      */
     private function handleDeadConnection(RequestDescriptor $descriptor)
     {
-        $metadata = $descriptor->getMetadata();
-        $key      = spl_object_hash($descriptor);
-        if ($metadata[RequestExecutorInterface::META_REQUEST_COMPLETE]) {
+        $key = spl_object_hash($descriptor);
+        if (!$this->isZombieCandidate($descriptor)) {
             unset($this->candidates[$key]);
             return false;
         }
 
+        if (!isset($this->candidates[$key])) {
+            $this->candidates[$key] = self::MAX_ATTEMPTS_PER_SOCKET;
+        }
+
+        $this->notifyDataAlert(
+            $descriptor,
+            self::MAX_ATTEMPTS_PER_SOCKET - $this->candidates[$key] + 1,
+            self::MAX_ATTEMPTS_PER_SOCKET
+        );
+
+        --$this->candidates[$key];
         $result = false;
-        if ($this->isZombieCandidate($descriptor)) {
-            if (!isset($this->candidates[$key])) {
-                $this->candidates[$key] = self::MAX_ATTEMPTS_PER_SOCKET;
-            }
-
-            $this->notifyDataAlert(
-                $descriptor,
-                self::MAX_ATTEMPTS_PER_SOCKET - $this->candidates[$key] + 1,
-                self::MAX_ATTEMPTS_PER_SOCKET
-            );
-
-            --$this->candidates[$key];
-            if (!$this->candidates[$key]) {
-                $result = true;
-                $this->killZombieConnection($descriptor);
-                unset($this->candidates[$key]);
-            }
-        } else {
+        if (!$this->candidates[$key]) {
+            $result = true;
+            $this->killZombieConnection($descriptor);
             unset($this->candidates[$key]);
         }
 
@@ -120,6 +115,11 @@ class GuardianStage extends AbstractStage
      */
     private function isZombieCandidate(RequestDescriptor $descriptor)
     {
+        $metadata  = $descriptor->getMetadata();
+        if ($metadata[RequestExecutorInterface::META_REQUEST_COMPLETE]) {
+            return false;
+        }
+
         $operation = $descriptor->getOperation();
         return ($operation instanceof NullOperation) ||
                (

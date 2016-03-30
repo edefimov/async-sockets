@@ -15,6 +15,7 @@ use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\PersistentClientSocket;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class DisconnectStage
@@ -71,17 +72,7 @@ class DisconnectStage extends AbstractStage
 
         $socket = $descriptor->getSocket();
 
-        $isTimeToLeave = (
-                            ($socket instanceof PersistentClientSocket) &&
-                            (
-                                feof($socket->getStreamResource()) !== false ||
-                                !stream_socket_get_name($socket->getStreamResource(), true)
-                            )
-                         ) || (
-                            !($socket instanceof PersistentClientSocket)
-                         );
-
-        if (!$isTimeToLeave) {
+        if (!$this->isDisconnectRequired($socket)) {
             return;
         }
 
@@ -133,5 +124,25 @@ class DisconnectStage extends AbstractStage
         if ($this->selector) {
             $this->selector->removeAllSocketOperations($operation);
         }
+    }
+
+    /**
+     * Check whether given socket should be disconnected
+     *
+     * @param SocketInterface $socket Socket object
+     *
+     * @return bool
+     */
+    private function isDisconnectRequired(SocketInterface $socket)
+    {
+        return (
+                   ($socket instanceof PersistentClientSocket) &&
+                   (
+                       feof($socket->getStreamResource()) !== false ||
+                       !stream_socket_get_name($socket->getStreamResource(), true)
+                   )
+               ) || (
+                   !($socket instanceof PersistentClientSocket)
+               );
     }
 }
