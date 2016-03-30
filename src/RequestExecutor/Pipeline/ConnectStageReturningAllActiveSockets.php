@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -18,25 +18,25 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 class ConnectStageReturningAllActiveSockets extends ConnectStage
 {
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        parent::processStage($operations);
-        return $this->getActiveOperations($operations);
+        parent::processStage($requestDescriptors);
+        return $this->getActiveOperations($requestDescriptors);
     }
 
     /**
      * Return array of keys for socket waiting for processing
      *
-     * @param OperationMetadata[] $operations List of all operations
+     * @param RequestDescriptor[] $requestDescriptors List of all requestDescriptors
      *
-     * @return OperationMetadata[]
+     * @return RequestDescriptor[]
      */
-    private function getActiveOperations(array $operations)
+    private function getActiveOperations(array $requestDescriptors)
     {
         $result = [];
-        foreach ($operations as $key => $item) {
-            if ($this->isDescriptorActive($item)) {
-                $result[$key] = $item;
+        foreach ($requestDescriptors as $key => $descriptor) {
+            if ($this->isDescriptorActive($descriptor)) {
+                $result[$key] = $descriptor;
             }
         }
 
@@ -46,11 +46,11 @@ class ConnectStageReturningAllActiveSockets extends ConnectStage
     /**
      * Check whether given descriptor is active
      *
-     * @param OperationMetadata $descriptor
+     * @param RequestDescriptor $descriptor
      *
      * @return bool
      */
-    private function isDescriptorActive(OperationMetadata $descriptor)
+    private function isDescriptorActive(RequestDescriptor $descriptor)
     {
         $meta = $descriptor->getMetadata();
         return !$meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ] &&

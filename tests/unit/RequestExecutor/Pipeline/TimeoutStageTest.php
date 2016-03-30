@@ -14,7 +14,7 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\TimeoutEvent;
 use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\TimeoutStage;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -44,7 +44,7 @@ class TimeoutStageTest extends AbstractStageTest
             }
         );
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getSocket')->willReturn(
             $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
         );
@@ -57,7 +57,7 @@ class TimeoutStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::once())
             ->method('callSocketSubscribers')
             ->with($request)
-            ->willReturnCallback(function (OperationMetadata $request, Event $event) use ($metadata) {
+            ->willReturnCallback(function (RequestDescriptor $request, Event $event) use ($metadata) {
                 self::assertInstanceOf('AsyncSockets\Event\TimeoutEvent', $event);
                 self::assertSame($request->getSocket(), $event->getSocket());
                 self::assertSame(EventType::TIMEOUT, $event->getType());
@@ -85,7 +85,7 @@ class TimeoutStageTest extends AbstractStageTest
             }
         );
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getSocket')->willReturn(
             $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
         );
@@ -122,7 +122,7 @@ class TimeoutStageTest extends AbstractStageTest
         $timeoutRequests = [ ];
         $normalRequests  = [ ];
         foreach ($sockets as $socket) {
-            $request = $this->createOperationMetadata();
+            $request = $this->createRequestDescriptor();
             $request->expects(self::any())->method('getSocket')->willReturn(
                 $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
             );
@@ -183,7 +183,7 @@ class TimeoutStageTest extends AbstractStageTest
             }
         );
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getSocket')->willReturn(
             $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
         );
@@ -206,7 +206,7 @@ class TimeoutStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::once())
                           ->method('callSocketSubscribers')
                           ->with($request)
-                          ->willReturnCallback(function (OperationMetadata $request, TimeoutEvent $event) use ($when) {
+                          ->willReturnCallback(function (RequestDescriptor $request, TimeoutEvent $event) use ($when) {
                               self::assertSame($when, $event->when(), 'Incorrect timeout moment');
                               $event->enableOneMoreAttempt();
                           });

@@ -10,14 +10,14 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
- * Class OperationMetadataTest
+ * Class RequestDescriptorTest
  */
-class OperationMetadataTest extends \PHPUnit_Framework_TestCase
+class RequestDescriptorTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * SocketInterface
@@ -29,9 +29,9 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     /**
      * Test object
      *
-     * @var OperationMetadata
+     * @var RequestDescriptor
      */
-    protected $operationMetadata;
+    protected $requestDescriptor;
 
     /**
      * OperationInterface
@@ -47,10 +47,10 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
      */
     public function testInitialState()
     {
-        self::assertSame($this->socket, $this->operationMetadata->getSocket(), 'Unknown socket returned');
-        self::assertSame($this->operation, $this->operationMetadata->getOperation(), 'Unknown operation returned');
-        self::assertFalse($this->operationMetadata->isRunning(), 'Invalid initial running flag');
-        self::assertFalse($this->operationMetadata->isPostponed(), 'Invalid initial postpone flag');
+        self::assertSame($this->socket, $this->requestDescriptor->getSocket(), 'Unknown socket returned');
+        self::assertSame($this->operation, $this->requestDescriptor->getOperation(), 'Unknown operation returned');
+        self::assertFalse($this->requestDescriptor->isRunning(), 'Invalid initial running flag');
+        self::assertFalse($this->requestDescriptor->isPostponed(), 'Invalid initial postpone flag');
     }
 
     /**
@@ -63,8 +63,8 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetters($flag)
     {
-        $this->operationMetadata->setRunning($flag);
-        self::assertEquals($flag, $this->operationMetadata->isRunning(), 'Invalid running flag');
+        $this->requestDescriptor->setRunning($flag);
+        self::assertEquals($flag, $this->requestDescriptor->isRunning(), 'Invalid running flag');
     }
 
     /**
@@ -79,20 +79,20 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
     public function testGetSetMetadata($key, $value)
     {
         if (!is_array($key)) {
-            $this->operationMetadata->setMetadata($key, $value);
-            $meta = $this->operationMetadata->getMetadata();
+            $this->requestDescriptor->setMetadata($key, $value);
+            $meta = $this->requestDescriptor->getMetadata();
             self::assertArrayHasKey($key, $meta, 'Value does not exist');
             self::assertEquals($value, $meta[$key], 'Value is incorrect');
         } else {
-            $this->operationMetadata->setMetadata($key);
-            $meta = $this->operationMetadata->getMetadata();
+            $this->requestDescriptor->setMetadata($key);
+            $meta = $this->requestDescriptor->getMetadata();
             self::assertSame($key, $meta, 'Incorrect metadata');
         }
 
-        $this->operationMetadata->setMetadata([]);
+        $this->requestDescriptor->setMetadata([]);
         self::assertGreaterThan(
             0,
-            count($this->operationMetadata->getMetadata()),
+            count($this->requestDescriptor->getMetadata()),
             'Meta data shouldn\'t have been cleared'
         );
     }
@@ -112,7 +112,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
                     ->disableOriginalConstructor()
                     ->getMockForAbstractClass();
 
-        $object = new OperationMetadata(
+        $object = new RequestDescriptor(
             $socket,
             $this->operation,
             [],
@@ -142,7 +142,7 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
         );
 
         $handler->expects(self::once())->method('invokeEvent')->with($event);
-        $operation = new OperationMetadata($this->socket, $this->operation, [ ], $handler);
+        $operation = new RequestDescriptor($this->socket, $this->operation, [ ], $handler);
 
         /** @var \AsyncSockets\Event\Event $event */
         $operation->invokeEvent($event);
@@ -212,6 +212,6 @@ class OperationMetadataTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
         $this->socket            = $this->getMockForAbstractClass('AsyncSockets\Socket\AbstractSocket');
         $this->operation         = $this->getMock('AsyncSockets\Operation\OperationInterface');
-        $this->operationMetadata = new OperationMetadata($this->socket, $this->operation, [ ]);
+        $this->requestDescriptor = new RequestDescriptor($this->socket, $this->operation, [ ]);
     }
 }

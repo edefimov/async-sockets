@@ -14,7 +14,7 @@ use AsyncSockets\Exception\UnmanagedSocketException;
 use AsyncSockets\Frame\EmptyFramePicker;
 use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\Operation\ReadOperation;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -28,7 +28,7 @@ class GuardianStage extends AbstractStage
     const MAX_ATTEMPTS_PER_SOCKET = 25;
     
     /**
-     * Indexed by OperationMetadata object hash array of attempts, after which we should kill connection
+     * Indexed by RequestDescriptor object hash array of attempts, after which we should kill connection
      *
      * @var int[]
      */
@@ -58,12 +58,12 @@ class GuardianStage extends AbstractStage
     }
 
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
         $result = [];
-        foreach ($operations as $key => $operation) {
-            if (!$this->handleDeadConnection($operation)) {
-                $result[$key] = $operation;
+        foreach ($requestDescriptors as $key => $descriptor) {
+            if (!$this->handleDeadConnection($descriptor)) {
+                $result[$key] = $descriptor;
             }
         }
 
@@ -73,11 +73,11 @@ class GuardianStage extends AbstractStage
     /**
      * Check if this request is alive and managed by client code
      *
-     * @param OperationMetadata $descriptor Object to test
+     * @param RequestDescriptor $descriptor Object to test
      *
      * @return bool True if connection killed, false otherwise
      */
-    private function handleDeadConnection(OperationMetadata $descriptor)
+    private function handleDeadConnection(RequestDescriptor $descriptor)
     {
         $metadata = $descriptor->getMetadata();
         $key      = spl_object_hash($descriptor);
@@ -114,11 +114,11 @@ class GuardianStage extends AbstractStage
     /**
      * Check if this socket can be a zombie
      *
-     * @param OperationMetadata $descriptor Descriptor object
+     * @param RequestDescriptor $descriptor Descriptor object
      *
      * @return bool
      */
-    private function isZombieCandidate(OperationMetadata $descriptor)
+    private function isZombieCandidate(RequestDescriptor $descriptor)
     {
         $operation = $descriptor->getOperation();
         return ($operation instanceof NullOperation) ||
@@ -131,11 +131,11 @@ class GuardianStage extends AbstractStage
     /**
      * Closes connection, as we suppose it is unmanaged
      *
-     * @param OperationMetadata $descriptor Descriptor object to kill
+     * @param RequestDescriptor $descriptor Descriptor object to kill
      *
      * @return void
      */
-    private function killZombieConnection(OperationMetadata $descriptor)
+    private function killZombieConnection(RequestDescriptor $descriptor)
     {
         $this->eventCaller->callExceptionSubscribers(
             $descriptor,
@@ -148,14 +148,14 @@ class GuardianStage extends AbstractStage
     /**
      * Notify client about unhandled data in socket
      *
-     * @param OperationMetadata $descriptor Socket operation descriptor
+     * @param RequestDescriptor $descriptor Socket operation descriptor
      * @param int               $attempt Current attempt number from 1
      * @param int               $totalAttempts Total attempts
      *
      * @return void
      */
     private function notifyDataAlert(
-        OperationMetadata $descriptor,
+        RequestDescriptor $descriptor,
         $attempt,
         $totalAttempts
     ) {

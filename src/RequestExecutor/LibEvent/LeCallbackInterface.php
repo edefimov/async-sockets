@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\LibEvent;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 
 /**
  * Interface LeCallbackInterface
@@ -34,9 +34,9 @@ interface LeCallbackInterface
     /**
      * Handle event from libevent
      *
-     * @param OperationMetadata $operationMetadata Operation metadata object
+     * @param RequestDescriptor $requestDescriptor Request descriptor object
      * @param string            $type One of EVENT_* consts
      *
      */
-    public function onEvent(OperationMetadata $operationMetadata, $type);
+    public function onEvent(RequestDescriptor $requestDescriptor, $type);
 }

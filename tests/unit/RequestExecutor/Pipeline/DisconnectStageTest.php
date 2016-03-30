@@ -37,7 +37,7 @@ class DisconnectStageTest extends AbstractStageTest
      */
     public function testCantDisconnectTwice()
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\SocketInterface',
             [],
@@ -74,7 +74,7 @@ class DisconnectStageTest extends AbstractStageTest
      */
     public function testDisconnectConnectedSocket($socketClass, array $phpEnv = [])
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->getMockForAbstractClass(
             $socketClass,
             [],
@@ -139,7 +139,7 @@ class DisconnectStageTest extends AbstractStageTest
      */
     public function testExceptionOnDisconnectConnectedSocket()
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\SocketInterface',
             [],
@@ -192,7 +192,7 @@ class DisconnectStageTest extends AbstractStageTest
      */
     public function testConnectedPersistentSocketWillNotBeDisconnectedIfStillConnected()
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\PersistentClientSocket',
             [],

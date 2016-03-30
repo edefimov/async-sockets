@@ -34,9 +34,9 @@ class CompositeStage implements PipelineStageInterface
     /**
      * @inheritDoc
      */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        $result = $operations;
+        $result = $requestDescriptors;
         foreach ($this->stages as $stage) {
             $result = $stage->processStage($result);
         }

@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 
 /**
@@ -80,7 +80,7 @@ class Pipeline
     /**
      * Disconnect given list of sockets
      *
-     * @param OperationMetadata[] $items Sockets' operations
+     * @param RequestDescriptor[] $items Sockets' operations
      *
      * @return void
      */

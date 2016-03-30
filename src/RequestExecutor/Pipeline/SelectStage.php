@@ -10,7 +10,7 @@
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Exception\TimeoutException;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\Specification\ConnectionLessSocketSpecification;
 use AsyncSockets\Socket\AsyncSelector;
@@ -41,25 +41,25 @@ class SelectStage extends AbstractTimeAwareStage
     }
 
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        $this->initLastIoOperationInfo($operations);
-        $udpOperations = $this->findConnectionLessSockets($operations);
+        $this->initLastIoOperationInfo($requestDescriptors);
+        $udpOperations = $this->findConnectionLessSockets($requestDescriptors);
         if ($udpOperations) {
-            // do not perform actual select, since these operations must be processed immediately
+            // do not perform actual select, since these requestDescriptors must be processed immediately
             return $udpOperations;
         }
 
-        /** @var OperationMetadata[] $operations */
-        foreach ($operations as $operation) {
+        /** @var RequestDescriptor[] $requestDescriptors */
+        foreach ($requestDescriptors as $descriptor) {
             $this->selector->addSocketOperation(
-                $operation,
-                $operation->getOperation()->getType()
+                $descriptor,
+                $descriptor->getOperation()->getType()
             );
         }
 
         try {
-            $timeout = $this->calculateSelectorTimeout($operations);
+            $timeout = $this->calculateSelectorTimeout($requestDescriptors);
             $context = $this->selector->select($timeout['sec'], $timeout['microsec']);
             return array_merge(
                 $context->getRead(),
@@ -73,26 +73,25 @@ class SelectStage extends AbstractTimeAwareStage
     /**
      * Initialize information about last I/O operation
      *
-     * @param OperationMetadata[] $operations List of operations to apply
+     * @param RequestDescriptor[] $requestDescriptors List of requestDescriptors to apply
      *
      * @return void
      */
-    private function initLastIoOperationInfo(array $operations)
+    private function initLastIoOperationInfo(array $requestDescriptors)
     {
-        /** @var OperationMetadata[] $operations */
-        foreach ($operations as $operation) {
-            $this->setSocketOperationTime($operation, RequestExecutorInterface::META_LAST_IO_START_TIME);
+        foreach ($requestDescriptors as $descriptor) {
+            $this->setSocketOperationTime($descriptor, RequestExecutorInterface::META_LAST_IO_START_TIME);
         }
     }
 
     /**
      * Calculate selector timeout according to given array of active socket keys
      *
-     * @param OperationMetadata[] $activeOperations Active socket keys
+     * @param RequestDescriptor[] $activeDescriptors Active socket keys
      *
      * @return array { "sec": int, "microsec": int }
      */
-    private function calculateSelectorTimeout(array $activeOperations)
+    private function calculateSelectorTimeout(array $activeDescriptors)
     {
         $microtime  = microtime(true);
         $minTimeout = null;
@@ -101,8 +100,8 @@ class SelectStage extends AbstractTimeAwareStage
             'microsec' => null,
         ];
 
-        foreach ($activeOperations as $activeOperation) {
-            $timeout    = $this->getSingleSocketTimeout($activeOperation, $microtime);
+        foreach ($activeDescriptors as $descriptor) {
+            $timeout    = $this->getSingleSocketTimeout($descriptor, $microtime);
             $minTimeout = $this->getMinTimeout($timeout, $minTimeout);
         }
 
@@ -134,12 +133,12 @@ class SelectStage extends AbstractTimeAwareStage
     /**
      * Calculate timeout value for single socket operation
      *
-     * @param OperationMetadata $operation Operation object
-     * @param double $microTime Current time with microseconds
+     * @param RequestDescriptor $operation Operation object
+     * @param double            $microTime Current time with microseconds
      *
      * @return double|null
      */
-    private function getSingleSocketTimeout(OperationMetadata $operation, $microTime)
+    private function getSingleSocketTimeout(RequestDescriptor $operation, $microTime)
     {
         $desiredTimeout    = $this->timeoutSetting($operation);
         $lastOperationTime = $this->timeSinceLastIo($operation);
@@ -156,17 +155,17 @@ class SelectStage extends AbstractTimeAwareStage
     }
 
     /**
-     * Find operations with UdpClientSocket and return them as result
+     * Find descriptors with UdpClientSocket and return them as result
      *
-     * @param OperationMetadata[] $operations List of all operations
+     * @param RequestDescriptor[] $requestDescriptors List of all requestDescriptors
      *
-     * @return OperationMetadata[] List of udp "clients"
+     * @return RequestDescriptor[] List of udp "clients"
      */
-    private function findConnectionLessSockets(array $operations)
+    private function findConnectionLessSockets(array $requestDescriptors)
     {
         $result        = [];
         $specification = new ConnectionLessSocketSpecification();
-        foreach ($operations as $operation) {
+        foreach ($requestDescriptors as $operation) {
             if ($specification->isSatisfiedBy($operation)) {
                 $result[] = $operation;
             }

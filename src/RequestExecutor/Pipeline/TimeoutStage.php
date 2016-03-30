@@ -11,7 +11,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\TimeoutEvent;
 use AsyncSockets\Exception\SocketException;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\ServerSocket;
 
@@ -21,16 +21,16 @@ use AsyncSockets\Socket\ServerSocket;
 class TimeoutStage extends AbstractTimeAwareStage
 {
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        /** @var OperationMetadata[] $operations */
+        /** @var RequestDescriptor[] $requestDescriptors */
         $result    = [ ];
         $microTime = microtime(true);
-        foreach ($operations as $key => $operation) {
-            $isTimeout = $this->isSingleSocketTimeout($operation, $microTime) &&
-                         !$this->handleTimeoutOnDescriptor($operation);
+        foreach ($requestDescriptors as $key => $descriptor) {
+            $isTimeout = $this->isSingleSocketTimeout($descriptor, $microTime) &&
+                         !$this->handleTimeoutOnDescriptor($descriptor);
             if ($isTimeout) {
-                $result[$key] = $operation;
+                $result[$key] = $descriptor;
             }
         }
 
@@ -40,11 +40,11 @@ class TimeoutStage extends AbstractTimeAwareStage
     /**
      * Fire timeout event and processes user response
      *
-     * @param OperationMetadata $descriptor
+     * @param RequestDescriptor $descriptor
      *
      * @return bool True if we may do one more attempt, false otherwise
      */
-    public function handleTimeoutOnDescriptor(OperationMetadata $descriptor)
+    public function handleTimeoutOnDescriptor(RequestDescriptor $descriptor)
     {
         $meta  = $descriptor->getMetadata();
         $event = new TimeoutEvent(
@@ -74,12 +74,12 @@ class TimeoutStage extends AbstractTimeAwareStage
     /**
      * Update data inside descriptor to make one more attempt
      *
-     * @param OperationMetadata $descriptor Operation descriptor
+     * @param RequestDescriptor $descriptor Operation descriptor
      * @param string            $when When Timeout occurerd, one of TimeoutEvent::DURING_* consts
      *
      * @return void
      */
-    private function updateMetadataForAttempt(OperationMetadata $descriptor, $when)
+    private function updateMetadataForAttempt(RequestDescriptor $descriptor, $when)
     {
         switch ($when) {
             case TimeoutEvent::DURING_IO:
@@ -101,16 +101,16 @@ class TimeoutStage extends AbstractTimeAwareStage
     /**
      * Checks whether given params lead to timeout
      *
-     * @param OperationMetadata $operation Operation object
+     * @param RequestDescriptor $descriptor Descriptor object
      * @param double            $microTime Current time with microseconds
      *
      * @return bool True, if socket with this params in timeout, false otherwise
      */
-    private function isSingleSocketTimeout(OperationMetadata $operation, $microTime)
+    private function isSingleSocketTimeout(RequestDescriptor $descriptor, $microTime)
     {
-        $desiredTimeout    = $this->timeoutSetting($operation);
-        $lastOperationTime = $this->timeSinceLastIo($operation);
-        $hasConnected      = $this->hasConnected($operation);
+        $desiredTimeout    = $this->timeoutSetting($descriptor);
+        $lastOperationTime = $this->timeSinceLastIo($descriptor);
+        $hasConnected      = $this->hasConnected($descriptor);
 
         return ($desiredTimeout !== RequestExecutorInterface::WAIT_FOREVER) &&
                (

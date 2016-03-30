@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -20,11 +20,11 @@ abstract class AbstractTimeAwareStage extends AbstractStage
     /**
      * Return true, if connect time settings should be used for time operations, false otherwise
      *
-     * @param OperationMetadata $operation Operation object
+     * @param RequestDescriptor $operation Operation object
      *
      * @return bool
      */
-    protected function hasConnected(OperationMetadata $operation)
+    protected function hasConnected(RequestDescriptor $operation)
     {
         $meta = $operation->getMetadata();
         return $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] !== null;
@@ -33,11 +33,11 @@ abstract class AbstractTimeAwareStage extends AbstractStage
     /**
      * Return timeout for current socket state
      *
-     * @param OperationMetadata $operation Operation object
+     * @param RequestDescriptor $operation Operation object
      *
      * @return double
      */
-    protected function timeoutSetting(OperationMetadata $operation)
+    protected function timeoutSetting(RequestDescriptor $operation)
     {
         $meta = $operation->getMetadata();
         return !$this->hasConnected($operation) ?
@@ -48,11 +48,11 @@ abstract class AbstractTimeAwareStage extends AbstractStage
     /**
      * Return time since last I/O for current socket state
      *
-     * @param OperationMetadata $operation Operation object
+     * @param RequestDescriptor $operation Operation object
      *
      * @return double|null
      */
-    protected function timeSinceLastIo(OperationMetadata $operation)
+    protected function timeSinceLastIo(RequestDescriptor $operation)
     {
         $meta = $operation->getMetadata();
         return !$this->hasConnected($operation) ?
@@ -63,15 +63,15 @@ abstract class AbstractTimeAwareStage extends AbstractStage
     /**
      * Set start or finish time in metadata of the socket
      *
-     * @param OperationMetadata $operationMetadata Socket meta data
+     * @param RequestDescriptor $requestDescriptor Socket meta data
      * @param string            $key Metadata key to set
      *
      * @return void
      * @throws \InvalidArgumentException
      */
-    protected function setSocketOperationTime(OperationMetadata $operationMetadata, $key)
+    protected function setSocketOperationTime(RequestDescriptor $requestDescriptor, $key)
     {
-        $meta  = $operationMetadata->getMetadata();
+        $meta  = $requestDescriptor->getMetadata();
         $table = [
             RequestExecutorInterface::META_CONNECTION_START_TIME =>
                 $meta[ RequestExecutorInterface::META_CONNECTION_START_TIME ] === null,
@@ -84,7 +84,7 @@ abstract class AbstractTimeAwareStage extends AbstractStage
         ];
 
         if (isset($table[$key]) && $table[$key]) {
-            $operationMetadata->setMetadata($key, microtime(true));
+            $requestDescriptor->setMetadata($key, microtime(true));
         }
     }
 }

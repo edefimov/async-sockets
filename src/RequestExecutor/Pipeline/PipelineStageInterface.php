@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 
 /**
  * Interface PipelineStageInterface
@@ -19,9 +19,9 @@ interface PipelineStageInterface
     /**
      * Process pipeline stage
      *
-     * @param OperationMetadata[] $operations List of operations to process
+     * @param RequestDescriptor[] $requestDescriptors List of requestDescriptors to process
      *
-     * @return OperationMetadata[] List of processed operations
+     * @return RequestDescriptor[] List of processed requestDescriptors
      */
-    public function processStage(array $operations);
+    public function processStage(array $requestDescriptors);
 }

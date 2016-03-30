@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Specification;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\Socket\UdpClientSocket;
 
@@ -19,9 +19,9 @@ use AsyncSockets\Socket\UdpClientSocket;
 class ConnectionLessSocketSpecification implements SpecificationInterface
 {
     /** {@inheritdoc} */
-    public function isSatisfiedBy(OperationMetadata $operationMetadata)
+    public function isSatisfiedBy(RequestDescriptor $requestDescriptor)
     {
-        return $operationMetadata->getSocket() instanceof UdpClientSocket &&
-               $operationMetadata->getOperation() instanceof ReadOperation;
+        return $requestDescriptor->getSocket() instanceof UdpClientSocket &&
+               $requestDescriptor->getOperation() instanceof ReadOperation;
     }
 }

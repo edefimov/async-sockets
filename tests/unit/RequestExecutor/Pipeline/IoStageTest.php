@@ -49,7 +49,7 @@ class IoStageTest extends AbstractStageTest
     {
         $testTime = mt_rand(1, PHP_INT_MAX);
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
 
         $socket = $this->setupSocketForRequest($request);
         $socket->expects(self::any())->method('read')->willReturn(new Frame('', ''));
@@ -90,7 +90,7 @@ class IoStageTest extends AbstractStageTest
      */
     public function testThatConnectFinishTimeIsSetOnce()
     {
-        $request  = $this->createOperationMetadata();
+        $request  = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
         $request->expects(self::never())
                 ->method('setMetadata')
@@ -127,7 +127,7 @@ class IoStageTest extends AbstractStageTest
         );
         $operation->expects(self::any())->method('getType')->willReturn(md5(microtime(true)));
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
 
         $this->setupSocketForRequest($request);
@@ -155,7 +155,7 @@ class IoStageTest extends AbstractStageTest
 
         $operation = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
 
         $socket = $this->setupSocketForRequest($request);
@@ -187,7 +187,7 @@ class IoStageTest extends AbstractStageTest
     {
         $operation = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
 
         $this->setupSocketForRequest($request);
@@ -216,7 +216,7 @@ class IoStageTest extends AbstractStageTest
     {
         $testTime = mt_rand(1, PHP_INT_MAX);
         $socket   = $this->getMock('AsyncSockets\Socket\SocketInterface');
-        $request  = $this->createOperationMetadata();
+        $request  = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
         $request->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
         $request->expects(self::any())->method('getSocket')->willReturn($socket);
@@ -253,7 +253,7 @@ class IoStageTest extends AbstractStageTest
     {
         $testFrame = new Frame(md5(microtime(true)), (string) mt_rand(0, PHP_INT_MAX));
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->setupSocketForRequest($request);
         $socket->expects(self::any())->method('read')->willReturn($testFrame);
         $socket->expects(self::never())->method('write');
@@ -283,7 +283,7 @@ class IoStageTest extends AbstractStageTest
      */
     public function testExceptionOnWriting()
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->setupSocketForRequest($request);
         $socket->expects(self::never())->method('read');
         $socket->expects(self::any())->method('write');
@@ -316,7 +316,7 @@ class IoStageTest extends AbstractStageTest
         $testData = md5(microtime(true));
         $chunks   = str_split($testData, 4);
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->setupSocketForRequest($request);
         $socket->expects(self::never())->method('read');
         $socket->expects(self::any())->method('write')->willReturnOnConsecutiveCalls(4, 4, 4, 4, 0);
@@ -371,7 +371,7 @@ class IoStageTest extends AbstractStageTest
      */
     public function testRequestNotReturnedIfHandlerReturnedPassedOperation()
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->setupSocketForRequest($request);
 
         $operation = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
@@ -403,7 +403,7 @@ class IoStageTest extends AbstractStageTest
             'write' => 'AsyncSockets\Operation\WriteOperation'
         ];
 
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $socket  = $this->setupSocketForRequest($request);
         $socket->expects(self::any())->method('read')->willReturn(new Frame('', ''));
         $socket->expects(self::any())->method('write');

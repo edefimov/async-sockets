@@ -10,7 +10,7 @@
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Operation\DelayedOperation;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 
 /**
  * Class DelayStage
@@ -18,20 +18,20 @@ use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
 class DelayStage extends AbstractStage
 {
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
         $result = [];
 
-        /** @var OperationMetadata[] $operations */
-        foreach ($operations as $operationMetadata) {
-            $operation = $operationMetadata->getOperation();
+        /** @var RequestDescriptor[] $requestDescriptors */
+        foreach ($requestDescriptors as $requestDescriptor) {
+            $operation = $requestDescriptor->getOperation();
             if ($operation instanceof DelayedOperation) {
-                if ($this->checkDelayIsFinished($operationMetadata)) {
-                    $operationMetadata->setOperation($operation->getOriginalOperation());
-                    $result[] = $operationMetadata;
+                if ($this->checkDelayIsFinished($requestDescriptor)) {
+                    $requestDescriptor->setOperation($operation->getOriginalOperation());
+                    $result[] = $requestDescriptor;
                 }
             } else {
-                $result[] = $operationMetadata;
+                $result[] = $requestDescriptor;
             }
         }
 
@@ -41,16 +41,16 @@ class DelayStage extends AbstractStage
     /**
      * Check whether socket waiting is finished
      *
-     * @param OperationMetadata $operation Operation metadata to test
+     * @param RequestDescriptor $descriptor Request descriptor to test
      *
      * @return bool True if delay is complete, false otherwise
      */
-    private function checkDelayIsFinished(OperationMetadata $operation)
+    private function checkDelayIsFinished(RequestDescriptor $descriptor)
     {
         /** @var DelayedOperation $socketOperation */
-        $socketOperation = $operation->getOperation();
+        $socketOperation = $descriptor->getOperation();
         $arguments       = $socketOperation->getArguments();
-        array_unshift($arguments, $operation->getSocket(), $this->executor);
+        array_unshift($arguments, $descriptor->getSocket(), $this->executor);
 
         return !call_user_func_array(
             $socketOperation->getCallable(),

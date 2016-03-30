@@ -9,7 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Specification;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 
 /**
  * Interface SpecificationInterface
@@ -19,9 +19,9 @@ interface SpecificationInterface
     /**
      * Check whether given socket is satisfied by this specification
      *
-     * @param OperationMetadata $operationMetadata Operation object
+     * @param RequestDescriptor $requestDescriptor Operation object
      *
      * @return bool
      */
-    public function isSatisfiedBy(OperationMetadata $operationMetadata);
+    public function isSatisfiedBy(RequestDescriptor $requestDescriptor);
 }

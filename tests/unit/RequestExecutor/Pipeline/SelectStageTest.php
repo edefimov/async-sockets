@@ -40,7 +40,7 @@ class SelectStageTest extends AbstractStageTest
      */
     public function testThatConnectionLessSocketsWillBeReturnedWithoutSelect()
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getSocket')->willReturn(
             $this->getMock('AsyncSockets\Socket\UdpClientSocket', [ ], [ ], '', false)
         );
@@ -60,13 +60,13 @@ class SelectStageTest extends AbstractStageTest
      */
     public function testThatSocketAddedToSelector()
     {
-        $first = $this->createOperationMetadata();
+        $first = $this->createRequestDescriptor();
         $first->expects(self::any())->method('getSocket')->willReturn(
             $this->getMock('AsyncSockets\Socket\SocketInterface', [ ], [ ], '', false)
         );
         $first->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
 
-        $second = $this->createOperationMetadata();
+        $second = $this->createRequestDescriptor();
         $second->expects(self::any())->method('getSocket')->willReturn(
             $this->getMock('AsyncSockets\Socket\SocketInterface', [ ], [ ], '', false)
         );
@@ -93,7 +93,7 @@ class SelectStageTest extends AbstractStageTest
      */
     public function testEmptyArrayIsReturnedOnTimeoutException()
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getSocket')->willReturn(
             $this->getMock('AsyncSockets\Socket\SocketInterface', [ ], [ ], '', false)
         );
@@ -114,7 +114,7 @@ class SelectStageTest extends AbstractStageTest
      */
     public function testNonTimeoutExceptionWontBeCaught()
     {
-        $request = $this->createOperationMetadata();
+        $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getSocket')->willReturn(
             $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
         );
@@ -136,7 +136,7 @@ class SelectStageTest extends AbstractStageTest
      */
     public function testThatLastIoOperationIsChanged(SocketInterface $socket)
     {
-        $first = $this->createOperationMetadata();
+        $first = $this->createRequestDescriptor();
         $first->expects(self::any())->method('getSocket')->willReturn($socket);
         $first->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
 
@@ -168,7 +168,7 @@ class SelectStageTest extends AbstractStageTest
     {
         $requests = [];
         foreach ($sockets as $socket) {
-            $request = $this->createOperationMetadata();
+            $request = $this->createRequestDescriptor();
             $request->expects(self::any())->method('getSocket')->willReturn(
                 $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
             );
