@@ -2,5 +2,6 @@ build/
 vendor/
 /config.yml
 phpunit.xml
+composer.lock
 !tests/docker/mthr-server/php.conf/*.ini.dist
 tests/docker/mthr-server/php.conf/*.ini
