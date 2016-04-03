@@ -79,12 +79,6 @@ class DatagramClientIo extends AbstractClientIo
     }
 
     /** {@inheritdoc} */
-    protected function isEndOfTransfer()
-    {
-        return true;
-    }
-
-    /** {@inheritdoc} */
     protected function canReachFrame()
     {
         // in datagram we have no second chance to receive the frame

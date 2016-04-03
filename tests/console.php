@@ -17,7 +17,6 @@ $application = new Application();
 $application->addCommands(
     [
         new Tests\Application\Command\WarmupCommand(),
-        new Tests\Application\Command\SimpleClient(),
     ]
 );
 

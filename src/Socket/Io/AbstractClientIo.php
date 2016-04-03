@@ -13,7 +13,6 @@ use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Exception\FrameSocketException;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Frame\PartialFrame;
 
 /**
@@ -78,13 +77,6 @@ abstract class AbstractClientIo extends AbstractIo
     abstract protected function isConnected();
 
     /**
-     * Return true, if transfer is finished, false otherwise
-     *
-     * @return bool
-     */
-    abstract protected function isEndOfTransfer();
-
-    /**
      * Return true if frame can be collected in nearest future, false otherwise
      *
      * @return bool
@@ -106,8 +98,7 @@ abstract class AbstractClientIo extends AbstractIo
         if (!$isEndOfFrameReached) {
             $this->unhandledData = $this->readRawDataIntoPicker($picker);
 
-            $isEndOfTransfer     = $this->isEndOfTransfer();
-            $isEndOfFrameReached = $this->isEndOfFrameReached($picker, $isEndOfTransfer);
+            $isEndOfFrameReached = $picker->isEof();
             if (!$isEndOfFrameReached && !$this->canReachFrame()) {
                 throw new FrameSocketException($picker, $this->socket, 'Failed to receive desired frame.');
             }
@@ -179,21 +170,6 @@ abstract class AbstractClientIo extends AbstractIo
     }
 
     /**
-     * Checks whether all FramePicker data is read
-     *
-     * @param FramePickerInterface $picker Frame object to check
-     * @param bool                 $isTransferFinished Flag whether network transfer is finished
-     *
-     * @return bool
-     */
-    protected function isEndOfFrameReached(FramePickerInterface $picker, $isTransferFinished)
-    {
-        return
-            (!($picker instanceof NullFramePicker) && $picker->isEof()) ||
-            ($picker instanceof NullFramePicker && $isTransferFinished);
-    }
-
-    /**
      * Read unhandled data if there is something from the previous operation
      *
      * @param FramePickerInterface $picker Frame picker to use
@@ -206,6 +182,6 @@ abstract class AbstractClientIo extends AbstractIo
             $this->unhandledData = $picker->pickUpData($this->unhandledData, $this->getRemoteAddress());
         }
 
-        return $this->isEndOfFrameReached($picker, false);
+        return $picker->isEof();
     }
 }

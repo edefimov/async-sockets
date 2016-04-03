@@ -10,7 +10,7 @@
 namespace AsyncSockets\Operation;
 
 use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Frame\RawFramePicker;
 
 /**
  * Class ReadOperation
@@ -31,7 +31,7 @@ class ReadOperation implements OperationInterface
      */
     public function __construct(FramePickerInterface $framePicker = null)
     {
-        $this->framePicker = $framePicker ?: new NullFramePicker();
+        $this->framePicker = $framePicker ?: new RawFramePicker();
     }
 
 

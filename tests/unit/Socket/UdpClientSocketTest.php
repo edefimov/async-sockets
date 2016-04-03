@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket;
 
-use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\UdpClientSocket;
 use Tests\Application\Mock\PhpFunctionMocker;
@@ -167,7 +167,7 @@ class UdpClientSocketTest extends \PHPUnit_Framework_TestCase
                      ->willReturn($testValue);
 
 
-        $frame = $this->object->read(new NullFramePicker());
+        $frame = $this->object->read(new RawFramePicker());
         fclose($testValue);
         self::assertSame($this->data, (string) $frame, 'Incorrect frame');
     }

@@ -33,7 +33,7 @@ class ReadOperationTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         self::assertInstanceOf(
-            'AsyncSockets\Frame\NullFramePicker',
+            'AsyncSockets\Frame\RawFramePicker',
             $this->operation->getFramePicker(),
             'Incorrect initial state for framePicker'
         );

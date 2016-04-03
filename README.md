@@ -207,9 +207,6 @@ Event handler is implementation of `EventHandlerInterface`, which will be invoke
 When `ReadOperation` is applied to socket it is possible to determine frame boundaries when receiving data structure 
 is known. To achieve this purpose helps `FramePickerInterface`. It gives hints to socket engine where the end of frame 
 is and whether it is reached. These implementations of `FramePickerInterface` are available out of the box:
- - `NullFramePicker` - default implementation is used if nothing else is provided, reads data until network
-                       connection is active. *WARNING*: It is strongly recommended to avoid this type of picker in
-                       production code and always use any other one.
  - `FixedLengthFramePicker` - frame of predefined length, when length bytes are received immediately fires READ event.
  - `MarkerFramePicker` - frame of variable length, but at start and end marker, or at least end marker, are known.
  - `RawFramePicker` - raw frame with chunk of data just received from network read call.

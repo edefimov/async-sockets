@@ -15,8 +15,8 @@ use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\MarkerFramePicker;
-use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Frame\PartialFrame;
+use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\AsyncSocketFactory;
@@ -170,7 +170,7 @@ class ClientServerDataExchangeTest extends \PHPUnit_Framework_TestCase
             $data = md5(microtime(true));
             $client->write($data);
 
-            $acceptedFrame = $server->read(new NullFramePicker());
+            $acceptedFrame = $server->read(new RawFramePicker());
             self::assertInstanceOf('AsyncSockets\Frame\AcceptedFrame', $acceptedFrame);
 
             /** @var AcceptedFrame $acceptedFrame */

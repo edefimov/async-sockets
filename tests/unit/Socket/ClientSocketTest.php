@@ -11,8 +11,8 @@
 namespace Tests\AsyncSockets\Socket;
 
 use AsyncSockets\Frame\FixedLengthFramePicker;
-use AsyncSockets\Frame\NullFramePicker;
 use AsyncSockets\Frame\PartialFrame;
+use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Socket\ClientSocket;
 use Tests\Application\Mock\PhpFunctionMocker;
 
@@ -73,7 +73,7 @@ class ClientSocketTest extends AbstractSocketTest
         });
 
         $this->socket->open('it has no meaning here');
-        $frame = $this->socket->read(new NullFramePicker());
+        $frame = $this->socket->read(new RawFramePicker());
         self::assertInstanceOf(
             'AsyncSockets\Frame\FrameInterface',
             $frame,
@@ -136,7 +136,7 @@ class ClientSocketTest extends AbstractSocketTest
         );
 
         $this->socket->open('it has no meaning here');
-        $retString = $this->socket->read(new NullFramePicker())->getData();
+        $retString = $this->socket->read(new FixedLengthFramePicker(strlen($testString)))->getData();
         self::assertEquals($testString, $retString, 'Unexpected result was read');
     }
 
@@ -171,7 +171,7 @@ class ClientSocketTest extends AbstractSocketTest
         $responseText = '';
         $this->socket->open('it has no meaning here');
         do {
-            $response      = $this->socket->read(new NullFramePicker());
+            $response      = $this->socket->read(new FixedLengthFramePicker(strlen($data)));
             $responseText .= (string) $response;
         } while ($response instanceof PartialFrame);
 
