@@ -1,0 +1,59 @@
+digraph {
+  center=true;
+
+  "added"[label="Added", group="success"];
+  "initialized"[label="Initialized", group="success"];
+  "connected"[label="Connected", group="success"];
+  "io"[label="I/O", group="success"]
+  "unmanaged"[label="Unmanaged", group=unmanaged]
+  "exception"[label="Exception", group=unmanaged]
+  "timeout"[label="Timeout", group=timeout]
+  "disconnected"[label="Disconnected", group="success"]
+  "finalized"[label="Finalized", group="success"]
+  "removed"[label="Removed", group="success"]
+
+  subgraph init_engine {
+    label="Engine initialization";
+    added; initialized
+  }
+
+  subgraph io_processing {
+    label="I/O processing"
+    connected; io; timeout; unmanaged; exception
+
+    { rank=same; connected; exception }
+    { rank=same; timeout; unmanaged; io }
+  }
+
+  subgraph finalize_engine {
+    label="Finalization";
+    disconnected; finalized; removed
+  }
+
+  "added" -> "initialized"[color=darkgreen, weight=1]
+
+  "initialized" -> "connected"[color=darkgreen, weight=1]
+
+  "connected" -> "io"[color=darkgreen, weight=1]
+  "connected" -> "exception"[color=brown]
+  "io" -> "io"[color=darkgreen]
+  "io" -> "exception"[color=darkviolet]
+  "io" -> "unmanaged"[color=red]
+  "io" -> "timeout"[color=blue, weight=0.9]
+  "timeout" -> "initialized"[color=green]
+  "timeout" -> "io"[color=green]
+
+  "exception" -> "unmanaged"[color=darkviolet, weight=1]
+  "exception" -> "disconnected"[color=brown]
+
+  "io" -> "disconnected"[color=darkgreen, weight=1]
+  "timeout" -> "finalized"[color=blue, weight=0]
+  "timeout" -> "disconnected"[color=blue, weight=0]
+  "initialized" -> "exception"[color=brown, weight=0]
+  "initialized" -> "timeout"[color=blue]
+  "unmanaged" -> "disconnected"[color=red, weight=0]
+  "unmanaged" -> "io"[color=green, weight=1]
+  "disconnected" -> "finalized"[color=darkgreen, weight=1]
+  "finalized" -> "removed"[color=darkgreen, weight=1]
+}
+
