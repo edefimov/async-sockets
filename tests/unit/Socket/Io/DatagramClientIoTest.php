@@ -110,7 +110,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
      *
      * @return void
      * @dataProvider remoteAddressDataProvider
-     * @expectedException \AsyncSockets\Exception\FrameSocketException
+     * @expectedException \AsyncSockets\Exception\FrameException
      */
     public function testReadUnreachedFrame($remoteAddress)
     {

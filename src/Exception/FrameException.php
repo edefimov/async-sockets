@@ -13,9 +13,9 @@ use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
- * Class FrameSocketException
+ * Class FrameException
  */
-class FrameSocketException extends NetworkSocketException
+class FrameException extends NetworkSocketException
 {
     /**
      * Failed FramePicker

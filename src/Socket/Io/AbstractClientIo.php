@@ -10,7 +10,7 @@
 namespace AsyncSockets\Socket\Io;
 
 use AsyncSockets\Exception\ConnectionException;
-use AsyncSockets\Exception\FrameSocketException;
+use AsyncSockets\Exception\FrameException;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\PartialFrame;
@@ -100,7 +100,7 @@ abstract class AbstractClientIo extends AbstractIo
 
             $isEndOfFrameReached = $picker->isEof();
             if (!$isEndOfFrameReached && !$this->canReachFrame()) {
-                throw new FrameSocketException($picker, $this->socket, 'Failed to receive desired frame.');
+                throw new FrameException($picker, $this->socket, 'Failed to receive desired frame.');
             }
         }
 

@@ -16,9 +16,9 @@ use AsyncSockets\RequestExecutor\ConstantLimitationSolver;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 
 /**
- * Class ConstantLimitationDeciderTest
+ * Class ConstantLimitationSolverTest
  */
-class ConstantLimitationDeciderTest extends \PHPUnit_Framework_TestCase
+class ConstantLimitationSolverTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Limitation for test

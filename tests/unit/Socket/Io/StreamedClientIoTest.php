@@ -190,7 +190,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
      * testExceptionWillBeThrownIfFrameNotCollected
      *
      * @return void
-     * @expectedException \AsyncSockets\Exception\FrameSocketException
+     * @expectedException \AsyncSockets\Exception\FrameException
      */
     public function testExceptionWillBeThrownIfFrameNotCollected()
     {

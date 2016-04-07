@@ -49,7 +49,9 @@ native and libevent. The former is the pure php handler, the latter is based on 
 
 .. _libevent: https://pecl.php.net/package/libevent
 
-
+.. .. warning::
+..   If you are going to use :doc:`Persistent sockets </persistent_sockets.rst>` with libevent execution engine you
+..   should use at least version 0.1.1
 
 You can receive an instance of ``RequestExecutorInterface`` using the factory:
 

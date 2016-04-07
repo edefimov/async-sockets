@@ -1,6 +1,6 @@
-------------------------------------------
+==========================================
 AsyncSocketFactory configuration reference
-------------------------------------------
+==========================================
 
 The ``AsyncSocketFactory`` can be configured using non-standard values. To pass these value into the factory use
 ``Configuration`` object:
@@ -17,27 +17,52 @@ The ``AsyncSocketFactory`` can be configured using non-standard values. To pass 
 
 You should retrieve options from some source and pass it as key-value array into ``Configuration`` object.
 
-The list of available options:
+---------------
+List of options
+---------------
 
-+----------------------+-----------+-------------------------------+---------------------------------------------------+
-| Key in options array | Data type | Default value                 | Description                                       |
-+----------------------+-----------+-------------------------------+---------------------------------------------------+
-| connectTimeout       | double    | from *socket_default_timeout* | Default value for execution engine to wait        |
-|                      |           | php.ini directive             | connection establishment before considering it as |
-|                      |           |                               | timed out.                                        |
-+----------------------+-----------+-------------------------------+---------------------------------------------------+
-| ioTimeout            | double    | from *socket_default_timeout* | Default value for execution engine to wait some   |
-|                      |           | php.ini directive             | I/O activity before considering connection as     |
-|                      |           |                               | timed out.                                        |
-+----------------------+-----------+-------------------------------+---------------------------------------------------+
-| preferredEngines     | string[]  | ['libevent', 'native']        | Preferred order of execution engines to try to    |
-|                      |           |                               | create by ``createRequestExecutor()`` method from |
-|                      |           |                               | ``AsyncSocketFactory``. Only *native* and         |
-|                      |           |                               | *libevent* values are possible inside the array.  |
-+----------------------+-----------+-------------------------------+---------------------------------------------------+
+connectTimeout
+==============
+
+Summary:
+   Default value for execution engine to wait connection
+   establishment before considering it as timed out.
+
+Data type:
+   double
+
+Default value:
+   from *socket_default_timeout* php.ini directive
+
+ioTimeout
+=========
+
+Summary:
+   Default value for execution engine to wait some
+   I/O activity before considering connection as timed out.
+
+Data type:
+   double
+
+Default value:
+   from *socket_default_timeout* php.ini directive
 
 .. note::
    Too low timeout values may result in frequent timeouts on sockets.
+
+
+preferredEngines
+================
+
+Summary:
+   Preferred order of execution engines to try to create by ``createRequestExecutor()`` method from
+   ``AsyncSocketFactory``. Only *native* and *libevent* values are possible inside the array.
+
+Data type:
+   string[]
+
+Default value:
+   ['libevent', 'native']
 
 .. warning::
    Incorrect configuration for *preferredEngines* option will lead to `InvalidArgumentException` is thrown when

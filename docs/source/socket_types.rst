@@ -3,7 +3,7 @@ Socket types
 ============
 
 Async socket library provides two types of sockets - client and server. The client socket can be either persistent or
-non-persistent. The recommended way to create sockets of different types in source code is by using `AsyncSocketFactory`:
+non-persistent. The recommended way to create sockets of different types in source code is by using ``AsyncSocketFactory``:
 
 .. code-block:: php
    :linenos:
@@ -33,6 +33,7 @@ You may pass additional options via second argument of ``createSocket()``:
 The above code will create persistent socket.
 
 For now two options are available for ``createSocket()`` method:
+
     * AsyncSocketFactory::SOCKET_OPTION_IS_PERSISTENT
         **boolean**, flag whether this socket must be persistent, default value *false*
 

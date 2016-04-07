@@ -8,8 +8,9 @@ Contents:
 
    getting_started
    execution_engine
-   processing_data
    socket_types
+   processing_data
+   how_to_work_with_frames
    limitation_solver
    reference/events
    reference/socket_metadata
@@ -19,6 +20,5 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
 
