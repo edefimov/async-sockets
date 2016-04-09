@@ -10,7 +10,16 @@ FramePickers
 ------------
 
 `FramePickers` are the special objects implementing ``FramePickerInterface`` and designed to split incoming
-data into frames. FramePickers are passed into ``ReadOperation`` as the first argument of its constructor.
+data into :ref:`frames <working-with-frames-frames>`. FramePickers are passed into ``ReadOperation`` as the
+first argument of its constructor.
+
+.. code-block:: php
+   :linenos:
+
+   use AsyncSockets\Frame\FixedLengthFramePicker;
+
+   $picker    = new ...;
+   $operation = new ReadOperation($picker);
 
 There are some implementations available out of the box.
 
@@ -26,8 +35,6 @@ There are some implementations available out of the box.
 
 Each `FramePicker` describes some rules that data should match before it can create a frame. If rule can not be
 met a ``FrameException`` is thrown in :ref:`exception event <reference-events-exception>`.
-
-The main `FramePicker`'s aim is collecting incoming data needed to create a :ref:`Frame <working-with-frames-frames>`.
 
 The core idea of using `FramePickers` is that client code is aware of data structure it intends to receive
 from remote side.
@@ -51,13 +58,13 @@ By setting this operation the :ref:`read event <reference-events-read>` will fir
 remote side.
 
 .. note::
-   Actually more data from network can be collected, but event will be fired with exactly 255 bytes of data.
+   Actually more data from network can be collected, but event will be fired with exactly given bytes of data.
 
 
 MarkerFramePicker
 =================
 
-If data have variable length, but there are well-known ending and a beginning of data (or at least ending) it is
+If data have variable length, but there are well-known ending and beginning of data (or at least ending) it is
 possible to use ``MarkerFramePicker``. It cuts the data between given start marker and end marker, including markers
 themselves.
 
@@ -119,3 +126,34 @@ decorating your event handler into ``SslDataFlushEventHandler``.
 Frames
 ------
 
+After ``FramePicker`` has finished reading data it can create a `Frame`. Frames are a piece of data collected
+by current read operation. Each frame implements ``FrameInterface`` providing methods for getting the data
+and remote host address these data belongs to.
+
+.. code-block:: php
+   :linenos:
+
+   public function onRead(ReadEvent $event)
+   {
+       $remoteAddress = $event->getFrame()->getRemoteAddress();
+       echo "Received data from {$remoteAddress}: \n\n" . $event->getFrame()->getData();
+   }
+
+An alternative way of receiving data from the frame is casting an object into a string:
+
+.. code-block:: php
+   :linenos:
+
+   public function onRead(ReadEvent $event)
+   {
+       $remoteAddress = $event->getFrame()->getRemoteAddress();
+       echo "Received data from {$remoteAddress}: \n\n {$event->getFrame()}";
+   }
+
+Out of the box 3 implementations of Frames are available:
+
+  * ``Frame`` - default implementation for creating finished piece of data;
+  * ``PartialFrame`` - an implementation showing that data are incomplete. You will never receive it in read event,
+    but if you intend to create a custom ``FramePicker``, you should use this type of frame
+    as a result of ``createFrame()`` method from ``FramePickerInterface`` when the system calls it;
+  * ``EmptyFrame`` - a frame that always casted into an empty string. This object is returned by ``EmptyFramePicker``.

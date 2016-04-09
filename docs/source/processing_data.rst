@@ -4,7 +4,7 @@ Processing data
 
 The :ref:`socket lifecycle <diagram-socket-lifecycle>` is managed via operations.
 
-Every action on the socket is described by an operation. Operations are implementation of ``OperationInterface``. Each
+Every action on the socket is described by an operation. Operations are implementations of ``OperationInterface``. Each
 operation is an object, containing concrete data, required for processing. There are 5 available operations:
 
  * ``ReadOperation``
@@ -32,7 +32,7 @@ This code will create read operation telling the executing engine to handle read
 every read operation will immediately call event handler with the data received from socket.
 
 .. note::
-   Be ready to process empty data, if you are using ``ReadOperation``
+   Be ready to process empty data, if you are using ``ReadOperation`` without constructor arguments.
 
 The default behaviour can be easily changed using its constructor argument accepting instance of
 ``FramePickerInterface``:
@@ -53,7 +53,7 @@ If given frame can not be received, the :ref:`exception event <reference-events-
 is dispatched with ``FrameException`` object inside event argument.
 
 If the remote site does not send any data within chosen period of time,
-sthe :ref:`timeout event <reference-events-timeout>` will be dispatched.
+the :ref:`timeout event <reference-events-timeout>` will be dispatched.
 
 WriteOperation
 ==============
@@ -81,7 +81,7 @@ accept any data within chosen period of time, the :ref:`timeout event <reference
 SslHandshakeOperation
 =====================
 
-Normally when you intend to establish secured connection to remote host you use address like *tls://example.com:443*
+Normally when you intend to establish secured connection with remote host you use address like *tls://example.com:443*
 and it works perfect. With one great disadvantage - connection will be done synchronously even if you have switched
 socket into non-blocking mode. This happens because of SSL handshake procedure required for successful data exchange.
 
@@ -105,6 +105,7 @@ Supposing you have request executor instance and socket created, you can connect
    );
 
 The ``SslHandshakeOperation``'s constructor accept two arguments:
+
   * the operation to execute after the socket has connected;
   * the cipher to use for SSL connection, one of php constant `STREAM_CRYPTO_METHOD_*_CLIENT` for client sockets.
 
@@ -122,11 +123,11 @@ DelayedOperation
 ================
 
 The ``DelayedOperation`` allows to postpone operation to some future time determined by a callback function.
-The callback function must answer the question *Is operation is still pending?* and return *true* if socket
+The callback function must answer the question *"Is an operation is still pending?"* and return *true* if socket
 is waiting for something and *false* when it is ready to proceed. The function is executed each time there is
-some *other* socket in the engine is ready to process.
+some *other* socket in the engine to process.
 
-This feature is useful when one socket is waiting data from another one.
+This feature is useful when a socket is waiting data from another one.
 
 The constructor of ``DelayedOperation`` accepts three arguments:
 
@@ -142,22 +143,23 @@ The callback function prototype must be the following:
 
 .. warning::
    The callback function is executed only when there is at least one socket except waiting one
-   and there are some changes with the second socket. If these
+   and there is some activity on the second socket. If these
    conditions are not met, the operation on the waiting socket will never finish.
 
 NullOperation
 =============
 
-The ``NullOperation`` is special type of operation which is automatically set for socket, if the
+The ``NullOperation`` is a special type of operation which is automatically set for socket, if the
 next operation has not been defined in :ref:`read event <reference-events-read>`
 or :ref:`write event <reference-events-write>`. This operation does not perform any action and has different meanings
-for persistent socket and non-persistent sockets.
+for persistent socket and non-persistent ones.
 
 For non-persistent sockets ``NullOperation`` is considered as the end of request and the engine closes the connection.
 
-For persistent sockets the situation changes since persistent sockets keep connection all the time. If there are
-new data to read and ``NullOperation`` is set for the socket, the system dispatches
-:ref:`data alert event <reference-events-data-alert>`. In the response to the event you can set the appropriate read
+For persistent sockets the situation significantly changes since persistent sockets
+keep connection all the time. If there are new data to read and ``NullOperation``
+is set for the socket, the system dispatches :ref:`data alert event <reference-events-data-alert>`.
+In the response to the event you can set the appropriate read
 operation and receive the data or close the connection.
 
 .. warning::

@@ -14,7 +14,7 @@ The ``LimitationSolverInterface`` contains 3 methods:
 
   * ``initialize()`` is called before engine execution loop is started;
   * ``finalize()`` is called after engine execution loop is finished;
-  * ``decide()`` is called each time the engine needs to take some decision about the socket.
+  * ``decide()`` is called each time the engine needs to make some decision about the socket.
 
 The prototype of decide method looks like:
 
@@ -25,7 +25,7 @@ The prototype of decide method looks like:
 The ``decide`` method should return a hint for engine what to do with certain given socket. The possible decisions are:
 
   * DECISION_OK - schedule request for given socket;
-  * DECISION_PROCESS_SCHEDULED - the engine has enough scheduled socket and should process them before taking new ones;
+  * DECISION_PROCESS_SCHEDULED - the engine has enough scheduled sockets and should process them before taking new ones;
   * DECISION_SKIP_CURRENT - this certain socket should not be processed right now.
 
 If you need an access to socket events from the solver,

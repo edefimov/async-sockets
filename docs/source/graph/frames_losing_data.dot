@@ -1,5 +1,5 @@
 digraph {
     graph [bgcolor="transparent"];
     node [shape=record];
-    struct1 [label="<lost> AAA|<frame> X1234567890X|<next> CCC"];
+    Frame [label="<lost> AAA|<frame> X1234567890X|<next> CCC"];
 }

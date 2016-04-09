@@ -1,4 +1,4 @@
-Welcome to Async sockets's documentation!
+Welcome to Async Sockets's documentation!
 =========================================
 
 Contents:
@@ -12,6 +12,7 @@ Contents:
    processing_data
    how_to_work_with_frames
    limitation_solver
+   persistent_sockets
    reference/events
    reference/socket_metadata
    reference/factory_configuration

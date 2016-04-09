@@ -40,8 +40,8 @@ digraph {
   "io" -> "exception"[color=darkviolet]
   "io" -> "unmanaged"[color=red]
   "io" -> "timeout"[color=blue, weight=0.9]
-  "timeout" -> "initialized"[color=green]
-  "timeout" -> "io"[color=green]
+  "timeout" -> "initialized"[color=lime]
+  "timeout" -> "io"[color=lime]
 
   "exception" -> "unmanaged"[color=darkviolet, weight=1]
   "exception" -> "disconnected"[color=brown]

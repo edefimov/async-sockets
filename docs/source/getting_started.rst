@@ -26,7 +26,7 @@ and `--prefer-source` option for development. Development version includes both 
 Quick start
 -----------
 
- 1. Create `AsyncSocketFactory` at point where you want to start request. This object is the entry point to the library:
+ 1. Create ``AsyncSocketFactory`` at the point where you want to start request. This object is the entry point to the library:
 
  .. code-block:: php
     :linenos:
@@ -80,7 +80,7 @@ Quick start
       $client,
       new WriteOperation(),
       [
-          RequestExecutorInterface::META_ADDRESS            => 'tls://github.com:443',
+          RequestExecutorInterface::META_ADDRESS            => 'tls://example.com:443',
           RequestExecutorInterface::META_CONNECTION_TIMEOUT => 30,
           RequestExecutorInterface::META_IO_TIMEOUT         => 5,
       ],
@@ -90,7 +90,7 @@ Quick start
       $anotherClient,
       new WriteOperation(),
       [
-          RequestExecutorInterface::META_ADDRESS            => 'tls://packagist.org:443',
+          RequestExecutorInterface::META_ADDRESS            => 'tls://example.net:443',
           RequestExecutorInterface::META_CONNECTION_TIMEOUT => 10,
           RequestExecutorInterface::META_IO_TIMEOUT         => 2,
       ],
@@ -135,17 +135,17 @@ The whole example may look like this:
 
            $executor->socketBag()->addSocket(
                 $client,
-                new WriteOperation("GET / HTTP/1.1\nHost: packagist.org\n\n"),
+                new WriteOperation("GET / HTTP/1.1\nHost: example.com\n\n"),
                 [
-                    RequestExecutorInterface::META_ADDRESS => 'tls://packagist.org:443',
+                    RequestExecutorInterface::META_ADDRESS => 'tls://example.com:443',
                 ]
            );
 
            $executor->socketBag()->addSocket(
                $anotherClient,
-               new WriteOperation("GET / HTTP/1.1\nHost: github.com\n\n"),
+               new WriteOperation("GET / HTTP/1.1\nHost: example.net\n\n"),
                [
-                   RequestExecutorInterface::META_ADDRESS => 'tls://github.com:443',
+                   RequestExecutorInterface::META_ADDRESS => 'tls://example.net:443',
                ]
            );
 
@@ -178,15 +178,14 @@ The whole example may look like this:
         }
    }
 
-Here you create two sockets, the first will receive the main page from packagist_ and the second will receive
-mainpage from github_. You also inform execution engine about the first I/O operation on the socket and destination
-address. These are minimum required settings for executing any request.
+Here you create two sockets, the first will receive the main page from *example.net* and the second will receive
+mainpage from *example.com*. You should also inform the execution engine about the first I/O operation on the socket and destination
+address. These are minimum settings required for executing any request.
 
-.. _packagist: https://packagist.org
-.. _github: https://github.com
 
-When connection is successfully established, the `onWrite` method will be called by engine. Within write handler you
-tell the engine to prepare `read` operation with `marker` frame boundary detection strategy.
+When connection is successfully established, since the ``WriteOperation`` is set, the `onWrite` method
+will be called by engine. Within write handler you tell the engine to prepare `read` operation
+with `marker` frame boundary detection strategy.
 
 When the data is downloaded and is satisfied by given strategy, the `onRead` handler will be invoked, where you have
 access to downloaded data and some additional information about data.

@@ -3,9 +3,11 @@ Event reference
 ---------------
 
 To deal with sockets you need to subscribe to events you are interested in. Each event type has
-``Event`` object (or one of its children) as the callback argument. If you have symfony event
-dispatcher component installed , the async socket library ``Event`` object will be inherited from symfony `Event` object.
+``Event`` object (or one of its children) as the callback argument. If you have `symfony event
+dispatcher <http://symfony.com/doc/current/components/event_dispatcher/introduction.html/>`_ component installed ,
+the Async Socket Library's ``Event`` object will be inherited from symfony `Event` object.
 All events are described in ``EventType`` class.
+
 
 INITIALIZE
 ==========
@@ -108,7 +110,7 @@ DISCONNECTED
 
 Summary
     Connection to remote server is now closed. This event
-    is not be fired when socket hasn't connected.
+    is not fired when socket hasn't connected.
 
 Constant in ``EventType``
     `DISCONNECTED`
@@ -151,7 +153,7 @@ EXCEPTION
 =========
 
 Summary
-    Some ``NetworkSocketException`` occurred detailed
+    Some ``NetworkSocketException`` occurred and detailed
     information can be retrieved from ``SocketExceptionEvent``.
 
 Constant in ``EventType``

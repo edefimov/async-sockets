@@ -1,4 +1,5 @@
 build/
+docs/build
 vendor/
 /config.yml
 phpunit.xml
