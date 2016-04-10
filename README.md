@@ -2,6 +2,7 @@ Async sockets library
 =====================
 
 [![Build Status](https://img.shields.io/travis/edefimov/async-sockets/master.svg?style=flat)](https://travis-ci.org/edefimov/async-sockets)
+[![Documentation Status](https://readthedocs.org/projects/async-sockets/badge/?version=latest)](http://async-sockets.readthedocs.org/en/latest/?badge=latest)
 [![Scrutinizer Coverage](https://img.shields.io/scrutinizer/coverage/g/edefimov/async-sockets.svg?style=flat)](https://scrutinizer-ci.com/g/edefimov/async-sockets/)
 [![SensioLabsInsight](https://img.shields.io/sensiolabs/i/c816a980-e97a-46ae-b334-16c6bfd1ec4a.svg?style=flat)](https://insight.sensiolabs.com/projects/c816a980-e97a-46ae-b334-16c6bfd1ec4a)
 [![Scrutinizer](https://img.shields.io/scrutinizer/g/edefimov/async-sockets.svg?style=flat)](https://scrutinizer-ci.com/g/edefimov/async-sockets/)
@@ -14,34 +15,46 @@ Async sockets is event-based library for asynchronous work with sockets built on
 
 ## Features
 
-- multiple requests execution at once
-- distinguish frame boundaries
-- server socket support
-- determine datagram size for UDP sockets
-- all transports returned by stream_get_transports are supported
-- compatible with symfony event dispatcher component
-- full control over timeouts
-- dynamically adding new request during execution process
-- separate timeout values for each socket
-- custom sockets setup by php stream contexts
-- custom user context for each socket
-- stop request either for certain socket or for all of them
-- strategies for limiting number of running requests
-- error handling is based on exceptions
+ - multiple requests execution at once
+ - distinguish frame boundaries
+ - server socket support
+ - persistent connections support
+ - multiple persistent connections to the same host:port
+ - processing TLS handshake asynchronous
+ - synchronization between sockets
+ - determine datagram size for UDP sockets
+ - all transports returned by stream_get_transports are supported
+ - compatible with symfony event dispatcher component
+ - full control over timeouts
+ - dynamically adding new request during execution process
+ - separate timeout values for each socket
+ - custom sockets setup by php stream contexts
+ - custom user context for each socket
+ - stop request either for certain socket or for all of them
+ - strategies for limiting number of running requests
+ - error handling is based on exceptions
+ - supports libevent engine
 
 ## What is it for
 Async sockets library provides networking layer for applications, hides complexity of I/O operations, 
- and cares about connections management. Library will be a powerful solution for such tasks like executing multiple 
- requests at once as well as executing single one. Running multiple requests at once decreases delay of I/O operation 
+ and cares about connections management. The library will be a powerful base for implementing
+ arbitrary networking protocol as for implementing server on PHP. 
+ Running multiple requests at once decreases delay of I/O operation 
  to the size of timeout assigned to the slowest server.
- 
+
+## Documentation
+
+[Stable version](https://async-sockets.readthedocs.org/en/stable/)
+
+[Latest version](https://async-sockets.readthedocs.org/en/latest/)
+
 ## Installation
 
 The recommended way to install async sockets library is through composer
 
 stable version:
 ```
-$ composer require edefimov/async-sockets:~0.2.0 --prefer-dist|--prefer-source
+$ composer require edefimov/async-sockets:~0.3.0 --prefer-dist|--prefer-source
 ```
 
 actual version:
@@ -75,6 +88,7 @@ $handler = new CallbackEventHandler(
         EventType::WRITE        => [$this, 'onWrite'],
         EventType::READ         => [$this, 'onRead'],
         EventType::ACCEPT       => [$this, 'onAccept'],
+        EventType::DATA_ALERT   => [$this, 'onDataAlert'],
         EventType::DISCONNECTED => [$this, 'onDisconnected'],
         EventType::FINALIZE     => [$this, 'onFinalize'],
         EventType::EXCEPTION    => [$this, 'onException'],
@@ -108,144 +122,6 @@ $executor->socketBag()->addSocket(
 ```
 
 #### Step 5. Execute it!
-```php
-$executor->executeRequest();
-```
-
-## Workflow
-### Socket types
-Async socket library provides two types of sockets - client and server. The recommended way to create 
-sockets of different types in source code is to use `AsyncSocketFactory`
-```php
-$factory = new AsyncSocketFactory();
-
-$client = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
-$server = $factory->createSocket(AsyncSocketFactory::SOCKET_SERVER);
-```
-
-### RequestExecutor
-RequestExecutor is an engine, which hides all I/O operations and provides event system for client code.
-Creating RequestExecutor is as simple as creating sockets:
-```php
-$executor = $factory->createRequestExecutor();
-```
-
-At this point we should decide whether or not to use global event handler or limitation solver.
- 
-Global event handler is the implementation of `EventHandlerInterface`, which will be called for every event on every
-added socket. There are four implementations of this interface out of box:
- - `CallbackEventHandler` takes array of callable, indexed by event type. For certain event type a certain 
-   callable will be invoked. Several callbacks can be defined for one event type
- - `EventHandlerFromSymfonyEventDispatcher` dispatches all socket event to symfony [EventDispatcher](http://symfony.com/doc/current/components/event_dispatcher/introduction.html)
- - `EventMultiHandler` is the composite of EventHandlerInterface implementations
- - `RemoveFinishedSocketsEventHandler` decorator for any implementation of `EventHandlerInterface` which automatically
-        removes completed sockets from `RequestExecutor`. Recommended to use for accepted clients from server sockets.
-
-The limitation solver is the component restricts amount of executed at once requests. Out of the box two strategies
-are available:
- - `NoLimitationSolver` doesn't restrict anything, it is default one
- - `ConstantLimitationSolver` restricts amount of running requests to given number
-Custom limitation solver can be written by implementing `LimitationSolverInterface`. If you need an access to socket
-events from the solver, just implement `EventHandlerInterface` in addition to the first one.
-
-To set up event handler or limitation solver use this snippet
-```php
-$executor->withEventHandler(
-    new CallbackEventHandler(
-        [
-            EventType::INITIALIZE => [$this, 'onInitialize'],
-            EventType::WRITE      => [$this, 'onWrite'],
-            ....
-        ]
-    )
-);
-
-$executor->withLimitationSolver(new ConstantLimitationSolver(20));
-```
-
-### Event types
-To deal with sockets you need to subscribe to events you are interested in. There are several type of events:
- - EventType::INITIALIZE is the first event sent for socket and can be used for some preparations like setting 
-        destination address for socket
- - EventType::CONNECTED - socket has been just connected to server
- - EventType::ACCEPT - applicable only for server sockets, fires each time when there is new client, no matter what
-        kind of transport is used tcp, udp, unix or something else. Client socket can be got from `AcceptEvent`
- - EventType::READ - new frame has been arrived. Frame can be extracted from `ReadEvent` object, which will be passed
-        to callback function. Applicable only for client sockets
- - EventType::WRITE - socket is ready to write data. New data must be passed to socket through `WriteEvent` object
- - EventType::DISCONNECTED - connection to remote server is now closed. This event won't be fired, if socket hasn't connected
- - EventType::FINALIZE - socket I/O cycle is complete and socket should be removed from RequestExecutor
- - EventType::TIMEOUT - socket failed to connect/read/write data during set up period of time
- - EventType::EXCEPTION - some `NetworkSocketException` occurred, detailed information can be retrieved from `SocketExceptionEvent`
-
-Each event type has `Event` object (or one of its children) as the callback argument. If you have installed symfony event
- dispatcher component, library's `Event` object will be inherited from symfony `Event` object.
- 
-
-### Adding sockets
-To add socket to RequestExecutor use `SocketBagInterface` returned by `socketBag` method of `RequestExecutor`
-```php
-$executor->socketBag()->addSocket(
-    $socket, 
-    new WriteOperation('some data'),  // or new ReadOperation
-    [
-        RequestExecutorInterface::META_ADDRESS            => 'tls://github.com:443',
-        RequestExecutorInterface::META_CONNECTION_TIMEOUT => 30,
-        RequestExecutorInterface::META_IO_TIMEOUT         => 5,
-    ],
-    $handler
-);
-```
-
-Function `addSocket` accepts four arguments: socket, operation, metadata and event handler. 
-Socket is the object, created by `AsyncSocketFactory` or received by `AcceptEvent`.
-Operation can be one of `ReadOperation` or `WriteOperation` classes.
-Metadata is key-value array with settings for this socket and will be described later.
-Event handler is implementation of `EventHandlerInterface`, which will be invoked only for this socket.
-
-#### Determination of frame boundaries
-When `ReadOperation` is applied to socket it is possible to determine frame boundaries when receiving data structure 
-is known. To achieve this purpose helps `FramePickerInterface`. It gives hints to socket engine where the end of frame 
-is and whether it is reached. These implementations of `FramePickerInterface` are available out of the box:
- - `FixedLengthFramePicker` - frame of predefined length, when length bytes are received immediately fires READ event.
- - `MarkerFramePicker` - frame of variable length, but at start and end marker, or at least end marker, are known.
- - `RawFramePicker` - raw frame with chunk of data just received from network read call.
- 
-To write own frame picker just implement `FramePickerInterface`.
-```php
-$read = new ReadOperation(new FixedLengthFramePicker(256)); // read 256 bytes from response
-
-$read = new MarkerFramePicker('HTTP', "\r\n\r\n"); // get HTTP headers from response
-
-$read = new MarkerFramePicker(null, "\x00"); // read data until 0-byte
-```
-
-If end of frame is not reached and transfer terminates, then EXCEPTION event will be fired with `FrameSocketException`
-type inside of event.
-
-#### Metadata
-Metadata is settings for all operations on given socket. Supported keys are defined in `RequestExecutorInterface`.
-For now these keys are supported:
-  - META_ADDRESS - string in form scheme://target, destination address for client socket and local address for server.
-        This value is required for created sockets and can be ignored for accepted ones.
-  - META_CONNECTION_TIMEOUT - int, value in seconds, if there was no connection during this period, socket would 
-        be closed automatically and TIMEOUT event will be fired. If value is omitted then php.ini setting default_socket_timeout is used
-  - META_IO_TIMEOUT - float, seconds with microseconds, if there were no data sent/received during this period of time,
-        then TIMEOUT event will be fired
-  - META_USER_CONTEXT - mixed, any user defined data, doesn't use somehow by engine
-  - META_SOCKET_STREAM_CONTEXT - array or resource - any valid stream context created by stream_context_create function 
-        or null or array with options. If array value is used, then it should contain two nested keys:
-        "options" and "params", which will be passed to stream_context_create parameters respectively.
-  - META_REQUEST_COMPLETE - bool, read-only, flag indicating that execute operation on this socket is complete
-  - META_CONNECTION_START_TIME - float, read-only, int part is seconds and float is microseconds, time 
-        when connection process has begun. If connection process hasn't started yet, the value will be null
-  - META_CONNECTION_FINISH_TIME - float, read-only, int part is seconds and float is microseconds, time when 
-        connection process has ended. If connection process hasn't finished yet, the value will be null
-  - META_LAST_IO_START_TIME - float, read-only, int part is seconds and float is microseconds, time when last 
-        io operation has started
-
-### Starting request
-After setting up event handler and adding at least one socket request can be executed by calling
 ```php
 $executor->executeRequest();
 ```
@@ -296,7 +172,7 @@ $executor->socketBag()->addSocket(
 
 $executor->executeRequest();
 ```
-See full example [here](https://github.com/edefimov/async-sockets/blob/master/demos/Demo/RequestExecutorClient.php)
+See full example [here](https://github.com/edefimov/async-sockets/blob/0.3.0/demos/Demo/RequestExecutorClient.php)
 
 ### Server socket
 ```php
@@ -328,4 +204,4 @@ $executor->socketBag()->addSocket(
 
 $executor->executeRequest();
 ```
-See full example [here](https://github.com/edefimov/async-sockets/blob/master/demos/Demo/SimpleServer.php)
+See full example [here](https://github.com/edefimov/async-sockets/blob/0.3.0/demos/Demo/SimpleServer.php)

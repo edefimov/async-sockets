@@ -1,7 +1,8 @@
 Welcome to Async Sockets's documentation!
 =========================================
 
-Contents:
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
@@ -17,9 +18,4 @@ Contents:
    reference/socket_metadata
    reference/factory_configuration
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`search`
 
