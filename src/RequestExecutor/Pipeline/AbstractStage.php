@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -11,7 +11,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\Exception\SocketException;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -48,17 +48,17 @@ abstract class AbstractStage implements PipelineStageInterface
     /**
      * Notify handlers about given event
      *
-     * @param OperationMetadata $operationMetadata Socket operation metadata
+     * @param RequestDescriptor $requestDescriptor Request descriptor
      * @param Event             $event Event object
      *
      * @return void
      * @throws \Exception
      */
-    protected function callSocketSubscribers(OperationMetadata $operationMetadata, Event $event)
+    protected function callSocketSubscribers(RequestDescriptor $requestDescriptor, Event $event)
     {
         try {
-            $this->eventCaller->setCurrentOperation($operationMetadata);
-            $this->eventCaller->callSocketSubscribers($operationMetadata, $event);
+            $this->eventCaller->setCurrentOperation($requestDescriptor);
+            $this->eventCaller->callSocketSubscribers($requestDescriptor, $event);
             $this->eventCaller->clearCurrentOperation();
         } catch (\Exception $e) {
             $this->eventCaller->clearCurrentOperation();
@@ -69,19 +69,19 @@ abstract class AbstractStage implements PipelineStageInterface
     /**
      * Notify handlers about exception
      *
-     * @param OperationMetadata $operationMetadata Socket operation object
-     * @param SocketException $exception Thrown exception
+     * @param RequestDescriptor $requestDescriptor Socket operation object
+     * @param SocketException   $exception Thrown exception
      *
      * @return void
      * @throws \Exception
      */
     protected function callExceptionSubscribers(
-        OperationMetadata $operationMetadata,
+        RequestDescriptor $requestDescriptor,
         SocketException $exception
     ) {
         try {
-            $this->eventCaller->setCurrentOperation($operationMetadata);
-            $this->eventCaller->callExceptionSubscribers($operationMetadata, $exception);
+            $this->eventCaller->setCurrentOperation($requestDescriptor);
+            $this->eventCaller->callExceptionSubscribers($requestDescriptor, $exception);
             $this->eventCaller->clearCurrentOperation();
         } catch (\Exception $e) {
             $this->eventCaller->clearCurrentOperation();
@@ -92,12 +92,12 @@ abstract class AbstractStage implements PipelineStageInterface
     /**
      * Create simple event
      *
-     * @param OperationMetadata $operation Operation item
+     * @param RequestDescriptor $operation Operation item
      * @param string            $eventName Event name for object
      *
      * @return Event
      */
-    protected function createEvent(OperationMetadata $operation, $eventName)
+    protected function createEvent(RequestDescriptor $operation, $eventName)
     {
         $meta = $operation->getMetadata();
 

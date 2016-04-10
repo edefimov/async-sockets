@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -12,7 +12,7 @@ namespace Tests\AsyncSockets\Socket\Io;
 
 use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\Frame\NullFramePicker;
+use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Socket\ClientSocket;
 use AsyncSockets\Socket\Io\StreamedClientIo;
 use AsyncSockets\Socket\SocketInterface;
@@ -151,7 +151,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
         $this->prepareFor(__FUNCTION__);
         $this->setConnectedStateForTestObject(false);
         $this->ensureSocketIsOpened();
-        $this->object->read(new NullFramePicker());
+        $this->object->read(new RawFramePicker());
     }
 
     /**
@@ -161,7 +161,6 @@ class StreamedClientIoTest extends AbstractClientIoTest
      */
     public function testThatIfDataInSocketNotReadyForReadThenTheyWillBeReadLater()
     {
-        $numReads                 = 3;
         $mockFread                = $this->getMock('Countable', ['count']);
         $mockStreamSocketRecvFrom = $this->getMock('Countable', ['count']);
 
@@ -179,8 +178,8 @@ class StreamedClientIoTest extends AbstractClientIoTest
         $this->setConnectedStateForTestObject(true);
         $this->ensureSocketIsOpened();
 
-        $picker = new NullFramePicker();
-        for ($i = 0; $i < $numReads; $i++) {
+        $picker = new FixedLengthFramePicker(2);
+        for ($i = 0; $i < 3; $i++) {
             $frame = $this->object->read($picker);
         }
 
@@ -191,7 +190,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
      * testExceptionWillBeThrownIfFrameNotCollected
      *
      * @return void
-     * @expectedException \AsyncSockets\Exception\FrameSocketException
+     * @expectedException \AsyncSockets\Exception\FrameException
      */
     public function testExceptionWillBeThrownIfFrameNotCollected()
     {

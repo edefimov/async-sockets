@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -25,7 +25,7 @@ class DelayStageTest extends AbstractStageTest
      */
     public function testNotReturnWhileCallbackIsPending()
     {
-        $metadata = $this->createOperationMetadata();
+        $metadata = $this->createRequestDescriptor();
         $mock     = $this->getMockBuilder('Countable')
                     ->setMethods(['count'])
                     ->getMockForAbstractClass();
@@ -60,7 +60,7 @@ class DelayStageTest extends AbstractStageTest
      */
     public function testPendingComplete()
     {
-        $metadata = $this->createOperationMetadata();
+        $metadata = $this->createRequestDescriptor();
         $mock     = $this->getMockBuilder('Countable')
                          ->setMethods(['count'])
                          ->getMockForAbstractClass();

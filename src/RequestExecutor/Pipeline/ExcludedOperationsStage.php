@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -17,7 +17,7 @@ use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 class ExcludedOperationsStage extends AbstractStage
 {
     /**
-     * Stages for processing successful operations
+     * Stages for processing successful descriptors
      *
      * @var PipelineStageInterface[]
      */
@@ -37,19 +37,19 @@ class ExcludedOperationsStage extends AbstractStage
     }
 
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        $currentOperations = $operations;
+        $currentOperations = $requestDescriptors;
         foreach ($this->stages as $stage) {
             $currentOperations = $stage->processStage($currentOperations);
         }
 
-        foreach ($operations as $key => $item) {
-            if (in_array($item, $currentOperations, true)) {
-                unset($operations[$key]);
+        foreach ($requestDescriptors as $key => $descriptor) {
+            if (in_array($descriptor, $currentOperations, true)) {
+                unset($requestDescriptors[ $key]);
             }
         }
 
-        return $operations;
+        return $requestDescriptors;
     }
 }

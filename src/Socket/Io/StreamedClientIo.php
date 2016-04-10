@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -55,7 +55,7 @@ class StreamedClientIo extends AbstractClientIo
             $readContext['countCycles']      += 1;
             $readContext['isStreamDataEmpty'] = $this->isReadDataActuallyEmpty($data);
             $this->readAttempts               = $this->resolveReadAttempts($readContext, $this->readAttempts);
-        } while (!$this->isEndOfFrameReached($picker, false) && !$isDataEmpty);
+        } while (!$picker->isEof() && !$isDataEmpty);
 
         return $result;
     }
@@ -126,12 +126,6 @@ class StreamedClientIo extends AbstractClientIo
         }
 
         return $result;
-    }
-
-    /** {@inheritdoc} */
-    protected function isEndOfTransfer()
-    {
-        return $this->getDataInSocket() === '';
     }
 
     /** {@inheritdoc} */

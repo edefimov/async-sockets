@@ -2,14 +2,14 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
 namespace AsyncSockets\RequestExecutor\Specification;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\Socket\UdpClientSocket;
 
@@ -19,9 +19,9 @@ use AsyncSockets\Socket\UdpClientSocket;
 class ConnectionLessSocketSpecification implements SpecificationInterface
 {
     /** {@inheritdoc} */
-    public function isSatisfiedBy(OperationMetadata $operationMetadata)
+    public function isSatisfiedBy(RequestDescriptor $requestDescriptor)
     {
-        return $operationMetadata->getSocket() instanceof UdpClientSocket &&
-               $operationMetadata->getOperation() instanceof ReadOperation;
+        return $requestDescriptor->getSocket() instanceof UdpClientSocket &&
+               $requestDescriptor->getOperation() instanceof ReadOperation;
     }
 }

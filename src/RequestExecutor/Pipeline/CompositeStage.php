@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -34,9 +34,9 @@ class CompositeStage implements PipelineStageInterface
     /**
      * @inheritDoc
      */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        $result = $operations;
+        $result = $requestDescriptors;
         foreach ($this->stages as $stage) {
             $result = $stage->processStage($result);
         }

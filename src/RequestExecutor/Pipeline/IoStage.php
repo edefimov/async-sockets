@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -14,7 +14,7 @@ use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -47,22 +47,22 @@ class IoStage extends AbstractTimeAwareStage
     }
 
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        /** @var OperationMetadata[] $operations */
+        /** @var RequestDescriptor[] $requestDescriptors */
         $result = [];
-        foreach ($operations as $item) {
-            if (!$this->setConnectionFinishTime($item)) {
-                $result[] = $item;
+        foreach ($requestDescriptors as $descriptor) {
+            if (!$this->setConnectionFinishTime($descriptor)) {
+                $result[] = $descriptor;
                 continue;
             }
 
-            $handler       = $this->requireIoHandler($item);
-            $nextOperation = $this->handleIoOperation($item, $handler);
-            $isComplete    = $this->resolveNextOperation($item, $nextOperation);
+            $handler       = $this->requireIoHandler($descriptor);
+            $nextOperation = $this->handleIoOperation($descriptor, $handler);
+            $isComplete    = $this->resolveNextOperation($descriptor, $nextOperation);
 
             if ($isComplete) {
-                $result[] = $item;
+                $result[] = $descriptor;
             }
         }
 
@@ -72,14 +72,14 @@ class IoStage extends AbstractTimeAwareStage
     /**
      * Resolves I/O operation type and process it
      *
-     * @param OperationMetadata $operationMetadata Operation object
+     * @param RequestDescriptor $requestDescriptor Operation object
      *
      * @return IoHandlerInterface Flag, whether operation is complete
      * @throws \LogicException
      */
-    private function requireIoHandler(OperationMetadata $operationMetadata)
+    private function requireIoHandler(RequestDescriptor $requestDescriptor)
     {
-        $operation = $operationMetadata->getOperation();
+        $operation = $requestDescriptor->getOperation();
         foreach ($this->ioHandlers as $handler) {
             if ($handler->supports($operation)) {
                 return $handler;
@@ -92,18 +92,18 @@ class IoStage extends AbstractTimeAwareStage
     /**
      * handleIoOperation
      *
-     * @param OperationMetadata  $operationMetadata
+     * @param RequestDescriptor  $requestDescriptor
      * @param IoHandlerInterface $ioHandler
      *
      * @return OperationInterface
      */
-    private function handleIoOperation(OperationMetadata $operationMetadata, IoHandlerInterface $ioHandler)
+    private function handleIoOperation(RequestDescriptor $requestDescriptor, IoHandlerInterface $ioHandler)
     {
         try {
-            $this->eventCaller->setCurrentOperation($operationMetadata);
+            $this->eventCaller->setCurrentOperation($requestDescriptor);
             $result = $ioHandler->handle(
-                $operationMetadata->getOperation(),
-                $operationMetadata->getSocket(),
+                $requestDescriptor->getOperation(),
+                $requestDescriptor->getSocket(),
                 $this->executor,
                 $this->eventCaller
             );
@@ -111,7 +111,7 @@ class IoStage extends AbstractTimeAwareStage
 
             return $result ?: NullOperation::getInstance();
         } catch (NetworkSocketException $e) {
-            $this->callExceptionSubscribers($operationMetadata, $e);
+            $this->callExceptionSubscribers($requestDescriptor, $e);
             return NullOperation::getInstance();
         }
     }
@@ -119,26 +119,26 @@ class IoStage extends AbstractTimeAwareStage
     /**
      * Fill next operation in given object and return flag indicating whether operation is required
      *
-     * @param OperationMetadata  $operationMetadata Operation metadata object
+     * @param RequestDescriptor  $requestDescriptor Request descriptor object
      * @param OperationInterface $nextOperation Next operation object
      *
      * @return bool True if given operation is complete
      */
     private function resolveNextOperation(
-        OperationMetadata $operationMetadata,
+        RequestDescriptor $requestDescriptor,
         OperationInterface $nextOperation
     ) {
         if ($nextOperation instanceof NullOperation) {
-            $operationMetadata->setOperation($nextOperation);
+            $requestDescriptor->setOperation($nextOperation);
             return true;
         }
 
-        if ($operationMetadata->getOperation() === $nextOperation) {
+        if ($requestDescriptor->getOperation() === $nextOperation) {
             return false;
         }
 
-        $operationMetadata->setOperation($nextOperation);
-        $operationMetadata->setMetadata(
+        $requestDescriptor->setOperation($nextOperation);
+        $requestDescriptor->setMetadata(
             [
                 RequestExecutorInterface::META_LAST_IO_START_TIME => null,
             ]
@@ -150,22 +150,22 @@ class IoStage extends AbstractTimeAwareStage
     /**
      * Set connection finish time and fire socket if it was not connected
      *
-     * @param OperationMetadata $operationMetadata
+     * @param RequestDescriptor $requestDescriptor
      *
      * @return bool True, if there was no error, false if operation should be stopped
      */
-    private function setConnectionFinishTime(OperationMetadata $operationMetadata)
+    private function setConnectionFinishTime(RequestDescriptor $requestDescriptor)
     {
-        $meta         = $operationMetadata->getMetadata();
+        $meta         = $requestDescriptor->getMetadata();
         $wasConnected = $meta[ RequestExecutorInterface::META_CONNECTION_FINISH_TIME ] !== null;
-        $this->setSocketOperationTime($operationMetadata, RequestExecutorInterface::META_CONNECTION_FINISH_TIME);
+        $this->setSocketOperationTime($requestDescriptor, RequestExecutorInterface::META_CONNECTION_FINISH_TIME);
         if (!$wasConnected) {
-            $event = $this->createEvent($operationMetadata, EventType::CONNECTED);
+            $event = $this->createEvent($requestDescriptor, EventType::CONNECTED);
 
             try {
-                $this->callSocketSubscribers($operationMetadata, $event);
+                $this->callSocketSubscribers($requestDescriptor, $event);
             } catch (SocketException $e) {
-                $this->callExceptionSubscribers($operationMetadata, $e);
+                $this->callExceptionSubscribers($requestDescriptor, $e);
                 return false;
             }
         }

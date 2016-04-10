@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -12,7 +12,7 @@ namespace Tests\AsyncSockets\RequestExecutor\LibEvent;
 
 use AsyncSockets\RequestExecutor\LibEvent\LeCallbackInterface;
 use AsyncSockets\RequestExecutor\LibEvent\LeEvent;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use Tests\Application\Mock\PhpFunctionMocker;
 
 /**
@@ -44,7 +44,7 @@ class LeEventTest extends \PHPUnit_Framework_TestCase
     /**
      * Metadata object
      *
-     * @var OperationMetadata|\PHPUnit_Framework_MockObject_MockObject
+     * @var RequestDescriptor|\PHPUnit_Framework_MockObject_MockObject
      */
     private $metadata;
 
@@ -63,7 +63,7 @@ class LeEventTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         self::assertSame($this->timeout, $this->object->getTimeout(), 'Incorrect timeout');
-        self::assertSame($this->metadata, $this->object->getOperationMetadata(), 'Incorrect operation metadata');
+        self::assertSame($this->metadata, $this->object->getRequestDescriptor(), 'Incorrect request descriptor');
         self::assertSame($this->eventResource, $this->object->getHandle(), 'Incorrect event resource');
     }
 
@@ -109,7 +109,7 @@ class LeEventTest extends \PHPUnit_Framework_TestCase
                             ->setMethods(['onEvent'])
                             ->getMockForAbstractClass();
 
-        $this->metadata = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\OperationMetadata')
+        $this->metadata = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor')
                                 ->disableOriginalConstructor()
                                 ->getMock();
 

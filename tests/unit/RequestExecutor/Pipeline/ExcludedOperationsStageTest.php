@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -40,7 +40,7 @@ class ExcludedOperationsStageTest extends AbstractStageTest
     {
         $input = [];
         for ($i = 0; $i < 10; $i++) {
-            $input[] = $this->getMock('AsyncSockets\RequestExecutor\Metadata\OperationMetadata', [], [], '', false);
+            $input[] = $this->getMock('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor', [], [], '', false);
         }
 
         $processedByInternal = [$input[0], $input[3], $input[6]];

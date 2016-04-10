@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -10,7 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -93,13 +93,13 @@ abstract class AbstractStageTest extends AbstractTestCase
     }
 
     /**
-     * createOperationMetadata
+     * createRequestDescriptor
      *
-     * @return OperationMetadata|\PHPUnit_Framework_MockObject_MockObject
+     * @return RequestDescriptor|\PHPUnit_Framework_MockObject_MockObject
      */
-    protected function createOperationMetadata()
+    protected function createRequestDescriptor()
     {
-        $operationMetadata = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\OperationMetadata')
+        $requestDescriptor = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor')
                              ->setMethods(
                                  [
                                      'initialize',
@@ -117,6 +117,6 @@ abstract class AbstractStageTest extends AbstractTestCase
                              ->enableProxyingToOriginalMethods()
                              ->getMockForAbstractClass();
 
-        return $operationMetadata;
+        return $requestDescriptor;
     }
 }

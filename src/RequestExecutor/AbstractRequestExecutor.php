@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -13,7 +13,7 @@ use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopRequestExecuteException;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 
@@ -209,7 +209,7 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
     /**
      * Disconnect given sockets
      *
-     * @param OperationMetadata[] $items Sockets' operations to disconnect
+     * @param RequestDescriptor[] $items Sockets' operations to disconnect
      *
      * @return mixed
      */

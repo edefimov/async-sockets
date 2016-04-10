@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -10,13 +10,13 @@
 
 namespace Tests\AsyncSockets\Exception;
 
-use AsyncSockets\Exception\FrameSocketException;
+use AsyncSockets\Exception\FrameException;
 use AsyncSockets\Frame\FramePickerInterface;
 
 /**
- * Class FrameSocketExceptionTest
+ * Class FrameExceptionTest
  */
-class FrameSocketExceptionTest extends NetworkSocketExceptionTest
+class FrameExceptionTest extends NetworkSocketExceptionTest
 {
     /**
      * FramePickerInterface
@@ -39,7 +39,7 @@ class FrameSocketExceptionTest extends NetworkSocketExceptionTest
     /** {@inheritdoc} */
     protected function createException()
     {
-        return new FrameSocketException($this->framePicker, $this->socket);
+        return new FrameException($this->framePicker, $this->socket);
     }
 
     /** {@inheritdoc} */

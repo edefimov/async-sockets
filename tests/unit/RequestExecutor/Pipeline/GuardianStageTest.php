@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -17,7 +17,7 @@ use AsyncSockets\Frame\EmptyFramePicker;
 use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\ReadOperation;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\DisconnectStage;
 use AsyncSockets\RequestExecutor\Pipeline\GuardianStage;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -46,7 +46,7 @@ class GuardianStageTest extends AbstractStageTest
     {
         $this->disconnectStage->expects(self::never())->method('disconnect');
 
-        $descriptor = $this->createOperationMetadata();
+        $descriptor = $this->createRequestDescriptor();
         $descriptor->expects(self::any())
             ->method('getOperation')
             ->willReturn($this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface'));
@@ -72,7 +72,7 @@ class GuardianStageTest extends AbstractStageTest
      */
     public function testKillZombie(OperationInterface $operation)
     {
-        $descriptor  = $this->createOperationMetadata();
+        $descriptor  = $this->createRequestDescriptor();
         $descriptor->expects(self::any())
                  ->method('getOperation')
                  ->willReturn($operation);
@@ -109,7 +109,7 @@ class GuardianStageTest extends AbstractStageTest
 
         $this->eventCaller->expects(self::once())
             ->method('callExceptionSubscribers')
-            ->willReturnCallback(function (OperationMetadata $descriptor, \Exception $e) {
+            ->willReturnCallback(function (RequestDescriptor $descriptor, \Exception $e) {
                 self::assertInstanceOf('AsyncSockets\Exception\UnmanagedSocketException', $e, 'Incorrect exception');
             });
         $result        = [ $descriptor ];
@@ -132,7 +132,7 @@ class GuardianStageTest extends AbstractStageTest
      */
     public function testCanChangeNextOperationAfterEvent(OperationInterface $operation)
     {
-        $descriptor  = $this->createOperationMetadata();
+        $descriptor  = $this->createRequestDescriptor();
         $descriptor->expects(self::any())
                    ->method('getOperation')
                    ->willReturn($operation);

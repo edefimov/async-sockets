@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -11,10 +11,11 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\PersistentClientSocket;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class DisconnectStage
@@ -45,23 +46,23 @@ class DisconnectStage extends AbstractStage
     }
 
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        foreach ($operations as $operation) {
-            $this->disconnectSingleSocket($operation);
+        foreach ($requestDescriptors as $descriptor) {
+            $this->disconnectSingleSocket($descriptor);
         }
 
-        return $operations;
+        return $requestDescriptors;
     }
 
     /**
      * Disconnect given socket
      *
-     * @param OperationMetadata $descriptor Operation object
+     * @param RequestDescriptor $descriptor Operation object
      *
      * @return void
      */
-    private function disconnectSingleSocket(OperationMetadata $descriptor)
+    private function disconnectSingleSocket(RequestDescriptor $descriptor)
     {
         $meta = $descriptor->getMetadata();
 
@@ -71,17 +72,7 @@ class DisconnectStage extends AbstractStage
 
         $socket = $descriptor->getSocket();
 
-        $isTimeToLeave = (
-                            ($socket instanceof PersistentClientSocket) &&
-                            (
-                                feof($socket->getStreamResource()) !== false ||
-                                !stream_socket_get_name($socket->getStreamResource(), true)
-                            )
-                         ) || (
-                            !($socket instanceof PersistentClientSocket)
-                         );
-
-        if (!$isTimeToLeave) {
+        if (!$this->isDisconnectRequired($socket)) {
             return;
         }
 
@@ -91,11 +82,11 @@ class DisconnectStage extends AbstractStage
     /**
      * Disconnects given socket descriptor
      *
-     * @param OperationMetadata $descriptor Socket descriptor
+     * @param RequestDescriptor $descriptor Socket descriptor
      *
      * @return void
      */
-    public function disconnect(OperationMetadata $descriptor)
+    public function disconnect(RequestDescriptor $descriptor)
     {
         $meta   = $descriptor->getMetadata();
         $socket = $descriptor->getSocket();
@@ -124,14 +115,34 @@ class DisconnectStage extends AbstractStage
     /**
      * Remove given descriptor from selector
      *
-     * @param OperationMetadata $operation
+     * @param RequestDescriptor $operation
      *
      * @return void
      */
-    private function removeOperationsFromSelector(OperationMetadata $operation)
+    private function removeOperationsFromSelector(RequestDescriptor $operation)
     {
         if ($this->selector) {
             $this->selector->removeAllSocketOperations($operation);
         }
+    }
+
+    /**
+     * Check whether given socket should be disconnected
+     *
+     * @param SocketInterface $socket Socket object
+     *
+     * @return bool
+     */
+    private function isDisconnectRequired(SocketInterface $socket)
+    {
+        return (
+                   ($socket instanceof PersistentClientSocket) &&
+                   (
+                       feof($socket->getStreamResource()) !== false ||
+                       !stream_socket_get_name($socket->getStreamResource(), true)
+                   )
+               ) || (
+                   !($socket instanceof PersistentClientSocket)
+               );
     }
 }

@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -14,7 +14,7 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\ConnectStage;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
@@ -65,8 +65,8 @@ class ConnectStageTest extends AbstractStageTest
             $testMetadata[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT]
         );
 
-        $first  = $this->createOperationMetadata();
-        $second = $this->createOperationMetadata();
+        $first  = $this->createRequestDescriptor();
+        $second = $this->createRequestDescriptor();
 
         $isRunning = false;
         $first->expects(self::once())->method('initialize');
@@ -91,7 +91,7 @@ class ConnectStageTest extends AbstractStageTest
         $this->eventCaller->expects(self::once())
             ->method('callSocketSubscribers')
             ->willReturnCallback(function ($mock, Event $event) use ($testMetadata) {
-                /** @var OperationMetadata|\PHPUnit_Framework_MockObject_MockObject $mock */
+                /** @var RequestDescriptor|\PHPUnit_Framework_MockObject_MockObject $mock */
                 self::assertSame($mock->getSocket(), $event->getSocket(), 'Incorrect socket passed');
                 self::assertSame(
                     $testMetadata[ RequestExecutorInterface::META_USER_CONTEXT ],
@@ -132,7 +132,7 @@ class ConnectStageTest extends AbstractStageTest
     public function testExceptionWillBeThrownOnInvalidDecision()
     {
         $this->solver->expects(self::any())->method('decide')->willReturn(md5(microtime(true)));
-        $first = $this->createOperationMetadata();
+        $first = $this->createRequestDescriptor();
 
         $first->expects(self::any())->method('getSocket')->willReturn(
             $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
@@ -149,7 +149,7 @@ class ConnectStageTest extends AbstractStageTest
     public function testThatAlreadyRunningObjectWillNotBeConnectedAgain()
     {
         $this->solver->expects(self::any())->method('decide')->willReturn(LimitationSolverInterface::DECISION_OK);
-        $first = $this->createOperationMetadata();
+        $first = $this->createRequestDescriptor();
 
         $first->expects(self::any())->method('isRunning')->willReturn(true);
         $first->expects(self::any())->method('getSocket')->willReturn(
@@ -170,7 +170,7 @@ class ConnectStageTest extends AbstractStageTest
     public function testThatConnectedSocketWillBeSkipped()
     {
         $this->solver->expects(self::any())->method('decide')->willReturn(LimitationSolverInterface::DECISION_OK);
-        $first = $this->createOperationMetadata();
+        $first = $this->createRequestDescriptor();
 
         $first->expects(self::any())->method('isRunning')->willReturnOnConsecutiveCalls(false, true);
         $first->expects(self::any())->method('getSocket')->willReturn(
@@ -210,7 +210,7 @@ class ConnectStageTest extends AbstractStageTest
         );
 
         $this->solver->expects(self::any())->method('decide')->willReturn(LimitationSolverInterface::DECISION_OK);
-        $first  = $this->createOperationMetadata();
+        $first  = $this->createRequestDescriptor();
 
         $first->expects(self::once())->method('initialize');
         $first->expects(self::any())->method('getSocket')->willReturn($socket);
@@ -251,7 +251,7 @@ class ConnectStageTest extends AbstractStageTest
         $testMetadata[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT] = $context;
 
         $this->solver->expects(self::any())->method('decide')->willReturn(LimitationSolverInterface::DECISION_OK);
-        $first  = $this->createOperationMetadata();
+        $first  = $this->createRequestDescriptor();
         $socket = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\SocketInterface',
             [],
@@ -292,7 +292,7 @@ class ConnectStageTest extends AbstractStageTest
 
         $this->solver->expects(self::any())->method('decide')->willReturn(LimitationSolverInterface::DECISION_OK);
 
-        $first  = $this->createOperationMetadata();
+        $first  = $this->createRequestDescriptor();
         $socket = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\SocketInterface',
             [],

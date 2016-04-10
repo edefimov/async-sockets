@@ -1,0 +1,5 @@
+digraph {
+    graph [bgcolor="transparent"];
+    node [shape=record];
+    Frame [label="<lost> AAA|<frame> X1234567890X|<next> CCC"];
+}

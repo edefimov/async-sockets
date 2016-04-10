@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -32,7 +32,7 @@ class ConnectStageReturningAllActiveSocketsTest extends ConnectStageTest
     public function testThatAlreadyRunningObjectWillBeReturned()
     {
         $this->solver->expects(self::any())->method('decide')->willReturn(LimitationSolverInterface::DECISION_OK);
-        $first = $this->createOperationMetadata();
+        $first = $this->createRequestDescriptor();
 
         $first->expects(self::any())->method('isRunning')->willReturn(true);
         $first->expects(self::any())->method('getSocket')->willReturn(

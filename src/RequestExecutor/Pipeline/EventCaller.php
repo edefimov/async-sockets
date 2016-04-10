@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -14,7 +14,7 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopSocketOperationException;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -37,9 +37,9 @@ class EventCaller implements EventHandlerInterface
     private $executor;
 
     /**
-     * OperationMetadata
+     * RequestDescriptor
      *
-     * @var OperationMetadata
+     * @var RequestDescriptor
      */
     private $currentOperation;
 
@@ -68,11 +68,11 @@ class EventCaller implements EventHandlerInterface
     /**
      * Sets CurrentOperation
      *
-     * @param OperationMetadata $currentOperation New value for CurrentOperation
+     * @param RequestDescriptor $currentOperation New value for CurrentOperation
      *
      * @return void
      */
-    public function setCurrentOperation(OperationMetadata $currentOperation)
+    public function setCurrentOperation(RequestDescriptor $currentOperation)
     {
         $this->currentOperation = $currentOperation;
     }
@@ -96,15 +96,15 @@ class EventCaller implements EventHandlerInterface
     /**
      * Notify handlers about given event
      *
-     * @param OperationMetadata $operationMetadata Socket operation metadata
+     * @param RequestDescriptor $requestDescriptor Request descriptor
      * @param Event             $event Event object
      *
      * @return void
      * @throws StopSocketOperationException
      */
-    public function callSocketSubscribers(OperationMetadata $operationMetadata, Event $event)
+    public function callSocketSubscribers(RequestDescriptor $requestDescriptor, Event $event)
     {
-        $operationMetadata->invokeEvent($event);
+        $requestDescriptor->invokeEvent($event);
 
         foreach ($this->handlers as $handler) {
             $handler->invokeEvent($event);
@@ -118,26 +118,26 @@ class EventCaller implements EventHandlerInterface
     /**
      * Notify handlers about exception
      *
-     * @param OperationMetadata $operationMetadata Socket operation object
-     * @param SocketException $exception Thrown exception
+     * @param RequestDescriptor $requestDescriptor Socket operation object
+     * @param SocketException   $exception Thrown exception
      *
      * @return void
      */
     public function callExceptionSubscribers(
-        OperationMetadata $operationMetadata,
+        RequestDescriptor $requestDescriptor,
         SocketException $exception
     ) {
         if ($exception instanceof StopSocketOperationException) {
             return;
         }
 
-        $meta           = $operationMetadata->getMetadata();
+        $meta           = $requestDescriptor->getMetadata();
         $exceptionEvent = new SocketExceptionEvent(
             $exception,
             $this->executor,
-            $operationMetadata->getSocket(),
+            $requestDescriptor->getSocket(),
             $meta[RequestExecutorInterface::META_USER_CONTEXT]
         );
-        $this->callSocketSubscribers($operationMetadata, $exceptionEvent);
+        $this->callSocketSubscribers($requestDescriptor, $exceptionEvent);
     }
 }

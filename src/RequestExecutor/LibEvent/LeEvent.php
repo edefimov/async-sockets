@@ -2,14 +2,14 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
 namespace AsyncSockets\RequestExecutor\LibEvent;
 
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 
 /**
  * Class LeEvent
@@ -31,11 +31,11 @@ class LeEvent
     private $callback;
 
     /**
-     * OperationMetadata
+     * RequestDescriptor
      *
-     * @var OperationMetadata
+     * @var RequestDescriptor
      */
-    private $operationMetadata;
+    private $requestDescriptor;
 
     /**
      * Timeout for event
@@ -48,14 +48,14 @@ class LeEvent
      * LeEvent constructor.
      *
      * @param LeCallbackInterface $callback Callback object
-     * @param OperationMetadata   $operationMetadata Operation metadata object
+     * @param RequestDescriptor   $requestDescriptor Request descriptor object
      * @param int|null            $timeout Timeout for event
      */
-    public function __construct(LeCallbackInterface $callback, OperationMetadata $operationMetadata, $timeout)
+    public function __construct(LeCallbackInterface $callback, RequestDescriptor $requestDescriptor, $timeout)
     {
         $this->handle            = event_new();
         $this->callback          = $callback;
-        $this->operationMetadata = $operationMetadata;
+        $this->requestDescriptor = $requestDescriptor;
         $this->timeout           = $timeout;
     }
 
@@ -88,13 +88,13 @@ class LeEvent
     }
 
     /**
-     * Return OperationMetadata
+     * Return RequestDescriptor
      *
-     * @return OperationMetadata
+     * @return RequestDescriptor
      */
-    public function getOperationMetadata()
+    public function getRequestDescriptor()
     {
-        return $this->operationMetadata;
+        return $this->requestDescriptor;
     }
 
     /**
@@ -106,7 +106,7 @@ class LeEvent
      */
     public function fire($eventType)
     {
-        $this->callback->onEvent($this->operationMetadata, $eventType);
+        $this->callback->onEvent($this->requestDescriptor, $eventType);
     }
 
     /**

@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -106,7 +106,7 @@ class LeBase
      */
     private function getEventKey(LeEvent $event)
     {
-        return spl_object_hash($event->getOperationMetadata());
+        return spl_object_hash($event->getRequestDescriptor());
     }
 
     /**
@@ -143,7 +143,7 @@ class LeBase
 
         event_set(
             $event->getHandle(),
-            $event->getOperationMetadata()->getSocket()->getStreamResource(),
+            $event->getRequestDescriptor()->getSocket()->getStreamResource(),
             $flags | $this->getEventFlags($event),
             [$this, 'libeventHandler'],
             $key
@@ -184,7 +184,7 @@ class LeBase
      */
     private function getEventFlags(LeEvent $event)
     {
-        $operation = $event->getOperationMetadata()->getOperation();
+        $operation = $event->getRequestDescriptor()->getOperation();
         if ($operation instanceof DelayedOperation) {
             return 0;
         }
@@ -194,7 +194,7 @@ class LeBase
             OperationInterface::OPERATION_WRITE => EV_WRITE,
         ];
 
-        $operation = $event->getOperationMetadata()->getOperation()->getType();
+        $operation = $event->getRequestDescriptor()->getOperation()->getType();
 
         return isset($map[$operation]) ? $map[$operation] : 0;
     }

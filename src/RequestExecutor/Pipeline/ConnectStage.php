@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -12,7 +12,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
-use AsyncSockets\RequestExecutor\Metadata\OperationMetadata;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -44,13 +44,13 @@ class ConnectStage extends AbstractTimeAwareStage
     }
 
     /** {@inheritdoc} */
-    public function processStage(array $operations)
+    public function processStage(array $requestDescriptors)
     {
-        /** @var OperationMetadata[] $operations */
-        $totalItems = count($operations);
+        /** @var RequestDescriptor[] $requestDescriptors */
+        $totalItems = count($requestDescriptors);
         $result     = [];
-        foreach ($operations as $item) {
-            $decision = $this->decide($item, $totalItems);
+        foreach ($requestDescriptors as $descriptor) {
+            $decision = $this->decide($descriptor, $totalItems);
             if ($decision === LimitationSolverInterface::DECISION_PROCESS_SCHEDULED) {
                 break;
             } elseif ($decision === LimitationSolverInterface::DECISION_SKIP_CURRENT) {
@@ -59,8 +59,8 @@ class ConnectStage extends AbstractTimeAwareStage
                 throw new \LogicException('Unknown decision ' . $decision . ' received.');
             }
 
-            if ($this->connectSocket($item)) {
-                $result[] = $item;
+            if ($this->connectSocket($descriptor)) {
+                $result[] = $descriptor;
             }
         }
 
@@ -70,15 +70,15 @@ class ConnectStage extends AbstractTimeAwareStage
     /**
      * Decide how to process given operation
      *
-     * @param OperationMetadata $operationMetadata Operation to decide
-     * @param int               $totalItems Total amount of pending operations
+     * @param RequestDescriptor $requestDescriptor Operation to decide
+     * @param int               $totalItems Total amount of pending requestDescriptors
      *
      * @return int One of LimitationSolverInterface::DECISION_* consts
      */
-    private function decide(OperationMetadata $operationMetadata, $totalItems)
+    private function decide(RequestDescriptor $requestDescriptor, $totalItems)
     {
-        $meta = $operationMetadata->getMetadata();
-        if ($operationMetadata->isRunning()) {
+        $meta = $requestDescriptor->getMetadata();
+        if ($requestDescriptor->isRunning()) {
             return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
 
@@ -88,7 +88,7 @@ class ConnectStage extends AbstractTimeAwareStage
             return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
 
-        $decision = $this->decider->decide($this->executor, $operationMetadata->getSocket(), $totalItems);
+        $decision = $this->decider->decide($this->executor, $requestDescriptor->getSocket(), $totalItems);
         if ($decision !== LimitationSolverInterface::DECISION_OK) {
             return $decision;
         }
@@ -121,34 +121,34 @@ class ConnectStage extends AbstractTimeAwareStage
     /**
      * Start connecting process
      *
-     * @param OperationMetadata $item Socket operation data
+     * @param RequestDescriptor $descriptor Socket operation data
      *
      * @return bool True if successfully connected, false otherwise
      */
-    private function connectSocket(OperationMetadata $item)
+    private function connectSocket(RequestDescriptor $descriptor)
     {
-        $item->initialize();
+        $descriptor->initialize();
 
-        $socket = $item->getSocket();
-        $event  = $this->createEvent($item, EventType::INITIALIZE);
+        $socket = $descriptor->getSocket();
+        $event  = $this->createEvent($descriptor, EventType::INITIALIZE);
 
         try {
-            $this->callSocketSubscribers($item, $event);
-            $this->setSocketOperationTime($item, RequestExecutorInterface::META_CONNECTION_START_TIME);
+            $this->callSocketSubscribers($descriptor, $event);
+            $this->setSocketOperationTime($descriptor, RequestExecutorInterface::META_CONNECTION_START_TIME);
 
-            $meta = $item->getMetadata();
+            $meta = $descriptor->getMetadata();
 
             $socket->open(
                 $meta[ RequestExecutorInterface::META_ADDRESS ],
                 $this->getStreamContextFromMetaData($meta)
             );
 
-            $item->setRunning(true);
+            $descriptor->setRunning(true);
 
             $result = true;
         } catch (SocketException $e) {
-            $item->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
-            $this->callExceptionSubscribers($item, $e);
+            $descriptor->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
+            $this->callExceptionSubscribers($descriptor, $e);
 
             $result = false;
         }

@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -30,7 +30,7 @@ class SocketBag implements SocketBagInterface
     /**
      * Target metadata items
      *
-     * @var OperationMetadata[]
+     * @var RequestDescriptor[]
      */
     private $items;
 
@@ -99,19 +99,19 @@ class SocketBag implements SocketBagInterface
             ]
         );
 
-        $this->items[$hash] = new OperationMetadata($socket, $operation, $meta, $eventHandlers);
+        $this->items[$hash] = new RequestDescriptor($socket, $operation, $meta, $eventHandlers);
     }
 
     /** {@inheritdoc} */
     public function getSocketOperation(SocketInterface $socket)
     {
-        return $this->requireOperation($socket)->getOperation();
+        return $this->requireDescriptor($socket)->getOperation();
     }
 
     /** {@inheritdoc} */
     public function setSocketOperation(SocketInterface $socket, OperationInterface $operation)
     {
-        $this->requireOperation($socket)->setOperation($operation);
+        $this->requireDescriptor($socket)->setOperation($operation);
     }
 
 
@@ -152,7 +152,7 @@ class SocketBag implements SocketBagInterface
     /** {@inheritdoc} */
     public function getSocketMetaData(SocketInterface $socket)
     {
-        return $this->requireOperation($socket)->getMetadata();
+        return $this->requireDescriptor($socket)->getMetadata();
     }
 
     /** {@inheritdoc} */
@@ -171,7 +171,7 @@ class SocketBag implements SocketBagInterface
         }
 
         $key = array_intersect_key($key, $writableKeys);
-        $this->requireOperation($socket)->setMetadata($key);
+        $this->requireDescriptor($socket)->setMetadata($key);
     }
 
     /**
@@ -187,14 +187,14 @@ class SocketBag implements SocketBagInterface
     }
 
     /**
-     * Require operation metadata for given socket
+     * Require operation descriptor for given socket
      *
      * @param SocketInterface $socket Socket object
      *
-     * @return OperationMetadata
+     * @return RequestDescriptor
      * @throws \OutOfBoundsException
      */
-    private function requireOperation(SocketInterface $socket)
+    private function requireDescriptor(SocketInterface $socket)
     {
         $hash = $this->getOperationStorageKey($socket);
         if (!isset($this->items[$hash])) {
@@ -207,7 +207,7 @@ class SocketBag implements SocketBagInterface
     /**
      * Return metadata items
      *
-     * @return OperationMetadata[]
+     * @return RequestDescriptor[]
      */
     public function getItems()
     {
