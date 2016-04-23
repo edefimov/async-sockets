@@ -39,7 +39,7 @@ class AbstractClientIoTest extends AbstractIoTest
     protected function createIoInterface(SocketInterface $socket)
     {
         $object = $this->getMockBuilder('AsyncSockets\Socket\Io\AbstractClientIo')
-                    ->setConstructorArgs([$socket])
+                    ->setConstructorArgs([$socket, 0])
                     ->setMethods(['isConnected'])
                     ->enableProxyingToOriginalMethods()
                     ->getMockForAbstractClass();
@@ -73,7 +73,7 @@ class AbstractClientIoTest extends AbstractIoTest
         $this->setExpectedException('AsyncSockets\Exception\NetworkSocketException', 'Failed to send data.');
         $this->setConnectedStateForTestObject(true);
         for ($i = 0; $i < AbstractClientIo::IO_ATTEMPTS; $i++) {
-            $this->object->write('something');
+            $this->object->write('something', false);
         }
     }
 
@@ -96,27 +96,33 @@ class AbstractClientIoTest extends AbstractIoTest
     /**
      * testExceptionWillBeThrownOnWriteError
      *
+     * @param bool $isOutOfBand Flag if data are out of band
+     *
      * @return void
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionMessage Can not start io operation on uninitialized socket.
      */
-    public function testExceptionWillBeThrownOnWriteError()
+    public function testExceptionWillBeThrownOnWriteError($isOutOfBand)
     {
         $this->prepareFor(__FUNCTION__);
-        $this->object->write('data');
+        $this->object->write('data', $isOutOfBand);
     }
 
     /**
      * testCantWriteInClosedSocket
      *
+     * @param bool $isOutOfBand Flag if data are out of band
+     *
      * @return void
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionMessage Can not start io operation on uninitialized socket.
      */
-    public function testCantWriteInClosedSocket()
+    public function testCantWriteInClosedSocket($isOutOfBand)
     {
         $this->setConnectedStateForTestObject(false);
-        $this->object->write('data');
+        $this->object->write('data', $isOutOfBand);
     }
 
     /**
@@ -144,7 +150,64 @@ class AbstractClientIoTest extends AbstractIoTest
             }
         );
         $this->ensureSocketIsOpened();
-        $this->object->write('data');
+        $this->object->write('data', false);
+    }
+
+    /**
+     * testExceptionIsThrownWhenOobWriteIsUnsupported
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\UnsupportedOperationException
+     */
+    public function testExceptionIsThrownWhenOobWriteIsUnsupported()
+    {
+        $this->setConnectedStateForTestObject(true);
+        $this->ensureSocketIsOpened();
+
+        $disableOobWriting = \Closure::bind(
+            function () {
+                /** @var AbstractClientIo $this */
+                $this->maxOobPacketLength = 0;
+            },
+            $this->object,
+            'AsyncSockets\Socket\Io\AbstractClientIo'
+        );
+        $disableOobWriting();
+
+        $this->object->write('something', true);
+    }
+
+
+
+    /**
+     * testExceptionIsThrownWhenOobDataLengthMoreThanPacketSize
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\UnsupportedOperationException
+     */
+    public function testExceptionIsThrownWhenOobDataLengthMoreThanPacketSize()
+    {
+        $length = mt_rand(10, 100);
+        $data   = md5(microtime());
+        while (strlen($data) < $length) {
+            $data .= md5($data);
+        }
+        $data = substr($data, 0, $length);
+
+        $this->setConnectedStateForTestObject(true);
+        $this->ensureSocketIsOpened();
+
+        $setOobPacketLength = \Closure::bind(
+            function () use ($length) {
+                /** @var AbstractClientIo $this */
+                $this->maxOobPacketLength = (int) floor($length / 2);
+            },
+            $this->object,
+            'AsyncSockets\Socket\Io\AbstractClientIo'
+        );
+        $setOobPacketLength();
+
+        $this->object->write($data, true);
     }
 
     /** {@inheritdoc} */

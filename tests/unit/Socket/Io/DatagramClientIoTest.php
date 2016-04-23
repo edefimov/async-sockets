@@ -168,7 +168,22 @@ class DatagramClientIoTest extends AbstractClientIoTest
             }
         );
 
-        $this->object->write($data);
+        $this->object->write($data, false);
+    }
+
+    /**
+     * testExceptionIsThrownWhenWritingOobData
+     *
+     * @param string|null $remoteAddress Remote address for I/O object
+     *
+     * @return void
+     * @dataProvider remoteAddressDataProvider
+     * @expectedException \AsyncSockets\Exception\UnsupportedOperationException
+     */
+    public function testExceptionIsThrownWhenWritingOobData($remoteAddress)
+    {
+        $this->setUpIoObject($remoteAddress);
+        $this->object->write('something', true);
     }
 
     /**

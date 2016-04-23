@@ -26,7 +26,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
     /** {@inheritdoc} */
     protected function createIoInterface(SocketInterface $socket)
     {
-        return new StreamedClientIo($socket);
+        return new StreamedClientIo($socket, 0);
     }
 
     /** {@inheritdoc} */
@@ -117,7 +117,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
 
 
         $socket = new ClientSocket();
-        $object = new StreamedClientIo($socket);
+        $object = new StreamedClientIo($socket, 0);
         $socket->open('no matter');
         foreach ($methodCalls as $methodCall) {
             call_user_func_array([$object, $methodCall[0]], $methodCall[1]);
@@ -276,6 +276,44 @@ class StreamedClientIoTest extends AbstractClientIoTest
     }
 
     /**
+     * testOobWriting
+     *
+     * @return void
+     */
+    public function testOobWriting()
+    {
+        $length = mt_rand(1, 100);
+        $data   = md5(microtime());
+        while (strlen($data) < $length) {
+            $data .= md5($data);
+        }
+        $data = substr($data, 0, $length);
+
+        $this->setConnectedStateForTestObject(true);
+        $this->ensureSocketIsOpened();
+        $object = new StreamedClientIo($this->socket, $length);
+
+        $expectation = $this->getMockBuilder('Countable')
+            ->setMethods(['count'])
+            ->getMockForAbstractClass();
+
+        $hasSentAnything = false;
+        $expectation->expects(self::any())
+            ->method('count')
+            ->willReturnCallback(function($resource, $data, $flags = null) use (&$hasSentAnything) {
+                if ($data) {
+                    self::assertTrue((bool) ($flags & STREAM_OOB), 'Oob flag is not set');
+                    $hasSentAnything = true;
+                }
+                return strlen($data);
+            });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable([ $expectation, 'count' ]);
+        $object->write($data, true);
+        self::assertTrue($hasSentAnything, 'Data were not actually sent');
+    }
+
+    /**
      * ioDataProvider
      *
      * @return array
@@ -298,7 +336,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
             // testActualWritingFail
             [
                 [
-                    ['write', ['some data to write']],
+                    ['write', ['some data to write', false]],
                 ],
                 [
                     'stream_socket_get_name' => $streamSocketMock,
@@ -334,7 +372,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
             // testLossConnectionOnWriting
             [
                 [
-                    ['write', ['some data to write']],
+                    ['write', ['some data to write', false]],
                 ],
                 [
                     'stream_socket_get_name' => $streamSocketMock,

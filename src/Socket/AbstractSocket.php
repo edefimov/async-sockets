@@ -146,10 +146,10 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function write($data)
+    public function write($data, $isOutOfBand = false)
     {
         try {
-            return $this->ioInterface->write($data);
+            return $this->ioInterface->write($data, $isOutOfBand);
         } catch (ConnectionException $e) {
             $this->setDisconnectedState();
             throw $e;

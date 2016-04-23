@@ -75,7 +75,7 @@ class WriteIoHandler implements IoHandlerInterface
         if ($operation->hasData()) {
             $data    = $operation->getData();
             $length  = strlen($data);
-            $written = $socket->write($data);
+            $written = $socket->write($data, $operation->isOutOfBand());
             if ($length !== $written) {
                 $extractNextOperation = false;
 

@@ -24,7 +24,7 @@ class DisconnectedIo extends AbstractIo
     }
 
     /** {@inheritdoc} */
-    public function write($data)
+    public function write($data, $isOutOfBand)
     {
         throw new NetworkSocketException($this->socket, 'Can not start io operation on uninitialized socket.');
     }

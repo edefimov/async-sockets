@@ -12,8 +12,10 @@ namespace AsyncSockets\Socket\Io;
 use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Exception\FrameException;
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Exception\UnsupportedOperationException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\PartialFrame;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class AbstractClientIo
@@ -52,6 +54,25 @@ abstract class AbstractClientIo extends AbstractIo
     private $writeAttempts = self::IO_ATTEMPTS;
 
     /**
+     * Maximum amount of OOB data length (0 - not supported)
+     *
+     * @var int
+     */
+    private $maxOobPacketLength;
+
+    /**
+     * AbstractClientIo constructor.
+     *
+     * @param SocketInterface $socket Socket object
+     * @param int             $maxOobPacketLength Maximum amount of OOB data length (0 - not supported)
+     */
+    public function __construct(SocketInterface $socket, $maxOobPacketLength)
+    {
+        parent::__construct($socket);
+        $this->maxOobPacketLength = $maxOobPacketLength;
+    }
+
+    /**
      * Read raw data from network into given picker
      *
      * @param FramePickerInterface $picker Frame picker
@@ -64,10 +85,11 @@ abstract class AbstractClientIo extends AbstractIo
      * Write data to socket
      *
      * @param string $data Data to write
+     * @param bool $isOutOfBand Flag if data are out of band
      *
      * @return int Number of written bytes
      */
-    abstract protected function writeRawData($data);
+    abstract protected function writeRawData($data, $isOutOfBand);
 
     /**
      * Check whether given socket resource is connected
@@ -113,11 +135,25 @@ abstract class AbstractClientIo extends AbstractIo
     }
 
     /** {@inheritdoc} */
-    final public function write($data)
+    final public function write($data, $isOutOfBand)
     {
         $this->setConnectedState();
+        if ($isOutOfBand) {
+            if ($this->maxOobPacketLength === 0) {
+                throw UnsupportedOperationException::oobDataUnsupported($this->socket);
+            }
+            
+            $dataLength = strlen($data);
+            if ($dataLength > $this->maxOobPacketLength) {
+                throw UnsupportedOperationException::oobDataPackageSizeExceeded(
+                    $this->socket,
+                    $this->maxOobPacketLength,
+                    $dataLength
+                );
+            }
+        }
 
-        $result              = $this->writeRawData($data);
+        $result              = $this->writeRawData($data, $isOutOfBand);
         $this->writeAttempts = $result > 0 ? self::IO_ATTEMPTS : $this->writeAttempts - 1;
 
         $this->throwNetworkSocketExceptionIf(

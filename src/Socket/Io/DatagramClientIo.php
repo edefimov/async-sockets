@@ -32,7 +32,7 @@ class DatagramClientIo extends AbstractClientIo
      */
     public function __construct(SocketInterface $socket, $remoteAddress)
     {
-        parent::__construct($socket);
+        parent::__construct($socket, 0);
         if ($remoteAddress) {
             $components = parse_url($remoteAddress);
             $this->remoteAddress = $components['host'] . ':' . $components['port'];
@@ -59,7 +59,7 @@ class DatagramClientIo extends AbstractClientIo
     }
 
     /** {@inheritdoc} */
-    protected function writeRawData($data)
+    protected function writeRawData($data, $isOutOfBand)
     {
         $result = stream_socket_sendto($this->socket->getStreamResource(), $data, 0, $this->remoteAddress);
         $this->throwNetworkSocketExceptionIf($result < 0, 'Failed to send data.');

@@ -31,13 +31,16 @@ abstract class AbstractServerIoTest extends AbstractIoTest
     /**
      * testCantWriteToServerSocket
      *
+     * @param bool $isOutOfBand Flag if data are out of band
+     *
      * @return void
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionMessage Can not write data to tcp/udp server socket.
      */
-    public function testCantWriteToServerSocket()
+    public function testCantWriteToServerSocket($isOutOfBand)
     {
-        $this->object->write('data');
+        $this->object->write('data', $isOutOfBand);
     }
 
     /**

@@ -64,9 +64,9 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     }
 
     /** {@inheritdoc} */
-    public function write($data)
+    public function write($data, $isOutOfBand = false)
     {
-        return $this->ioInterface->write($data);
+        return $this->ioInterface->write($data, $isOutOfBand);
     }
 
     /** {@inheritdoc} */

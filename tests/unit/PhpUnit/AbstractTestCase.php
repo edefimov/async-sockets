@@ -95,4 +95,14 @@ abstract class AbstractTestCase extends \PHPUnit_Framework_TestCase
 
         return $this->associativeArrayToArguments($targetMethod, $yaml[$section]);
     }
+
+    /**
+     * boolDataProvider
+     *
+     * @return array
+     */
+    public function boolDataProvider()
+    {
+        return [ [false], [true] ];
+    }
 }

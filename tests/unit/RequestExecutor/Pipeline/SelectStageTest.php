@@ -201,12 +201,36 @@ class SelectStageTest extends AbstractStageTest
     public function socketTypeDataProvider()
     {
         return [
-            [$this->getMock('AsyncSockets\Socket\SocketInterface', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\AbstractSocket', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\AcceptedSocket', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\ClientSocket', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\ServerSocket', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\UdpClientSocket', [ ], [ ], '', false)],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                    ->disableOriginalConstructor()
+                    ->getMockForAbstractClass()
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\AbstractSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\AcceptedSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\ClientSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\ServerSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\UdpClientSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
         ];
     }
 

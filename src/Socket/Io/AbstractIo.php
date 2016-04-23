@@ -49,13 +49,20 @@ abstract class AbstractIo implements IoInterface
      *
      * @param bool   $condition Condition, which must evaluates to true for throwing exception
      * @param string $message Exception message
+     * @param bool   $includeLastError Flag whether to include php error message
      *
      * @return void
      * @throws NetworkSocketException
      */
-    protected function throwNetworkSocketExceptionIf($condition, $message)
+    protected function throwNetworkSocketExceptionIf($condition, $message, $includeLastError = false)
     {
         if ($condition) {
+            $lastError = $includeLastError ? error_get_last() : null;
+            if ($lastError) {
+                $phpMessage = explode(':', $lastError['message'], 2);
+                $phpMessage = trim(trim(end($phpMessage)), '.') . '.';
+                $message   .= ' ' . $phpMessage;
+            }
             throw new NetworkSocketException($this->socket, $message);
         }
     }

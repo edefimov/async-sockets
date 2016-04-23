@@ -10,14 +10,15 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
-use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\Socket\SocketInterface;
+use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
 
 /**
  * Class RequestDescriptorTest
  */
-class RequestDescriptorTest extends \PHPUnit_Framework_TestCase
+class RequestDescriptorTest extends AbstractTestCase
 {
     /**
      * SocketInterface
@@ -190,19 +191,6 @@ class RequestDescriptorTest extends \PHPUnit_Framework_TestCase
             ['AsyncSockets\Socket\PersistentClientSocket', true],
             ['AsyncSockets\Socket\ServerSocket', false],
             ['AsyncSockets\Socket\UdpClientSocket', false],
-        ];
-    }
-
-    /**
-     * boolDataProvider
-     *
-     * @return array
-     */
-    public function boolDataProvider()
-    {
-        return [
-            [true],
-            [false]
         ];
     }
 

@@ -59,13 +59,12 @@ interface SocketInterface extends StreamResourceInterface
      * Write data to this socket
      *
      * @param string $data Data to send
+     * @param bool   $isOutOfBand Flag if operation is out of band
      *
      * @return int Number of written bytes
-     * @throws NetworkSocketException
-     *
      * @api
      */
-    public function write($data);
+    public function write($data, $isOutOfBand = false);
 
     /**
      * Return debug information about this socket

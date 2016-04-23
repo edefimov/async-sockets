@@ -48,7 +48,7 @@ class StreamedClientIo extends AbstractClientIo
 
         do {
             $data = fread($resource, self::SOCKET_BUFFER_SIZE);
-            $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.');
+            $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.', true);
             $isDataEmpty = $data === '';
             $result      = $picker->pickUpData($data, $this->getRemoteAddress());
 
@@ -78,14 +78,17 @@ class StreamedClientIo extends AbstractClientIo
     }
 
     /** {@inheritdoc} */
-    protected function writeRawData($data)
+    protected function writeRawData($data, $isOutOfBand)
     {
         $resource = $this->socket->getStreamResource();
         $test     = stream_socket_sendto($resource, '');
-        $this->throwNetworkSocketExceptionIf($test !== 0, 'Failed to send data.');
+        $this->throwNetworkSocketExceptionIf($test !== 0, 'Failed to send data.', true);
 
-        $written = fwrite($resource, $data, strlen($data));
-        $this->throwNetworkSocketExceptionIf($written === false, 'Failed to send data.');
+        $written = $isOutOfBand ?
+            $this->writeOobData($resource, $data) :
+            fwrite($resource, $data, strlen($data));
+
+        $this->throwNetworkSocketExceptionIf($written === false, 'Failed to send data.', true);
 
         if ($written === 0) {
             $this->throwExceptionIfNotConnected('Remote connection has been lost.');
@@ -152,5 +155,30 @@ class StreamedClientIo extends AbstractClientIo
     private function resolveRemoteAddress()
     {
         return stream_socket_get_name($this->socket->getStreamResource(), true);
+    }
+
+    /**
+     * Write out-of-band data
+     *
+     * @param resource $socket Socket resource
+     * @param string   $data Data to write
+     *
+     * @return int Amount of written bytes
+     */
+    private function writeOobData($socket, $data)
+    {
+        $result     = 0;
+        $dataLength = strlen($data);
+        for ($i = 0; $i < $dataLength; $i++) {
+            $written = stream_socket_sendto($socket, $data[$i], STREAM_OOB);
+            $this->throwNetworkSocketExceptionIf($written < 0, 'Failed to send data.', true);
+            if ($written === 0) {
+                break;
+            }
+
+            $result += $written;
+        }
+
+        return $result;
     }
 }

@@ -17,7 +17,7 @@ use AsyncSockets\Exception\NetworkSocketException;
 abstract class AbstractServerIo extends AbstractIo
 {
     /** {@inheritdoc} */
-    public function write($data)
+    public function write($data, $isOutOfBand)
     {
         throw new NetworkSocketException($this->socket, 'Can not write data to tcp/udp server socket.');
     }

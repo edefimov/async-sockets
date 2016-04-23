@@ -22,15 +22,45 @@ class WriteOperation implements OperationInterface
     private $data;
 
     /**
+     * Flag if this is an out-of-band writing
+     *
+     * @var bool
+     */
+    private $isOutOfBand;
+
+    /**
      * WriteOperation constructor.
      *
      * @param string $data Data to send
+     * @param bool   $isOutOfBand Flag if this is an out-of-band writing
      */
-    public function __construct($data = null)
+    public function __construct($data = null, $isOutOfBand = false)
     {
-        $this->data = $data !== null ? (string) $data : null;
+        $this->data         = $data !== null ? (string) $data : null;
+        $this->isOutOfBand = $isOutOfBand;
     }
 
+    /**
+     * Return flag if this is an out-of-band writing
+     *
+     * @return bool
+     */
+    public function isOutOfBand()
+    {
+        return $this->isOutOfBand;
+    }
+
+    /**
+     * Set out-of-band flag
+     *
+     * @param bool $isOutOfBand Flag if this is an out-of-band writing
+     *
+     * @return void
+     */
+    public function setOutOfBand($isOutOfBand)
+    {
+        $this->isOutOfBand = $isOutOfBand;
+    }
 
     /** {@inheritdoc} */
     public function getType()

@@ -12,20 +12,14 @@ namespace Tests\AsyncSockets\Socket\Io;
 
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\Io\DisconnectedIo;
+use AsyncSockets\Socket\Io\IoInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class DisconnectedIoTest
  */
-class DisconnectedIoTest extends \PHPUnit_Framework_TestCase
+class DisconnectedIoTest extends AbstractIoTest
 {
-    /**
-     * Test object
-     *
-     * @var DisconnectedIo
-     */
-    private $object;
-
     /**
      * testRead
      *
@@ -43,21 +37,31 @@ class DisconnectedIoTest extends \PHPUnit_Framework_TestCase
     /**
      * testWrite
      *
+     * @param bool $isOutOfBand Flag if data are out of band
+     *
      * @return void
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionMessage Can not start io operation on uninitialized socket.
      */
-    public function testWrite()
+    public function testWrite($isOutOfBand)
     {
-        $this->object->write('something');
+        $this->object->write('something', $isOutOfBand);
     }
 
-    /** {@inheritdoc} */
-    protected function setUp()
+    /**
+     * {@inheritdoc}
+     */
+    protected function createIoInterface(SocketInterface $socket)
     {
-        parent::setUp();
-        $socket = $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface');
-        /** @var SocketInterface $socket */
-        $this->object = new DisconnectedIo($socket);
+        return new DisconnectedIo($socket);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function createSocketInterface()
+    {
+        return $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface');
     }
 }

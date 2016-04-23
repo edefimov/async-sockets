@@ -32,9 +32,9 @@ interface IoInterface
      * Write data to this socket
      *
      * @param string $data Data to send
+     * @param bool   $isOutOfBand Flag if it is out-of-band data
      *
      * @return int Number of written bytes
-     * @throws NetworkSocketException
      */
-    public function write($data);
+    public function write($data, $isOutOfBand);
 }
