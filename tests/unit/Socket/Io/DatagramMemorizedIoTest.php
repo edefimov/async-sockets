@@ -40,10 +40,10 @@ class DatagramMemorizedIoTest extends DatagramClientIoTest
     public function testReadData()
     {
         $this->ensureSocketIsOpened();
-        $frame = $this->object->read(new RawFramePicker());
+        $frame = $this->object->read(new RawFramePicker(), $this->context, false);
         self::assertEquals($this->data, (string) $frame, 'Incorrect frame');
 
-        $frame = $this->object->read(new RawFramePicker());
+        $frame = $this->object->read(new RawFramePicker(), $this->context, false);
         self::assertEmpty((string) $frame, 'Second read must not return anything');
     }
 

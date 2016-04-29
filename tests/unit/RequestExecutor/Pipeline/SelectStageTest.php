@@ -81,7 +81,7 @@ class SelectStageTest extends AbstractStageTest
 
         $this->selector->expects(self::once())
             ->method('select')
-            ->willReturn(new SelectContext([], []));
+            ->willReturn(new SelectContext([], [], []));
 
         $this->stage->processStage([$first, $second]);
     }
@@ -147,7 +147,7 @@ class SelectStageTest extends AbstractStageTest
 
         $this->selector->expects(self::any())
                        ->method('select')
-                       ->willReturn(new SelectContext([], []));
+                       ->willReturn(new SelectContext([], [], []));
 
         $first->expects(self::once())->method('setMetadata')->with(RequestExecutorInterface::META_LAST_IO_START_TIME);
 
@@ -188,7 +188,7 @@ class SelectStageTest extends AbstractStageTest
         $this->selector->expects(self::once())
             ->method('select')
             ->with($expectedSeconds, $expectedMicroseconds)
-            ->willReturn(new SelectContext([], []));
+            ->willReturn(new SelectContext([], [], []));
 
         $this->stage->processStage($requests);
     }

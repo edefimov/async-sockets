@@ -14,17 +14,16 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Exception\AcceptException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\PartialFrame;
-use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\ReadOperation;
+use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class ReadIoHandler
  */
-class ReadIoHandler implements IoHandlerInterface
+class ReadIoHandler extends AbstractOobHandler
 {
     /** {@inheritdoc} */
     public function supports(OperationInterface $operation)
@@ -33,12 +32,14 @@ class ReadIoHandler implements IoHandlerInterface
     }
 
     /** {@inheritdoc} */
-    public function handle(
-        OperationInterface $operation,
-        SocketInterface $socket,
+    protected function handleOperation(
+        RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
+        $operation = $descriptor->getOperation();
+        $socket    = $descriptor->getSocket();
+
         $meta    = $executor->socketBag()->getSocketMetaData($socket);
         $context = $meta[RequestExecutorInterface::META_USER_CONTEXT];
 
@@ -64,7 +65,8 @@ class ReadIoHandler implements IoHandlerInterface
                         $executor,
                         $socket,
                         $context,
-                        $response
+                        $response,
+                        false
                     );
 
                     $eventHandler->invokeEvent($event);

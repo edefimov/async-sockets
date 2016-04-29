@@ -41,7 +41,7 @@ class DatagramServerIo extends AbstractServerIo
     }
 
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $picker)
+    public function read(FramePickerInterface $picker, Context $context, $isOutOfBand)
     {
         stream_socket_recvfrom(
             $this->socket->getStreamResource(),
@@ -61,7 +61,7 @@ class DatagramServerIo extends AbstractServerIo
             new UdpClientSocket(
                 $this->socket,
                 $remoteAddress,
-                $reader->read(new RawFramePicker())
+                $reader->read(new RawFramePicker(), $context, $isOutOfBand)
             )
         );
     }

@@ -11,6 +11,7 @@ namespace AsyncSockets\RequestExecutor\LibEvent;
 
 use AsyncSockets\Operation\DelayedOperation;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 
 /**
  * Class LeBase
@@ -210,13 +211,15 @@ class LeBase
     private function onEvent(LeEvent $event, $eventFlags)
     {
         $map = [
-            LeCallbackInterface::EVENT_READ    => EV_READ,
-            LeCallbackInterface::EVENT_WRITE   => EV_WRITE,
-            LeCallbackInterface::EVENT_TIMEOUT => EV_TIMEOUT,
+            LeCallbackInterface::EVENT_READ    => [ EV_READ, RequestDescriptor::RDS_READ ],
+            LeCallbackInterface::EVENT_WRITE   => [ EV_WRITE, RequestDescriptor::RDS_WRITE ],
+            LeCallbackInterface::EVENT_TIMEOUT => [ EV_TIMEOUT, 0 ],
         ];
 
-        foreach ($map as $eventType => $libEventFlag) {
-            if (!$this->isTerminating && $eventFlags & $libEventFlag) {
+        $descriptor = $event->getRequestDescriptor();
+        foreach ($map as $eventType => $states) {
+            if (!$this->isTerminating && $eventFlags & $states[0]) {
+                $descriptor->setState($states[1]);
                 $eventFlags &= ~EV_TIMEOUT;
                 $event->fire($eventType);
             }

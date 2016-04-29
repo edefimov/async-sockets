@@ -47,6 +47,7 @@ class ReadEventTest extends IoEventTest
         /** @var ReadEvent $event */
         self::assertSame($this->frame, $event->getFrame());
         self::assertFalse($event->isPartial());
+        self::assertFalse($event->isOutOfBand(), 'Incorrect oob flag');
         return $event;
     }
 
@@ -64,6 +65,26 @@ class ReadEventTest extends IoEventTest
         $event = new ReadEvent($this->executor, $this->socket, $this->context, $frame);
         self::assertSame($frame, $event->getFrame());
         self::assertSame($isPartial, $event->isPartial());
+    }
+
+    /**
+     * testOobDataWrite
+     *
+     * @param bool $isOutOfBand Flag is data are out of band
+     *
+     * @return void
+     * @dataProvider boolDataProvider
+     */
+    public function testOobDataWrite($isOutOfBand)
+    {
+        $event = new ReadEvent(
+            $this->executor,
+            $this->socket,
+            $this->context,
+            $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface'),
+            $isOutOfBand
+        );
+        self::assertSame($isOutOfBand, $event->isOutOfBand(), 'Incorrect OOB flag');
     }
 
     /**

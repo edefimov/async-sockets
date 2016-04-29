@@ -11,8 +11,10 @@
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\Event;
+use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
@@ -106,5 +108,30 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
              ->getMockForAbstractClass();
 
         $this->handler = $this->createIoHandlerInterface();
+    }
+
+    /**
+     * Return mocked descriptor
+     *
+     * @param OperationInterface $operation Operation interface
+     * @param SocketInterface    $socket Socket object
+     * @param int                $state State for descriptor
+     *
+     * @return RequestDescriptor|\PHPUnit_Framework_MockObject_MockObject
+     */
+    protected function getMockedDescriptor(OperationInterface $operation, SocketInterface $socket, $state)
+    {
+        $mock = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor')
+                    ->setMethods([ 'getOperation', 'getSocket', 'getMetadata' ])
+                    ->disableOriginalConstructor()
+                    ->getMockForAbstractClass();
+
+        /** @var RequestDescriptor|\PHPUnit_Framework_MockObject_MockObject $mock */
+        $mock->expects(self::any())->method('getOperation')->willReturn($operation);
+        $mock->expects(self::any())->method('getSocket')->willReturn($socket);
+        $mock->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
+        $mock->setState($state);
+
+        return $mock;
     }
 }

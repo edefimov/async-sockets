@@ -10,17 +10,16 @@
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Exception\SslHandshakeException;
-use AsyncSockets\RequestExecutor\EventHandlerInterface;
-use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\Operation\OperationInterface;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Operation\SslHandshakeOperation;
-use AsyncSockets\Socket\SocketInterface;
+use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
  * Class SslHandshakeIoHandler
  */
-class SslHandshakeIoHandler implements IoHandlerInterface
+class SslHandshakeIoHandler extends AbstractOobHandler
 {
     /** {@inheritdoc} */
     public function supports(OperationInterface $operation)
@@ -29,14 +28,16 @@ class SslHandshakeIoHandler implements IoHandlerInterface
     }
 
     /** {@inheritdoc} */
-    public function handle(
-        OperationInterface $operation,
-        SocketInterface $socket,
+    protected function handleOperation(
+        RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
+        $operation = $descriptor->getOperation();
+        $socket    = $descriptor->getSocket();
+
         /** @var SslHandshakeOperation $operation */
-        $resource = $socket->getStreamResource();
+        $resource = $descriptor->getSocket()->getStreamResource();
         $result   = stream_socket_enable_crypto($resource, true, $operation->getCipher());
         if ($result === true) {
             return $operation->getNextOperation();

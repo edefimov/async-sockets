@@ -14,6 +14,7 @@ use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Socket\ClientSocket;
+use AsyncSockets\Socket\Io\Context;
 use AsyncSockets\Socket\Io\StreamedClientIo;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
@@ -127,31 +128,41 @@ class StreamedClientIoTest extends AbstractClientIoTest
     /**
      * testConnectionRefusedOnRead
      *
+     * @param bool $isOutOfBand Flag if data are out of band
+     *
      * @return void
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\ConnectionException
      * @expectedExceptionMessage Connection refused.
      */
-    public function testConnectionRefusedOnRead()
+    public function testConnectionRefusedOnRead($isOutOfBand)
     {
         $this->prepareFor(__FUNCTION__);
         $this->setConnectedStateForTestObject(false);
         $this->ensureSocketIsOpened();
-        $this->object->read($this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'));
+        $this->object->read(
+            $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'),
+            $this->context,
+            $isOutOfBand
+        );
     }
 
     /**
      * testConnectionRefusedOnWrite
      *
+     * @param bool $isOutOfBand Flag if data are out of band
+     *
      * @return void
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\ConnectionException
      * @expectedExceptionMessage Connection refused.
      */
-    public function testConnectionRefusedOnWrite()
+    public function testConnectionRefusedOnWrite($isOutOfBand)
     {
         $this->prepareFor(__FUNCTION__);
         $this->setConnectedStateForTestObject(false);
         $this->ensureSocketIsOpened();
-        $this->object->read(new RawFramePicker());
+        $this->object->write('data', $this->context, $isOutOfBand);
     }
 
     /**
@@ -180,7 +191,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
 
         $picker = new FixedLengthFramePicker(2);
         for ($i = 0; $i < 3; $i++) {
-            $frame = $this->object->read($picker);
+            $frame = $this->object->read($picker, $this->context, false);
         }
 
         self::assertEquals('12', (string) $frame, 'Incorrect frame');
@@ -223,7 +234,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
         $this->ensureSocketIsOpened();
         $this->setConnectedStateForTestObject(true);
         for ($i = 0; $i < StreamedClientIo::READ_ATTEMPTS; $i++) {
-            $this->object->read($picker);
+            $this->object->read($picker, $this->context, false);
         }
 
         self::fail('Exception was not thrown');
@@ -265,7 +276,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
 
         $length = 12;
         $picker = new FixedLengthFramePicker($length);
-        $frame  = $this->object->read($picker);
+        $frame  = $this->object->read($picker, $this->context, false);
 
         self::assertEquals(
             implode('', array_slice($sequence, 0, $length)),
@@ -309,8 +320,43 @@ class StreamedClientIoTest extends AbstractClientIoTest
             });
 
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable([ $expectation, 'count' ]);
-        $object->write($data, true);
+        $object->write($data, $this->context, true);
         self::assertTrue($hasSentAnything, 'Data were not actually sent');
+    }
+
+    /**
+     * testOobReading
+     *
+     * @return void
+     */
+    public function testOobReading()
+    {
+        $length = mt_rand(1, 100);
+        $data   = md5(microtime());
+        while (strlen($data) < $length) {
+            $data .= md5($data);
+        }
+        $data = substr($data, 0, $length);
+
+        $this->setConnectedStateForTestObject(true);
+        $this->ensureSocketIsOpened();
+        $object = new StreamedClientIo($this->socket, $length);
+
+        $expectation = $this->getMockBuilder('Countable')
+                            ->setMethods(['count'])
+                            ->getMockForAbstractClass();
+
+        $expectation->expects(self::once())
+                    ->method('count')
+                    ->willReturnCallback(function($resource, $length, $flags = null) use ($data) {
+                        self::assertTrue((bool) ($flags & STREAM_OOB), 'Oob flag is not set');
+
+                        return $data;
+                    });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable([ $expectation, 'count' ]);
+        $frame = $object->read(new RawFramePicker(), $this->context, true);
+        self::assertSame($data, (string) $frame, 'Data were read incorrect');
     }
 
     /**
@@ -336,7 +382,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
             // testActualWritingFail
             [
                 [
-                    ['write', ['some data to write', false]],
+                    ['write', ['some data to write', new Context(), false]],
                 ],
                 [
                     'stream_socket_get_name' => $streamSocketMock,
@@ -354,7 +400,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
             // testActualReadingFail
             [
                 [
-                    ['read', [$picker]],
+                    ['read', [$picker, new Context(), false]],
                 ],
                 [
                     'stream_socket_get_name' => $streamSocketMock,
@@ -372,7 +418,7 @@ class StreamedClientIoTest extends AbstractClientIoTest
             // testLossConnectionOnWriting
             [
                 [
-                    ['write', ['some data to write', false]],
+                    ['write', ['some data to write', new Context(), false]],
                 ],
                 [
                     'stream_socket_get_name' => $streamSocketMock,

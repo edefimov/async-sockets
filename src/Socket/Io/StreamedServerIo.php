@@ -20,7 +20,7 @@ use AsyncSockets\Socket\AcceptedSocket;
 class StreamedServerIo extends AbstractServerIo
 {
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $picker)
+    public function read(FramePickerInterface $picker, Context $context, $isOutOfBand)
     {
         $client = stream_socket_accept($this->socket->getStreamResource(), 0, $peerName);
         if ($client === false) {

@@ -73,23 +73,27 @@ class AbstractClientIoTest extends AbstractIoTest
         $this->setExpectedException('AsyncSockets\Exception\NetworkSocketException', 'Failed to send data.');
         $this->setConnectedStateForTestObject(true);
         for ($i = 0; $i < AbstractClientIo::IO_ATTEMPTS; $i++) {
-            $this->object->write('something', false);
+            $this->object->write('something', $this->context, false);
         }
     }
 
     /**
      * testCantReadOnClosedSocket
      *
-     * @return void
+     * @param bool $isOutOfBand Is out of band
+     *
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionMessage Can not start io operation on uninitialized socket.
      */
-    public function testCantReadOnClosedSocket()
+    public function testCantReadOnClosedSocket($isOutOfBand)
     {
         $this->prepareFor(__FUNCTION__);
         $this->setConnectedStateForTestObject(false);
         $this->object->read(
-            $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface')
+            $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'),
+            $this->context,
+            $isOutOfBand
         );
     }
 
@@ -106,7 +110,7 @@ class AbstractClientIoTest extends AbstractIoTest
     public function testExceptionWillBeThrownOnWriteError($isOutOfBand)
     {
         $this->prepareFor(__FUNCTION__);
-        $this->object->write('data', $isOutOfBand);
+        $this->object->write('data', $this->context, $isOutOfBand);
     }
 
     /**
@@ -122,7 +126,7 @@ class AbstractClientIoTest extends AbstractIoTest
     public function testCantWriteInClosedSocket($isOutOfBand)
     {
         $this->setConnectedStateForTestObject(false);
-        $this->object->write('data', $isOutOfBand);
+        $this->object->write('data', $this->context, $isOutOfBand);
     }
 
     /**
@@ -150,7 +154,7 @@ class AbstractClientIoTest extends AbstractIoTest
             }
         );
         $this->ensureSocketIsOpened();
-        $this->object->write('data', false);
+        $this->object->write('data', $this->context, false);
     }
 
     /**
@@ -174,7 +178,7 @@ class AbstractClientIoTest extends AbstractIoTest
         );
         $disableOobWriting();
 
-        $this->object->write('something', true);
+        $this->object->write('something', $this->context, true);
     }
 
 
@@ -207,7 +211,7 @@ class AbstractClientIoTest extends AbstractIoTest
         );
         $setOobPacketLength();
 
-        $this->object->write($data, true);
+        $this->object->write($data, $this->context, true);
     }
 
     /** {@inheritdoc} */

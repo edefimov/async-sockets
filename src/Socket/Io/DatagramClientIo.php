@@ -40,7 +40,7 @@ class DatagramClientIo extends AbstractClientIo
     }
 
     /** {@inheritdoc} */
-    protected function readRawDataIntoPicker(FramePickerInterface $picker)
+    protected function readRawDataIntoPicker(FramePickerInterface $picker, $isOutOfBand)
     {
         $size     = self::SOCKET_BUFFER_SIZE;
         $resource = $this->socket->getStreamResource();

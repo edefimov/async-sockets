@@ -40,7 +40,7 @@ abstract class AbstractServerIoTest extends AbstractIoTest
      */
     public function testCantWriteToServerSocket($isOutOfBand)
     {
-        $this->object->write('data', $isOutOfBand);
+        $this->object->write('data', $this->context, $isOutOfBand);
     }
 
     /**
@@ -57,7 +57,7 @@ abstract class AbstractServerIoTest extends AbstractIoTest
 
         $picker = $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface');
         /** @var FramePickerInterface $picker */
-        $frame = $this->object->read($picker);
+        $frame = $this->object->read($picker, $this->context, false);
 
         /** @var AcceptedFrame $frame */
         self::assertInstanceOf('AsyncSockets\Frame\AcceptedFrame', $frame, 'Invalid frame created');

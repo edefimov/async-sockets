@@ -47,13 +47,14 @@ interface SocketInterface extends StreamResourceInterface
      * Read data from this socket
      *
      * @param FramePickerInterface $picker Frame data picker, if null then read data until transfer is not complete
+     * @param bool                 $isOutOfBand Flag if operation is out of band
      *
      * @return FrameInterface
      * @throws NetworkSocketException
      *
      * @api
      */
-    public function read(FramePickerInterface $picker);
+    public function read(FramePickerInterface $picker, $isOutOfBand = false);
 
     /**
      * Write data to this socket

@@ -38,7 +38,7 @@ class DatagramMemorizedIo extends DatagramClientIo
     }
 
     /** {@inheritdoc} */
-    protected function readRawDataIntoPicker(FramePickerInterface $picker)
+    protected function readRawDataIntoPicker(FramePickerInterface $picker, $isOutOfBand)
     {
         $data       = $this->data;
         $this->data = '';

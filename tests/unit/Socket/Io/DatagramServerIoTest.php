@@ -117,7 +117,11 @@ class DatagramServerIoTest extends AbstractServerIoTest
             }
         );
 
-        $this->object->read($this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'));
+        $this->object->read(
+            $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'),
+            $this->context,
+            false
+        );
     }
 
     /**
@@ -140,7 +144,11 @@ class DatagramServerIoTest extends AbstractServerIoTest
             }
         );
 
-        $frame = $object->read($this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'));
+        $frame = $object->read(
+            $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface'),
+            $this->context,
+            false
+        );
 
         /** @var AcceptedFrame $frame */
         self::assertInstanceOf('AsyncSockets\Frame\AcceptedFrame', $frame, 'Invalid frame created');

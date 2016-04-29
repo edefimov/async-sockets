@@ -104,9 +104,11 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             return $mock;
         });
         $this->executor = $this->createRequestExecutor();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(function () {
-            return '';
-        });
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function ($socket, $length, $flags = null) {
+                return $flags & STREAM_OOB ? false : '';
+            }
+        );
 
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable(function ($handle, $data) {
             return strlen($data);

@@ -175,9 +175,10 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     {
         $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
         $mocker->setCallable(
-            function (array &$read = null, array &$write = null) {
+            function (array &$read = null, array &$write = null, array &$oob = null) {
                 $read  = [ ];
                 $write = [ ];
+                $oob   = [ ];
 
                 return 0;
             }

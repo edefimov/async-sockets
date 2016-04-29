@@ -23,15 +23,17 @@ class DisconnectedIoTest extends AbstractIoTest
     /**
      * testRead
      *
-     * @return void
+     * @param bool $isOutOfBand Is it out-of-band data
+     *
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionMessage Can not start io operation on uninitialized socket.
      */
-    public function testRead()
+    public function testRead($isOutOfBand)
     {
         $picker = $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface');
         /** @var FramePickerInterface $picker */
-        $this->object->read($picker);
+        $this->object->read($picker, $this->context, $isOutOfBand);
     }
 
     /**
@@ -46,7 +48,7 @@ class DisconnectedIoTest extends AbstractIoTest
      */
     public function testWrite($isOutOfBand)
     {
-        $this->object->write('something', $isOutOfBand);
+        $this->object->write('something', $this->context, $isOutOfBand);
     }
 
     /**

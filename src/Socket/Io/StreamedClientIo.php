@@ -36,7 +36,37 @@ class StreamedClientIo extends AbstractClientIo
     private $remoteAddress;
 
     /** {@inheritdoc} */
-    protected function readRawDataIntoPicker(FramePickerInterface $picker)
+    protected function readRawDataIntoPicker(FramePickerInterface $picker, $isOutOfBand)
+    {
+        return $isOutOfBand ? $this->readOobData($picker) : $this->readRegularData($picker);
+    }
+
+    /**
+     * Read OOB data from socket
+     *
+     * @param FramePickerInterface $picker
+     *
+     * @return string
+     */
+    private function readOobData(FramePickerInterface $picker)
+    {
+        $data = stream_socket_recvfrom(
+            $this->socket->getStreamResource(),
+            self::SOCKET_BUFFER_SIZE,
+            STREAM_OOB
+        );
+
+        return $picker->pickUpData($data, $this->getRemoteAddress());
+    }
+
+    /**
+     * Read regular data
+     *
+     * @param FramePickerInterface $picker Picker to read data into
+     *
+     * @return string
+     */
+    private function readRegularData(FramePickerInterface $picker)
     {
         // work-around https://bugs.php.net/bug.php?id=52602
         $resource         = $this->socket->getStreamResource();

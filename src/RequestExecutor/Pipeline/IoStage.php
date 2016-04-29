@@ -102,8 +102,7 @@ class IoStage extends AbstractTimeAwareStage
         try {
             $this->eventCaller->setCurrentOperation($requestDescriptor);
             $result = $ioHandler->handle(
-                $requestDescriptor->getOperation(),
-                $requestDescriptor->getSocket(),
+                $requestDescriptor,
                 $this->executor,
                 $this->eventCaller
             );

@@ -13,11 +13,12 @@ namespace Tests\AsyncSockets\Event;
 use AsyncSockets\Event\Event;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
+use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
 
 /**
  * Class EventTest
  */
-class EventTest extends \PHPUnit_Framework_TestCase
+class EventTest extends AbstractTestCase
 {
     /**
      * RequestExecutorInterface

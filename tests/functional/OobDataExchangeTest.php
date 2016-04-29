@@ -49,7 +49,7 @@ class OobDataExchangeTest extends \PHPUnit_Framework_TestCase
             $frame          = $server->read(new RawFramePicker());
             $acceptedClient = $frame->getClientSocket();
             $acceptedClient->open($openedAddress);
-            $acceptedData = stream_socket_recvfrom($acceptedClient->getStreamResource(), 8192, STREAM_OOB);
+            $acceptedData = (string) $acceptedClient->read(new RawFramePicker(), true);
 
             self::assertSame($data, $acceptedData, 'Incorrect data received by OOB channel.');
 

@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket\Io;
 
+use AsyncSockets\Socket\Io\Context;
 use AsyncSockets\Socket\Io\IoInterface;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
@@ -34,6 +35,13 @@ abstract class AbstractIoTest extends AbstractTestCase
     protected $socket;
 
     /**
+     * Context
+     *
+     * @var Context
+     */
+    protected $context;
+
+    /**
      * Create test object
      *
      * @param SocketInterface $socket Socket object
@@ -54,8 +62,9 @@ abstract class AbstractIoTest extends AbstractTestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->socket = $this->createSocketInterface();
-        $this->object = $this->createIoInterface($this->socket);
+        $this->socket  = $this->createSocketInterface();
+        $this->object  = $this->createIoInterface($this->socket);
+        $this->context = new Context();
     }
 
     /**

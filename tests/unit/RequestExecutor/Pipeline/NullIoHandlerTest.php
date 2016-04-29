@@ -11,12 +11,13 @@
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Operation\NullOperation;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\NullIoHandler;
 
 /**
  * Class NullIoHandlerTest
  */
-class NullIoHandlerTest extends AbstractIoHandlerTest
+class NullIoHandlerTest extends AbstractOobHandlerTest
 {
     /**
      * @inheritDoc
@@ -37,8 +38,7 @@ class NullIoHandlerTest extends AbstractIoHandlerTest
             ->method('invokeEvent');
         
         $result = $this->handler->handle(
-            new NullOperation(),
-            $this->socket,
+            $this->getMockedDescriptor(new NullOperation(), $this->socket, RequestDescriptor::RDS_READ),
             $this->executor,
             $this->mockEventHandler
         );

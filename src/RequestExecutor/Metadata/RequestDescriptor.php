@@ -22,6 +22,21 @@ use AsyncSockets\Socket\StreamResourceInterface;
 class RequestDescriptor implements StreamResourceInterface, EventHandlerInterface
 {
     /**
+     * This descriptor is ready for reading
+     */
+    const RDS_READ = 0x0001;
+
+    /**
+     * This descriptor is ready for writing
+     */
+    const RDS_WRITE = 0x0002;
+
+    /**
+     * This descriptor is has OOB data
+     */
+    const RDS_OOB = 0x0004;
+
+    /**
      * Socket for this operation
      *
      * @var SocketInterface
@@ -62,6 +77,13 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
      * @var bool
      */
     private $isPostponed = false;
+
+    /**
+     * Set of state flags: RDS_* consts
+     *
+     * @var int
+     */
+    private $state = 0;
 
     /**
      * RequestDescriptor constructor.
@@ -216,5 +238,41 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     public function isPostponed()
     {
         return $this->isPostponed;
+    }
+
+    /**
+     * Return true if descriptor has given state
+     *
+     * @param int $state State to check, set of RDS_* consts
+     *
+     * @return bool
+     */
+    public function hasState($state)
+    {
+        return (bool) ($this->state & $state);
+    }
+
+    /**
+     * Sets one state into an object
+     *
+     * @param int $state State to set, set of RDS_* consts
+     *
+     * @return void
+     */
+    public function setState($state)
+    {
+        $this->state |= $state;
+    }
+
+    /**
+     * Clears given state in object
+     *
+     * @param int $state State to clear, set of RDS_* consts
+     *
+     * @return void
+     */
+    public function clearState($state)
+    {
+        $this->state &= ~$state;
     }
 }

@@ -10,7 +10,7 @@
 namespace AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Operation\OperationInterface;
-use AsyncSockets\Socket\SocketInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 
 /**
  * Interface IoHandlerInterface
@@ -29,8 +29,7 @@ interface IoHandlerInterface
     /**
      * Process given operation
      *
-     * @param OperationInterface       $operation Operation to process
-     * @param SocketInterface          $socket Socket to process operation for
+     * @param RequestDescriptor        $descriptor Request descriptor
      * @param RequestExecutorInterface $executor Executor, processing operation
      * @param EventHandlerInterface    $eventHandler Event handler for this operation
      *
@@ -38,8 +37,7 @@ interface IoHandlerInterface
      *      if next operation is not required. Return $operation parameter, if operation is not completed yet
      */
     public function handle(
-        OperationInterface $operation,
-        SocketInterface $socket,
+        RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     );
