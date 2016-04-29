@@ -2,7 +2,7 @@ Async sockets library
 =====================
 
 [![Build Status](https://img.shields.io/travis/edefimov/async-sockets/master.svg?style=flat)](https://travis-ci.org/edefimov/async-sockets)
-[![Documentation Status](https://readthedocs.org/projects/async-sockets/badge/?version=latest)](http://async-sockets.readthedocs.org/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/async-sockets/badge/?version=latest)](http://async-sockets.readthedocs.io/en/latest/?badge=latest)
 [![Scrutinizer Coverage](https://img.shields.io/scrutinizer/coverage/g/edefimov/async-sockets.svg?style=flat)](https://scrutinizer-ci.com/g/edefimov/async-sockets/)
 [![SensioLabsInsight](https://img.shields.io/sensiolabs/i/c816a980-e97a-46ae-b334-16c6bfd1ec4a.svg?style=flat)](https://insight.sensiolabs.com/projects/c816a980-e97a-46ae-b334-16c6bfd1ec4a)
 [![Scrutinizer](https://img.shields.io/scrutinizer/g/edefimov/async-sockets.svg?style=flat)](https://scrutinizer-ci.com/g/edefimov/async-sockets/)
@@ -44,9 +44,9 @@ Async sockets library provides networking layer for applications, hides complexi
 
 ## Documentation
 
-[Stable version](https://async-sockets.readthedocs.org/en/stable/)
+[Stable version](https://async-sockets.readthedocs.io/en/stable/)
 
-[Latest version](https://async-sockets.readthedocs.org/en/latest/)
+[Latest version](https://async-sockets.readthedocs.io/en/latest/)
 
 ## Installation
 
