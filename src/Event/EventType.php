@@ -57,6 +57,14 @@ final class EventType
     const READ = 'socket.event.read';
 
     /**
+     * Socket contains out of band data. ReadEvent object will be given as an argument. Use event object
+     * to get received data
+     *
+     * @see ReadEvent
+     */
+    const OOB = 'socket.event.oob';
+
+    /**
      * Socket data can be written. WriteEvent object will be given as an argument. Use event object
      * for writing data
      *

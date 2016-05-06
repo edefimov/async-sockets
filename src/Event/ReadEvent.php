@@ -27,13 +27,6 @@ class ReadEvent extends IoEvent
     private $frame;
 
     /**
-     * Flag if data are out of band
-     *
-     * @var bool
-     */
-    private $isOutOfBand;
-
-    /**
      * Constructor
      *
      * @param RequestExecutorInterface $executor Request executor object
@@ -49,9 +42,8 @@ class ReadEvent extends IoEvent
         FrameInterface $frame,
         $isOutOfBand = false
     ) {
-        parent::__construct($executor, $socket, $context, EventType::READ);
-        $this->frame       = $frame;
-        $this->isOutOfBand = $isOutOfBand;
+        parent::__construct($executor, $socket, $context, $isOutOfBand ? EventType::OOB : EventType::READ);
+        $this->frame = $frame;
     }
 
     /**
@@ -72,15 +64,5 @@ class ReadEvent extends IoEvent
     public function isPartial()
     {
         return $this->frame instanceof PartialFrame;
-    }
-
-    /**
-     * Return true if data are out of band
-     *
-     * @return bool
-     */
-    public function isOutOfBand()
-    {
-        return $this->isOutOfBand;
     }
 }

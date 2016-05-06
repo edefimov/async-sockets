@@ -11,6 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\Event;
+use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\FramePickerInterface;
@@ -68,7 +69,7 @@ class AbstractOobHandlerTest extends AbstractIoHandlerTest
                 function (Event $event) use ($data, $operation) {
                     self::assertInstanceOf('AsyncSockets\Event\ReadEvent', $event, 'Incorrect event');
                     /** @var ReadEvent $event */
-                    self::assertTrue($event->isOutOfBand(), 'Incorrect OOB flag');
+                    self::assertSame(EventType::OOB, $event->getType(), 'Incorrect event type');
                     $this->validateEventContext($event);
                     self::assertSame($data, (string) $event->getFrame(), 'Incorrect data');
                     self::assertNull($event->getNextOperation(), 'Incorrect initial operation');
