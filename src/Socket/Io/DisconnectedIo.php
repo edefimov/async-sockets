@@ -18,13 +18,13 @@ use AsyncSockets\Frame\FramePickerInterface;
 class DisconnectedIo extends AbstractIo
 {
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $picker)
+    public function read(FramePickerInterface $picker, Context $context, $isOutOfBand)
     {
         throw new NetworkSocketException($this->socket, 'Can not start io operation on uninitialized socket.');
     }
 
     /** {@inheritdoc} */
-    public function write($data)
+    public function write($data, Context $context, $isOutOfBand)
     {
         throw new NetworkSocketException($this->socket, 'Can not start io operation on uninitialized socket.');
     }

@@ -41,14 +41,7 @@ class NativeRequestExecutorTest extends AbstractRequestExecutorTest
     protected function prepareForTestTimeoutOnConnect()
     {
         $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-        $streamSelect->setCallable(
-            function (array &$read = null, array &$write = null) {
-                $read  = [ ];
-                $write = [ ];
-
-                return 0;
-            }
-        );
+        $streamSelect->setCallable([$this, 'streamSelectTimeout']);
     }
 
     /**
@@ -59,14 +52,7 @@ class NativeRequestExecutorTest extends AbstractRequestExecutorTest
     protected function prepareForTestTimeoutOnIo()
     {
         $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-        $streamSelect->setCallable(
-            function (array &$read = null, array &$write = null) {
-                $read  = [ ];
-                $write = [ ];
-
-                return 1;
-            }
-        );
+        $streamSelect->setCallable([$this, 'streamSelectTimeout']);
     }
 
     /**
@@ -80,14 +66,7 @@ class NativeRequestExecutorTest extends AbstractRequestExecutorTest
     {
         if ($eventType === EventType::TIMEOUT) {
             $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-            $streamSelect->setCallable(
-                function (array &$read = null, array &$write = null) use ($eventType) {
-                    $read  = [ ];
-                    $write = [ ];
-
-                    return 0;
-                }
-            );
+            $streamSelect->setCallable([$this, 'streamSelectTimeout']);
         }
     }
 
@@ -102,14 +81,7 @@ class NativeRequestExecutorTest extends AbstractRequestExecutorTest
     {
         if ($eventType === EventType::TIMEOUT) {
             $streamSelect = PhpFunctionMocker::getPhpFunctionMocker('stream_select');
-            $streamSelect->setCallable(
-                function (array &$read = null, array &$write = null) use ($eventType) {
-                    $read  = [ ];
-                    $write = [ ];
-
-                    return 0;
-                }
-            );
+            $streamSelect->setCallable([$this, 'streamSelectTimeout']);
         }
     }
 
@@ -119,5 +91,23 @@ class NativeRequestExecutorTest extends AbstractRequestExecutorTest
         parent::tearDown();
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
+    }
+
+    /**
+     * Timeouted stream_select handler
+     *
+     * @param array &$read Read descriptors
+     * @param array &$write Write descriptors
+     * @param array &$oob OOB descriptors
+     *
+     * @return \Closure
+     */
+    public function streamSelectTimeout(array &$read = null, array &$write = null, array &$oob = null)
+    {
+        $read  = [ ];
+        $write = [ ];
+        $oob   = [ ];
+
+        return 0;
     }
 }

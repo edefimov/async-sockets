@@ -187,7 +187,7 @@ When connection is successfully established, since the ``WriteOperation`` is set
 will be called by engine. Within write handler you tell the engine to prepare `read` operation
 with `marker` frame boundary detection strategy.
 
-When the data is downloaded and is satisfied by given strategy, the `onRead` handler will be invoked, where you have
+When the data are downloaded and is satisfied by given strategy, the `onRead` handler will be invoked, where you have
 access to downloaded data and some additional information about data.
 
 Since in the `onRead` handler you don't ask the engine to prepare another I/O operation, the connection will be automatically

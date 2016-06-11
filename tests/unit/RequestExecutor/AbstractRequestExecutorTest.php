@@ -104,9 +104,11 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             return $mock;
         });
         $this->executor = $this->createRequestExecutor();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(function () {
-            return '';
-        });
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function ($socket, $length, $flags = null) {
+                return $flags & STREAM_OOB ? false : '';
+            }
+        );
 
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable(function ($handle, $data) {
             return strlen($data);
@@ -734,7 +736,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
     public function testThrowsNonSocketExceptionInEvent($eventType, OperationInterface $operation)
     {
         $meta = [
-            NativeRequestExecutor::META_ADDRESS   => 'php://temp',
+            NativeRequestExecutor::META_ADDRESS => 'php://temp',
         ];
 
         $this->prepareFor(__FUNCTION__, $eventType, $operation);
@@ -757,15 +759,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
 
         $this->executor->socketBag()->addSocket($this->getSocketForEventType($eventType), $operation, $meta);
 
-        $handler = function (Event $event) use ($eventType) {
-            $readWriteTypes = [ EventType::READ, EventType::WRITE ];
-            $throwException = $event->getType() === $eventType ||
-                              (in_array($eventType, $readWriteTypes, true) &&
-                               in_array($event->getType(), $readWriteTypes, true));
-            if ($throwException) {
-                throw new \RuntimeException('Test passed', 200);
-            }
-        };
+        $handler = $this->getEventTypeHandler($eventType, new \RuntimeException('Test passed', 200));
 
         $this->executor->withEventHandler(
             new CallbackEventHandler(
@@ -774,6 +768,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
                     EventType::CONNECTED    => $handler,
                     EventType::ACCEPT       => $handler,
                     EventType::READ         => $handler,
+                    EventType::OOB          => $handler,
                     EventType::WRITE        => $handler,
                     EventType::DISCONNECTED => $handler,
                     EventType::FINALIZE     => $handler,
@@ -821,15 +816,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
 
         $this->executor->socketBag()->addSocket($this->getSocketForEventType($eventType), $operation, $meta);
 
-        $handler = function (Event $event) use ($eventType) {
-            $readWriteTypes = [ EventType::READ, EventType::WRITE ];
-            $throwException = $event->getType() === $eventType ||
-                              (in_array($eventType, $readWriteTypes, true) &&
-                               in_array($event->getType(), $readWriteTypes, true));
-            if ($throwException) {
-                throw new SocketException('Test passed', 200);
-            }
-        };
+        $handler = $this->getEventTypeHandler($eventType, new SocketException('Test passed', 200));
 
         $mock = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMock();
         $mock->expects(self::once())
@@ -1011,5 +998,26 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             default:
                 return $this->socket;
         }
+    }
+
+    /**
+     * Return handler function for testing exceptions in event
+     *
+     * @param string     $eventType Event type
+     * @param \Exception $exception Exception to throw for test
+     *
+     * @return \Closure
+     */
+    private function getEventTypeHandler($eventType, \Exception $exception)
+    {
+        return function (Event $event) use ($eventType, $exception) {
+            $readWriteTypes = [ EventType::READ, EventType::WRITE, EventType::OOB ];
+            $throwException = $event->getType() === $eventType ||
+                              (in_array($eventType, $readWriteTypes, true) &&
+                               in_array($event->getType(), $readWriteTypes, true));
+            if ($throwException) {
+                throw $exception;
+            }
+        };
     }
 }

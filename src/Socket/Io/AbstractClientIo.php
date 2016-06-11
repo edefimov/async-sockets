@@ -12,8 +12,10 @@ namespace AsyncSockets\Socket\Io;
 use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Exception\FrameException;
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Exception\UnsupportedOperationException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\PartialFrame;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class AbstractClientIo
@@ -31,13 +33,6 @@ abstract class AbstractClientIo extends AbstractIo
     const STATE_CONNECTED = 1;
 
     /**
-     * Unhandled portion of data at the end of frame
-     *
-     * @var string
-     */
-    private $unhandledData = '';
-
-    /**
      * Socket state
      *
      * @var int
@@ -52,22 +47,43 @@ abstract class AbstractClientIo extends AbstractIo
     private $writeAttempts = self::IO_ATTEMPTS;
 
     /**
+     * Maximum amount of OOB data length (0 - not supported)
+     *
+     * @var int
+     */
+    private $maxOobPacketLength;
+
+    /**
+     * AbstractClientIo constructor.
+     *
+     * @param SocketInterface $socket Socket object
+     * @param int             $maxOobPacketLength Maximum amount of OOB data length (0 - not supported)
+     */
+    public function __construct(SocketInterface $socket, $maxOobPacketLength)
+    {
+        parent::__construct($socket);
+        $this->maxOobPacketLength = $maxOobPacketLength;
+    }
+
+    /**
      * Read raw data from network into given picker
      *
      * @param FramePickerInterface $picker Frame picker
+     * @param bool                 $isOutOfBand Flag if these are out of band data
      *
      * @return string Data after end of frame
      */
-    abstract protected function readRawDataIntoPicker(FramePickerInterface $picker);
+    abstract protected function readRawDataIntoPicker(FramePickerInterface $picker, $isOutOfBand);
 
     /**
      * Write data to socket
      *
      * @param string $data Data to write
+     * @param bool $isOutOfBand Flag if data are out of band
      *
      * @return int Number of written bytes
      */
-    abstract protected function writeRawData($data);
+    abstract protected function writeRawData($data, $isOutOfBand);
 
     /**
      * Check whether given socket resource is connected
@@ -91,12 +107,17 @@ abstract class AbstractClientIo extends AbstractIo
     abstract protected function getRemoteAddress();
 
     /** {@inheritdoc} */
-    final public function read(FramePickerInterface $picker)
+    final public function read(FramePickerInterface $picker, Context $context, $isOutOfBand)
     {
         $this->setConnectedState();
-        $isEndOfFrameReached = $this->handleUnreadData($picker);
+        $this->verifyOobData($isOutOfBand, null);
+
+        $isEndOfFrameReached = $this->handleUnreadData($picker, $context, $isOutOfBand);
         if (!$isEndOfFrameReached) {
-            $this->unhandledData = $this->readRawDataIntoPicker($picker);
+            $context->setUnreadData(
+                $this->readRawDataIntoPicker($picker, $isOutOfBand),
+                $isOutOfBand
+            );
 
             $isEndOfFrameReached = $picker->isEof();
             if (!$isEndOfFrameReached && !$this->canReachFrame()) {
@@ -113,11 +134,12 @@ abstract class AbstractClientIo extends AbstractIo
     }
 
     /** {@inheritdoc} */
-    final public function write($data)
+    final public function write($data, Context $context, $isOutOfBand)
     {
         $this->setConnectedState();
+        $this->verifyOobData($isOutOfBand, $data);
 
-        $result              = $this->writeRawData($data);
+        $result              = $this->writeRawData($data, $isOutOfBand);
         $this->writeAttempts = $result > 0 ? self::IO_ATTEMPTS : $this->writeAttempts - 1;
 
         $this->throwNetworkSocketExceptionIf(
@@ -126,6 +148,33 @@ abstract class AbstractClientIo extends AbstractIo
         );
 
         return $result;
+    }
+
+    /**
+     * Verifies given data according to OOB rules
+     *
+     * @param bool   $isOutOfBand Flag if data are out of band
+     * @param string $data Accepted data or null to skip check
+     *
+     * @return void
+     */
+    private function verifyOobData($isOutOfBand, $data)
+    {
+        if (!$isOutOfBand) {
+            return;
+        }
+
+        if ($this->maxOobPacketLength === 0) {
+            throw UnsupportedOperationException::oobDataUnsupported($this->socket);
+        }
+
+        if ($data !== null && strlen($data) > $this->maxOobPacketLength) {
+            throw UnsupportedOperationException::oobDataPackageSizeExceeded(
+                $this->socket,
+                $this->maxOobPacketLength,
+                strlen($data)
+            );
+        }
     }
 
     /**
@@ -173,13 +222,19 @@ abstract class AbstractClientIo extends AbstractIo
      * Read unhandled data if there is something from the previous operation
      *
      * @param FramePickerInterface $picker Frame picker to use
+     * @param Context              $context Socket context
+     * @param bool                 $isOutOfBand Flag if it is out-of-band data
      *
      * @return bool Flag whether it is the end of the frame
      */
-    private function handleUnreadData(FramePickerInterface $picker)
+    private function handleUnreadData(FramePickerInterface $picker, Context $context, $isOutOfBand)
     {
-        if ($this->unhandledData) {
-            $this->unhandledData = $picker->pickUpData($this->unhandledData, $this->getRemoteAddress());
+        $unhandledData = $context->getUnreadData($isOutOfBand);
+        if ($unhandledData) {
+            $context->setUnreadData(
+                $picker->pickUpData($unhandledData, $this->getRemoteAddress()),
+                $isOutOfBand
+            );
         }
 
         return $picker->isEof();

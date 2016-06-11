@@ -18,6 +18,7 @@ use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\Operation\InProgressWriteOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
 use AsyncSockets\Operation\ReadOperation;
@@ -166,7 +167,7 @@ class IoStageTest extends AbstractStageTest
             ->with($operation)
             ->willReturn(true);
         $this->mockHandler->expects(self::once())->method('handle')
-            ->with($operation, $socket, $this->executor, $eventCaller);
+            ->with($request, $this->executor, $eventCaller);
 
         $this->metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 5;
         $request->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
@@ -326,7 +327,8 @@ class IoStageTest extends AbstractStageTest
 
         $this->metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 5;
         $request->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
-
+        $request->setState(RequestDescriptor::RDS_WRITE);
+        
         $this->eventCaller->expects(self::once())
                           ->method('callSocketSubscribers')
                           ->willReturnCallback(function ($mock, Event $event) {

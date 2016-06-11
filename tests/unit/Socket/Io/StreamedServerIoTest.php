@@ -49,7 +49,7 @@ class StreamedServerIoTest extends AbstractServerIoTest
 
         $picker = $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface');
         /** @var FramePickerInterface $picker */
-        $this->object->read($picker);
+        $this->object->read($picker, $this->context, false);
     }
 
     /** {@inheritdoc} */

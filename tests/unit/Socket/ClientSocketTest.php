@@ -175,7 +175,7 @@ class ClientSocketTest extends AbstractSocketTest
             $responseText .= (string) $response;
         } while ($response instanceof PartialFrame);
 
-        self::assertEquals($data, $responseText, 'Received data is incorrect');
+        self::assertEquals($data, $responseText, 'Received data are incorrect');
     }
 
     /**

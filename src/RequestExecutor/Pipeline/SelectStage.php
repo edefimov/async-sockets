@@ -61,13 +61,50 @@ class SelectStage extends AbstractTimeAwareStage
         try {
             $timeout = $this->calculateSelectorTimeout($requestDescriptors);
             $context = $this->selector->select($timeout['sec'], $timeout['microsec']);
-            return array_merge(
-                $context->getRead(),
-                $context->getWrite()
+            return $this->getUniqueDescriptors(
+                array_merge(
+                    $this->markDescriptors($context->getRead(), RequestDescriptor::RDS_READ),
+                    $this->markDescriptors($context->getWrite(), RequestDescriptor::RDS_WRITE),
+                    $this->markDescriptors($context->getOob(), RequestDescriptor::RDS_OOB)
+                )
             );
         } catch (TimeoutException $e) {
             return [];
         }
+    }
+
+    /**
+     * Return unique descriptors from given array
+     *
+     * @param RequestDescriptor[] $descriptors List of descriptors
+     *
+     * @return RequestDescriptor[]
+     */
+    private function getUniqueDescriptors(array $descriptors)
+    {
+        $result = [];
+        foreach ($descriptors as $descriptor) {
+            $result[spl_object_hash($descriptor)] = $descriptor;
+        }
+
+        return array_values($result);
+    }
+
+    /**
+     * Mark given list of descriptors
+     *
+     * @param RequestDescriptor[] $descriptors List of descriptors
+     * @param int                 $state State to set in descriptor
+     *
+     * @return RequestDescriptor[] The given list of descriptors
+     */
+    private function markDescriptors(array $descriptors, $state)
+    {
+        foreach ($descriptors as $descriptor) {
+            $descriptor->setState($state);
+        }
+
+        return $descriptors;
     }
 
     /**

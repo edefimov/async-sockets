@@ -166,16 +166,6 @@ class GuardianStageTest extends AbstractStageTest
     }
 
     /**
-     * boolDataProvider
-     *
-     * @return array
-     */
-    public function boolDataProvider()
-    {
-        return [ [false], [true] ];
-    }
-
-    /**
      * operationDataProvider
      *
      * @return array

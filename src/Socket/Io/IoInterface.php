@@ -9,7 +9,6 @@
  */
 namespace AsyncSockets\Socket\Io;
 
-use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\FramePickerInterface;
 
@@ -22,19 +21,21 @@ interface IoInterface
      * Perform reading data from socket and fill picker object
      *
      * @param FramePickerInterface $picker Frame object to read
+     * @param Context              $context Socket context
+     * @param bool                 $isOutOfBand Flag if it is out-of-band data
      *
      * @return FrameInterface
-     * @throws NetworkSocketException
      */
-    public function read(FramePickerInterface $picker);
+    public function read(FramePickerInterface $picker, Context $context, $isOutOfBand);
 
     /**
      * Write data to this socket
      *
-     * @param string $data Data to send
+     * @param string  $data Data to send
+     * @param Context $context Socket context
+     * @param bool    $isOutOfBand Flag if it is out-of-band data
      *
      * @return int Number of written bytes
-     * @throws NetworkSocketException
      */
-    public function write($data);
+    public function write($data, Context $context, $isOutOfBand);
 }

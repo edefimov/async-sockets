@@ -59,14 +59,12 @@ class AsyncSelector
         $attempts = $this->calculateAttemptsCount($seconds, $usec);
 
         do {
-            $this->doStreamSelect($seconds, $usec, $read, $write);
+            $this->doStreamSelect($seconds, $usec, $read, $write, $oob);
 
-            $readyRead  = $this->popSocketsByResources((array) $read, OperationInterface::OPERATION_READ);
-            $readyWrite = $this->popSocketsByResources((array) $write, OperationInterface::OPERATION_WRITE);
-
-            if ($readyRead || $readyWrite) {
+            $context = $this->extractContext((array) $read, (array) $write, (array) $oob);
+            if ($context) {
                 $this->streamResources = [];
-                return new SelectContext($readyRead, $readyWrite);
+                return $context;
             }
 
             $attempts -= 1;
@@ -181,10 +179,11 @@ class AsyncSelector
      *
      * @param resource[] $resources Stream resources
      * @param string     $operation One of OperationInterface::OPERATION_* consts
+     * @param bool       $isOutOfBand Is it OOB operation
      *
      * @return StreamResourceInterface[]
      */
-    private function popSocketsByResources(array $resources, $operation)
+    private function popSocketsByResources(array $resources, $operation, $isOutOfBand)
     {
         if (!$resources || !isset($this->streamResources[$operation])) {
             return [];
@@ -195,10 +194,9 @@ class AsyncSelector
             /** @var StreamResourceInterface $socket */
             $socketResource = $socket->getStreamResource();
             $isReadySocket  = in_array($socketResource, $resources, true) &&
-                                 $this->isActuallyReadyForIo($socketResource, $operation);
+                                 $this->isActuallyReadyForIo($socketResource, $operation, $isOutOfBand);
 
             if ($isReadySocket) {
-                $this->removeSocketOperation($socket, $operation);
                 $result[] = $socket;
             }
         }
@@ -207,23 +205,70 @@ class AsyncSelector
     }
 
     /**
+     * Extract context from given lists of resources
+     *
+     * @param resource[] $read Read-ready resources
+     * @param resource[] $write Write-ready resources
+     * @param resource[] $oob Oob-ready resources
+     *
+     * @return SelectContext|null
+     */
+    private function extractContext(array $read, array $write, array $oob)
+    {
+        $readyRead  = $this->popSocketsByResources($read, OperationInterface::OPERATION_READ, false);
+        $readyWrite = $this->popSocketsByResources($write, OperationInterface::OPERATION_WRITE, false);
+        $readyOob   = array_merge(
+            $this->popSocketsByResources($oob, OperationInterface::OPERATION_READ, true),
+            $this->popSocketsByResources($oob, OperationInterface::OPERATION_WRITE, true)
+        );
+
+        if ($readyRead || $readyWrite || $readyOob) {
+            return new SelectContext($readyRead, $readyWrite, $readyOob);
+        }
+
+        return null;
+    }
+
+    /**
      * Checks whether given socket can process I/O operation after stream_select return
      *
      * @param resource $stream Socket resource
      * @param string   $operation One of OperationInterface::OPERATION_* consts
+     * @param bool     $isOutOfBand Is it OOB operation
      *
      * @return bool
      */
-    private function isActuallyReadyForIo($stream, $operation)
+    private function isActuallyReadyForIo($stream, $operation, $isOutOfBand)
     {
-        return $this->isSocketServer($stream) || (
-            $operation === OperationInterface::OPERATION_READ &&
+        /** map[isServer][operation][isOutOfBand] = result */
+        $map = [
+            0 => [
+                // https://bugs.php.net/bug.php?id=65137
+                OperationInterface::OPERATION_READ => [
+                    0 => stream_socket_recvfrom($stream, 1, STREAM_PEEK) !== false,
+                    1 => stream_socket_recvfrom($stream, 1, STREAM_PEEK | STREAM_OOB) !== false
+                ],
+                OperationInterface::OPERATION_WRITE => [
+                    0 => true,
+                    1 => true
+                ]
+            ],
+            1 => [
+                OperationInterface::OPERATION_READ => [
+                    0 => true,
+                    1 => true
+                ],
+                OperationInterface::OPERATION_WRITE => [
+                    0 => true,
+                    1 => true
+                ]
+            ]
+        ];
 
-            // https://bugs.php.net/bug.php?id=65137
-            stream_socket_recvfrom($stream, 1, STREAM_PEEK) !== false
-        ) || (
-            $operation === OperationInterface::OPERATION_WRITE
-        );
+        $serverIdx = (int) (bool) $this->isSocketServer($stream);
+        $oobIdx    = (int) (bool) $isOutOfBand;
+
+        return $map[$serverIdx][$operation][$oobIdx];
     }
 
     /**
@@ -246,25 +291,30 @@ class AsyncSelector
     /**
      * Make stream_select call
      *
-     * @param int $seconds Amount of seconds to wait
-     * @param int $usec Amount of microseconds to add to $seconds
-     * @param resource[] $read List of sockets to check for read. After function return it will be filled with
+     * @param int        $seconds Amount of seconds to wait
+     * @param int        $usec Amount of microseconds to add to $seconds
+     * @param resource[] &$read List of sockets to check for read. After function return it will be filled with
      *      sockets, which are ready to read
-     * @param resource[] $write List of sockets to check for write. After function return it will be filled with
+     * @param resource[] &$write List of sockets to check for write. After function return it will be filled with
      *      sockets, which are ready to write
+     * @param resource[] &$oob After call it will be filled with sockets having OOB data, input value is ignored
      *
      * @return int Amount of sockets ready for I/O
-     * @throws SocketException
      */
-    private function doStreamSelect($seconds, $usec = null, array &$read = null, array &$write = null)
-    {
-        $except = null;
-        $result = stream_select($read, $write, $except, $seconds, $usec);
+    private function doStreamSelect(
+        $seconds,
+        $usec = null,
+        array &$read = null,
+        array &$write = null,
+        array &$oob = null
+    ) {
+        $oob    = array_merge((array) $read, (array) $write);
+        $result = stream_select($read, $write, $oob, $seconds, $usec);
         if ($result === false) {
             throw new SocketException('Failed to select sockets');
         }
 
-        $result = count($read) + count($write);
+        $result = count($read) + count($write) + count($oob);
         if ($result === 0) {
             throw new TimeoutException('Select operation was interrupted during timeout');
         }

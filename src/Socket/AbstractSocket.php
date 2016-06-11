@@ -12,6 +12,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Socket\Io\Context;
 use AsyncSockets\Socket\Io\DisconnectedIo;
 use AsyncSockets\Socket\Io\IoInterface;
 
@@ -67,11 +68,19 @@ abstract class AbstractSocket implements SocketInterface
     private $remoteAddress;
 
     /**
+     * Context for this socket
+     *
+     * @var Context
+     */
+    private $context;
+
+    /**
      * AbstractSocket constructor.
      */
     public function __construct()
     {
         $this->setDisconnectedState();
+        $this->context = new Context();
     }
 
     /**
@@ -117,6 +126,8 @@ abstract class AbstractSocket implements SocketInterface
                 $this->resolveSocketType(),
                 $address
             );
+
+            $this->context->reset();
         }
 
         return $result;
@@ -135,10 +146,10 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $picker)
+    public function read(FramePickerInterface $picker, $isOutOfBand = false)
     {
         try {
-            return $this->ioInterface->read($picker);
+            return $this->ioInterface->read($picker, $this->context, $isOutOfBand);
         } catch (ConnectionException $e) {
             $this->setDisconnectedState();
             throw $e;
@@ -146,10 +157,10 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /** {@inheritdoc} */
-    public function write($data)
+    public function write($data, $isOutOfBand = false)
     {
         try {
-            return $this->ioInterface->write($data);
+            return $this->ioInterface->write($data, $this->context, $isOutOfBand);
         } catch (ConnectionException $e) {
             $this->setDisconnectedState();
             throw $e;

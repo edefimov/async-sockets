@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\SslHandshakeIoHandler;
 use AsyncSockets\Operation\SslHandshakeOperation;
 use Tests\Application\Mock\PhpFunctionMocker;
@@ -17,8 +18,16 @@ use Tests\Application\Mock\PhpFunctionMocker;
 /**
  * Class SslHandshakeIoHandlerTest
  */
-class SslHandshakeIoHandlerTest extends AbstractIoHandlerTest
+class SslHandshakeIoHandlerTest extends AbstractOobHandlerTest
 {
+    /**
+     * @inheritDoc
+     */
+    protected function createOperation()
+    {
+        return new SslHandshakeOperation();
+    }
+
     /**
      * testSupportsMethod
      *
@@ -61,7 +70,11 @@ class SslHandshakeIoHandlerTest extends AbstractIoHandlerTest
             ->willReturn(false);
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_enable_crypto')->setCallable([$mock, 'count']);
 
-        $this->handler->handle($operation, $this->socket, $this->executor, $this->mockEventHandler);
+        $this->handler->handle(
+            $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
+            $this->executor,
+            $this->mockEventHandler
+        );
         self::fail('Exception wasn\'t thrown');
     }
 
@@ -80,12 +93,16 @@ class SslHandshakeIoHandlerTest extends AbstractIoHandlerTest
         /** @var SslHandshakeOperation|\PHPUnit_Framework_MockObject_MockObject $operation */
         $operation = $this->getMockBuilder('AsyncSockets\Operation\SslHandshakeOperation')
                           ->disableOriginalConstructor()
-                          ->getMock();
+                          ->getMockForAbstractClass();
         $mock->expects(self::once())->method('count')
             ->willReturn(0);
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_enable_crypto')->setCallable([$mock, 'count']);
 
-        $result = $this->handler->handle($operation, $this->socket, $this->executor, $this->mockEventHandler);
+        $result = $this->handler->handle(
+            $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
+            $this->executor,
+            $this->mockEventHandler
+        );
         self::assertSame($operation, $result, 'Incorrect operation returned');
     }
 
@@ -114,7 +131,11 @@ class SslHandshakeIoHandlerTest extends AbstractIoHandlerTest
             ->willReturn(true);
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_enable_crypto')->setCallable([$mock, 'count']);
 
-        $result = $this->handler->handle($operation, $this->socket, $this->executor, $this->mockEventHandler);
+        $result = $this->handler->handle(
+            $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
+            $this->executor,
+            $this->mockEventHandler
+        );
         self::assertSame($nextOperation, $result, 'Incorrect operation returned');
     }
 

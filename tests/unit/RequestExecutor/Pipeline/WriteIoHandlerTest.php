@@ -16,14 +16,23 @@ use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Operation\InProgressWriteOperation;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
 use AsyncSockets\Operation\WriteOperation;
 
 /**
  * Class WriteIoHandlerTest
  */
-class WriteIoHandlerTest extends AbstractIoHandlerTest
+class WriteIoHandlerTest extends AbstractOobHandlerTest
 {
+    /**
+     * @inheritDoc
+     */
+    protected function createOperation()
+    {
+        return new WriteOperation();
+    }
+
     /**
      * testWriteOperationIsSupported
      *
@@ -68,8 +77,11 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
                           });
 
         $result = $this->handler->handle(
-            new WriteOperation($testData),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new WriteOperation($testData),
+                $this->socket,
+                RequestDescriptor::RDS_WRITE
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -93,8 +105,11 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
                                ->willThrowException($exception);
 
         $this->handler->handle(
-            new WriteOperation('some data'),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new WriteOperation('some data'),
+                $this->socket,
+                RequestDescriptor::RDS_WRITE
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -115,8 +130,11 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
         $this->socket->expects(self::any())->method('write')->willThrowException($exception);
 
         $this->handler->handle(
-            new WriteOperation('some data'),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new WriteOperation('some data'),
+                $this->socket,
+                RequestDescriptor::RDS_WRITE
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -135,8 +153,11 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
         $this->socket->expects(self::never())->method('write');
 
         $result = $this->handler->handle(
-            new WriteOperation(),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new WriteOperation(),
+                $this->socket,
+                RequestDescriptor::RDS_WRITE
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -162,8 +183,11 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
                           });
 
         $result = $this->handler->handle(
-            new WriteOperation(''),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new WriteOperation(''),
+                $this->socket,
+                RequestDescriptor::RDS_WRITE
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -186,8 +210,11 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
         $this->mockEventHandler->expects(self::never())->method('invokeEvent');
 
         $result = $this->handler->handle(
-            $operation,
-            $this->socket,
+            $this->getMockedDescriptor(
+                $operation,
+                $this->socket,
+                RequestDescriptor::RDS_WRITE
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -219,8 +246,7 @@ class WriteIoHandlerTest extends AbstractIoHandlerTest
                           });
 
         $result = $this->handler->handle(
-            new WriteOperation($testData),
-            $this->socket,
+            $this->getMockedDescriptor(new WriteOperation($testData), $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
             $this->mockEventHandler
         );

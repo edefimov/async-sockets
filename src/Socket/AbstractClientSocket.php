@@ -23,9 +23,9 @@ abstract class AbstractClientSocket extends AbstractSocket
     {
         switch ($type) {
             case self::SOCKET_TYPE_UNIX:
-                return new StreamedClientIo($this);
+                return new StreamedClientIo($this, 0);
             case self::SOCKET_TYPE_TCP:
-                return new StreamedClientIo($this);
+                return new StreamedClientIo($this, 1);
             case self::SOCKET_TYPE_UDG:
                 return new DatagramClientIo($this, null);
             case self::SOCKET_TYPE_UDP:

@@ -34,6 +34,7 @@ class WriteOperationTest extends \PHPUnit_Framework_TestCase
     {
         self::assertFalse($this->operation->hasData(), 'Incorrect data initial state');
         self::assertNull($this->operation->getData(), 'Incorrect data initial state');
+        self::assertFalse($this->operation->isOutOfBand(), 'Incorrect out-of-band initial state');
         self::assertEquals(
             OperationInterface::OPERATION_WRITE,
             $this->operation->getType(),
@@ -51,7 +52,29 @@ class WriteOperationTest extends \PHPUnit_Framework_TestCase
         $data = md5(microtime());
         $this->operation->setData($data);
         self::assertEquals($data, $this->operation->getData(), 'Data are not set');
-        self::assertTrue($this->operation->hasData(), 'Event must have data here');
+        self::assertTrue($this->operation->hasData(), 'Operation must have data here');
+
+        $this->operation->setOutOfBand(true);
+        self::assertTrue($this->operation->isOutOfBand(), 'The out-of-band flag is not changed');
+        $this->operation->setOutOfBand(false);
+        self::assertFalse($this->operation->isOutOfBand(), 'The out-of-band flag is not changed');
+    }
+
+    /**
+     * testConstructorParameters
+     *
+     * @param string $data Data for operation
+     * @param bool   $isOutOfBand Out of band flag
+     *
+     * @return void
+     * @dataProvider constructorParametersDataProvider
+     */
+    public function testConstructorParameters($data, $isOutOfBand)
+    {
+        $operation = new WriteOperation($data, $isOutOfBand);
+        self::assertSame($data, $operation->getData(), 'Data are not set');
+        self::assertTrue($operation->hasData(), 'Operation must have data here');
+        self::assertSame($isOutOfBand, $operation->isOutOfBand(), 'Incorrect out of band flag');
     }
 
     /**
@@ -67,6 +90,19 @@ class WriteOperationTest extends \PHPUnit_Framework_TestCase
         $this->operation->clearData();
         self::assertFalse($this->operation->hasData(), 'Write buffer was not cleared');
         self::assertNull($this->operation->getData(), 'Strange data returned');
+    }
+
+    /**
+     * constructorParametersDataProvider
+     *
+     * @return array
+     */
+    public function constructorParametersDataProvider()
+    {
+        return [
+            [sha1(microtime(true)), true],
+            [sha1(microtime(true) + mt_rand(0, PHP_INT_MAX)), false],
+        ];
     }
 
     /** {@inheritdoc} */

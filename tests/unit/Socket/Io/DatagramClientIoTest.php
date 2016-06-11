@@ -65,7 +65,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
             }
         );
 
-        $frame = $this->object->read(new RawFramePicker());
+        $frame = $this->object->read(new RawFramePicker(), $this->context, false);
         self::assertEquals($expectedData, (string) $frame, 'Incorrect frame');
         self::assertSame($remoteAddress, $frame->getRemoteAddress(), 'Incorrect remote address');
     }
@@ -98,7 +98,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
             }
         );
 
-        $frame = $this->object->read(new RawFramePicker());
+        $frame = $this->object->read(new RawFramePicker(), $this->context, false);
         self::assertEquals($expectedData, (string) $frame, 'Incorrect frame');
         self::assertSame($remoteAddress, $frame->getRemoteAddress(), 'Incorrect remote address');
     }
@@ -140,7 +140,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
             }
         );
 
-        $this->object->read($picker);
+        $this->object->read($picker, $this->context, false);
     }
 
     /**
@@ -168,7 +168,22 @@ class DatagramClientIoTest extends AbstractClientIoTest
             }
         );
 
-        $this->object->write($data);
+        $this->object->write($data, $this->context, false);
+    }
+
+    /**
+     * testExceptionIsThrownWhenWritingOobData
+     *
+     * @param string|null $remoteAddress Remote address for I/O object
+     *
+     * @return void
+     * @dataProvider remoteAddressDataProvider
+     * @expectedException \AsyncSockets\Exception\UnsupportedOperationException
+     */
+    public function testExceptionIsThrownWhenWritingOobData($remoteAddress)
+    {
+        $this->setUpIoObject($remoteAddress);
+        $this->object->write('something', $this->context, true);
     }
 
     /**

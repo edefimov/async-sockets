@@ -10,18 +10,18 @@
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\WriteEvent;
-use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\Operation\InProgressWriteOperation;
-use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\Operation\OperationInterface;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Operation\WriteOperation;
+use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class WriteIoHandler
  */
-class WriteIoHandler implements IoHandlerInterface
+class WriteIoHandler extends AbstractOobHandler
 {
     /** {@inheritdoc} */
     public function supports(OperationInterface $operation)
@@ -30,12 +30,14 @@ class WriteIoHandler implements IoHandlerInterface
     }
 
     /** {@inheritdoc} */
-    public function handle(
-        OperationInterface $operation,
-        SocketInterface $socket,
+    protected function handleOperation(
+        RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler
     ) {
+        $operation = $descriptor->getOperation();
+        $socket    = $descriptor->getSocket();
+
         /** @var WriteOperation $operation */
         $fireEvent = !($operation instanceof InProgressWriteOperation);
 
@@ -75,7 +77,7 @@ class WriteIoHandler implements IoHandlerInterface
         if ($operation->hasData()) {
             $data    = $operation->getData();
             $length  = strlen($data);
-            $written = $socket->write($data);
+            $written = $socket->write($data, $operation->isOutOfBand());
             if ($length !== $written) {
                 $extractNextOperation = false;
 

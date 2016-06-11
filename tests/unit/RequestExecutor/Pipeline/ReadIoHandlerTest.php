@@ -19,16 +19,17 @@ use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\FrameInterface;
 use AsyncSockets\Frame\PartialFrame;
-use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\Operation\OperationInterface;
-use AsyncSockets\RequestExecutor\Pipeline\ReadIoHandler;
 use AsyncSockets\Operation\ReadOperation;
+use AsyncSockets\RequestExecutor\IoHandlerInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
+use AsyncSockets\RequestExecutor\Pipeline\ReadIoHandler;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class ReadIoHandlerTest
  */
-class ReadIoHandlerTest extends AbstractIoHandlerTest
+class ReadIoHandlerTest extends AbstractOobHandlerTest
 {
     /**
      * testReadOperationIsSupported
@@ -72,8 +73,11 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
                           );
 
         $result = $this->handler->handle(
-            new ReadOperation(),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new ReadOperation(),
+                $this->socket,
+                RequestDescriptor::RDS_READ
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -106,8 +110,11 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
                         ->getMock();
 
         $result = $this->handler->handle(
-            $operation,
-            $this->socket,
+            $this->getMockedDescriptor(
+                $operation,
+                $this->socket,
+                RequestDescriptor::RDS_READ
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -134,8 +141,11 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
                           ->willThrowException($exception);
 
         $this->handler->handle(
-            new ReadOperation(),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new ReadOperation(),
+                $this->socket,
+                RequestDescriptor::RDS_READ
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -158,8 +168,11 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
         $this->mockEventHandler->expects(self::never())->method('invokeEvent');
 
         $this->handler->handle(
-            new ReadOperation(),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new ReadOperation(),
+                $this->socket,
+                RequestDescriptor::RDS_READ
+            ),
             $this->executor,
             $this->mockEventHandler
         );
@@ -180,8 +193,11 @@ class ReadIoHandlerTest extends AbstractIoHandlerTest
         $this->mockEventHandler->expects(self::never())->method('invokeEvent');
 
         $result = $this->handler->handle(
-            new ReadOperation(),
-            $this->socket,
+            $this->getMockedDescriptor(
+                new ReadOperation(),
+                $this->socket,
+                RequestDescriptor::RDS_READ
+            ),
             $this->executor,
             $this->mockEventHandler
         );

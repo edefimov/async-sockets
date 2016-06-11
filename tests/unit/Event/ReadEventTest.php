@@ -67,6 +67,33 @@ class ReadEventTest extends IoEventTest
     }
 
     /**
+     * testOobDataWrite
+     *
+     * @param bool $isOutOfBand Flag is data are out of band
+     *
+     * @return void
+     * @dataProvider boolDataProvider
+     */
+    public function testOobDataWrite($isOutOfBand)
+    {
+        $event = new ReadEvent(
+            $this->executor,
+            $this->socket,
+            $this->context,
+            $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface'),
+            $isOutOfBand
+        );
+        $events = [
+            0 => EventType::READ,
+            1 => EventType::OOB
+        ];
+
+        $idx = (int) (bool) $isOutOfBand;
+        self::assertArrayHasKey($idx, $events, 'Incorrect event type');
+        self::assertSame($events[$idx], $event->getType(), 'Incorrect event type');
+    }
+
+    /**
      * socketResponseDataProvider
      *
      * @return array

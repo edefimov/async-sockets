@@ -10,6 +10,7 @@
 namespace AsyncSockets\Socket;
 
 use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Socket\Io\Context;
 use AsyncSockets\Socket\Io\DatagramMemorizedIo;
 use AsyncSockets\Socket\Io\IoInterface;
 
@@ -33,6 +34,13 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     private $ioInterface;
 
     /**
+     * Socket context
+     *
+     * @var Context
+     */
+    private $context;
+
+    /**
      * UdpClientSocket constructor.
      *
      * @param SocketInterface $origin Original server socket
@@ -43,6 +51,7 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     {
         $this->origin      = $origin;
         $this->ioInterface = new DatagramMemorizedIo($this, $remoteAddress, $data);
+        $this->context     = new Context();
     }
 
     /** {@inheritdoc} */
@@ -58,15 +67,15 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     }
 
     /** {@inheritdoc} */
-    public function read(FramePickerInterface $picker)
+    public function read(FramePickerInterface $picker, $isOutOfBand = false)
     {
-        return $this->ioInterface->read($picker);
+        return $this->ioInterface->read($picker, $this->context, $isOutOfBand);
     }
 
     /** {@inheritdoc} */
-    public function write($data)
+    public function write($data, $isOutOfBand = false)
     {
-        return $this->ioInterface->write($data);
+        return $this->ioInterface->write($data, $this->context, $isOutOfBand);
     }
 
     /** {@inheritdoc} */

@@ -31,13 +31,16 @@ abstract class AbstractServerIoTest extends AbstractIoTest
     /**
      * testCantWriteToServerSocket
      *
+     * @param bool $isOutOfBand Flag if data are out of band
+     *
      * @return void
+     * @dataProvider boolDataProvider
      * @expectedException \AsyncSockets\Exception\NetworkSocketException
      * @expectedExceptionMessage Can not write data to tcp/udp server socket.
      */
-    public function testCantWriteToServerSocket()
+    public function testCantWriteToServerSocket($isOutOfBand)
     {
-        $this->object->write('data');
+        $this->object->write('data', $this->context, $isOutOfBand);
     }
 
     /**
@@ -54,7 +57,7 @@ abstract class AbstractServerIoTest extends AbstractIoTest
 
         $picker = $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface');
         /** @var FramePickerInterface $picker */
-        $frame = $this->object->read($picker);
+        $frame = $this->object->read($picker, $this->context, false);
 
         /** @var AcceptedFrame $frame */
         self::assertInstanceOf('AsyncSockets\Frame\AcceptedFrame', $frame, 'Invalid frame created');

@@ -81,7 +81,7 @@ class SelectStageTest extends AbstractStageTest
 
         $this->selector->expects(self::once())
             ->method('select')
-            ->willReturn(new SelectContext([], []));
+            ->willReturn(new SelectContext([], [], []));
 
         $this->stage->processStage([$first, $second]);
     }
@@ -147,7 +147,7 @@ class SelectStageTest extends AbstractStageTest
 
         $this->selector->expects(self::any())
                        ->method('select')
-                       ->willReturn(new SelectContext([], []));
+                       ->willReturn(new SelectContext([], [], []));
 
         $first->expects(self::once())->method('setMetadata')->with(RequestExecutorInterface::META_LAST_IO_START_TIME);
 
@@ -188,7 +188,7 @@ class SelectStageTest extends AbstractStageTest
         $this->selector->expects(self::once())
             ->method('select')
             ->with($expectedSeconds, $expectedMicroseconds)
-            ->willReturn(new SelectContext([], []));
+            ->willReturn(new SelectContext([], [], []));
 
         $this->stage->processStage($requests);
     }
@@ -201,12 +201,36 @@ class SelectStageTest extends AbstractStageTest
     public function socketTypeDataProvider()
     {
         return [
-            [$this->getMock('AsyncSockets\Socket\SocketInterface', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\AbstractSocket', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\AcceptedSocket', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\ClientSocket', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\ServerSocket', [ ], [ ], '', false)],
-            [$this->getMock('AsyncSockets\Socket\UdpClientSocket', [ ], [ ], '', false)],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                    ->disableOriginalConstructor()
+                    ->getMockForAbstractClass()
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\AbstractSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\AcceptedSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\ClientSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\ServerSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
+            [
+                $this->getMockBuilder('AsyncSockets\Socket\UdpClientSocket')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass(),
+            ],
         ];
     }
 
