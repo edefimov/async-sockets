@@ -50,6 +50,11 @@ interface RequestExecutorInterface
     const META_BYTES_SENT = 'bytesSent';
 
     /**
+     * Amount of bytes received by this socket. Read-only value
+     */
+    const META_BYTES_RECEIVED = 'bytesReceived';
+
+    /**
      * Any user-defined value, not used internally at all.
      */
     const META_USER_CONTEXT = 'userContext';

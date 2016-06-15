@@ -189,5 +189,20 @@ Read-only:
 Summary:
     Amount of bytes sent via this socket.
 
+META_BYTES_RECEIVED
+===================
+
+Data type:
+    * int
+
+Read-only:
+    yes
+
+Summary:
+    Amount of bytes received via this socket.
+
+.. note::
+   This value counts data handled by stream wrapper, i.e. decompressed and decrypted.
+
 .. _stream_context_create: http://php.net/manual/en/function.stream-context-create.php
 .. _stream_context_get_default: http://php.net/manual/en/function.stream-context-get-default.php

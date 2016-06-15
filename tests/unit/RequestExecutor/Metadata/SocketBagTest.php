@@ -78,24 +78,29 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
         );
         self::assertCount(1, $this->bag, 'Count haven\'t changed');
 
+        $initialState = [
+            RequestExecutorInterface::META_CONNECTION_TIMEOUT => [
+                'value' => $this->connectTimeout,
+                'message' => 'Incorrect initial connect timeout'
+            ],
+            RequestExecutorInterface::META_IO_TIMEOUT => [
+                'value' => $this->ioTimeout,
+                'message' => 'Incorrect initial I/O timeout'
+            ],
+            RequestExecutorInterface::META_BYTES_SENT => [
+                'value' => 0,
+                'message' => 'Incorrect bytes sent counter initial value'
+            ],
+            RequestExecutorInterface::META_BYTES_RECEIVED => [
+                'value' => 0,
+                'message' => 'Incorrect bytes received counter initial value'
+            ],
+        ];
+
         $meta = $this->bag->getSocketMetaData($this->socket);
-        self::assertSame(
-            $this->connectTimeout,
-            $meta[ RequestExecutorInterface::META_CONNECTION_TIMEOUT ],
-            'Incorrect initial connect timeout'
-        );
-
-        self::assertSame(
-            $this->ioTimeout,
-            $meta[ RequestExecutorInterface::META_IO_TIMEOUT ],
-            'Incorrect initial I/O timeout'
-        );
-
-        self::assertSame(
-            0,
-            $meta[ RequestExecutorInterface::META_BYTES_SENT ],
-            'Incorrect bytes sent counter initial value'
-        );
+        foreach ($initialState as $key => $state) {
+            self::assertSame($state['value'], $meta[$key], $state['message']);
+        }
     }
 
     /**
@@ -296,6 +301,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
                 RequestExecutorInterface::META_CONNECTION_START_TIME  => 1,
                 RequestExecutorInterface::META_LAST_IO_START_TIME     => 1,
                 RequestExecutorInterface::META_BYTES_SENT             => 1,
+                RequestExecutorInterface::META_BYTES_RECEIVED         => 1,
             ];
 
             $metadata = [ ];

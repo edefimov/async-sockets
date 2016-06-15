@@ -18,12 +18,14 @@ use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\ReadIoHandler;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -57,7 +59,12 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
      */
     public function testReadInSingleRequest(FrameInterface $frame, $eventType, $mustBeReturned)
     {
-        $this->socket->expects(self::any())->method('read')->willReturn($frame);
+        $this->socket->expects(self::any())->method('read')->willReturnCallback(
+            function (FramePickerInterface $picker) use ($frame) {
+                $picker->pickUpData((string) $frame, '127.0.0.1');
+                return $frame;
+            }
+        );
         $this->socket->expects(self::never())->method('write');
 
         $this->mockEventHandler->expects(self::once())
@@ -72,12 +79,22 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                               }
                           );
 
+        $descriptor = $this->getMockedDescriptor(
+            new ReadOperation(),
+            $this->socket,
+            RequestDescriptor::RDS_READ
+        );
+        $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED] = mt_rand(1000, 10000);
+        $descriptor->expects(self::once())
+                   ->method('setMetadata')
+                   ->with(
+                       RequestExecutorInterface::META_BYTES_RECEIVED,
+                       $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED] + strlen((string) $frame)
+                   );
+
+
         $result = $this->handler->handle(
-            $this->getMockedDescriptor(
-                new ReadOperation(),
-                $this->socket,
-                RequestDescriptor::RDS_READ
-            ),
+            $descriptor,
             $this->executor,
             $this->mockEventHandler
         );
