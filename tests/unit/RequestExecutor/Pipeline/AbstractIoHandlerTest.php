@@ -59,7 +59,7 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
      *
      * @var array
      */
-    private $metadata;
+    protected $metadata;
 
     /**
      * Create test object
@@ -96,7 +96,12 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
                                 ->setMethods(['socketBag'])
                                 ->getMockForAbstractClass();
 
-        $bag->expects(self::any())->method('getSocketMetaData')->willReturn($this->metadata);
+        $bag->expects(self::any())
+            ->method('getSocketMetaData')
+            ->willReturnCallback(function () {
+                return $this->metadata;
+            });
+
         $this->executor->expects(self::any())->method('socketBag')->willReturn($bag);
 
         $this->mockEventHandler = $this->getMockBuilder('AsyncSockets\RequestExecutor\EventHandlerInterface')
@@ -122,14 +127,17 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
     protected function getMockedDescriptor(OperationInterface $operation, SocketInterface $socket, $state)
     {
         $mock = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor')
-                    ->setMethods([ 'getOperation', 'getSocket', 'getMetadata' ])
+                    ->setMethods([ 'getOperation', 'getSocket', 'getMetadata', 'setMetadata' ])
                     ->disableOriginalConstructor()
                     ->getMockForAbstractClass();
 
         /** @var RequestDescriptor|\PHPUnit_Framework_MockObject_MockObject $mock */
         $mock->expects(self::any())->method('getOperation')->willReturn($operation);
         $mock->expects(self::any())->method('getSocket')->willReturn($socket);
-        $mock->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
+        $mock->expects(self::any())->method('getMetadata')->willReturnCallback(function () {
+            return $this->metadata;
+        });
+
         $mock->setState($state);
 
         return $mock;

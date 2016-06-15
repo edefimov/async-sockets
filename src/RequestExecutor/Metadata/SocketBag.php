@@ -95,6 +95,7 @@ class SocketBag implements SocketBagInterface
                 RequestExecutorInterface::META_CONNECTION_START_TIME  => null,
                 RequestExecutorInterface::META_CONNECTION_FINISH_TIME => null,
                 RequestExecutorInterface::META_LAST_IO_START_TIME     => null,
+                RequestExecutorInterface::META_BYTES_SENT             => 0,
                 RequestExecutorInterface::META_REQUEST_COMPLETE       => false,
             ]
         );

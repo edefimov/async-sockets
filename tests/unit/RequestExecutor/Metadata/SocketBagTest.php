@@ -90,6 +90,12 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
             $meta[ RequestExecutorInterface::META_IO_TIMEOUT ],
             'Incorrect initial I/O timeout'
         );
+
+        self::assertSame(
+            0,
+            $meta[ RequestExecutorInterface::META_BYTES_SENT ],
+            'Incorrect bytes sent counter initial value'
+        );
     }
 
     /**
@@ -289,6 +295,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
                 RequestExecutorInterface::META_CONNECTION_FINISH_TIME => 1,
                 RequestExecutorInterface::META_CONNECTION_START_TIME  => 1,
                 RequestExecutorInterface::META_LAST_IO_START_TIME     => 1,
+                RequestExecutorInterface::META_BYTES_SENT             => 1,
             ];
 
             $metadata = [ ];

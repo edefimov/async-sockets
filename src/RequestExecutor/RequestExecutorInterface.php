@@ -45,6 +45,11 @@ interface RequestExecutorInterface
     const META_LAST_IO_START_TIME = 'lastIoStartTime';
 
     /**
+     * Amount of bytes sent by this socket. Read-only value
+     */
+    const META_BYTES_SENT = 'bytesSent';
+
+    /**
      * Any user-defined value, not used internally at all.
      */
     const META_USER_CONTEXT = 'userContext';

@@ -55,7 +55,14 @@ class WriteIoHandler extends AbstractOobHandler
             $nextOperation = $operation;
         }
 
-        return $this->writeDataToSocket($operation, $socket, $nextOperation);
+        $result = $this->writeDataToSocket($operation, $socket, $nextOperation, $bytesWritten);
+        $meta   = $descriptor->getMetadata();
+        $descriptor->setMetadata(
+            RequestExecutorInterface::META_BYTES_SENT,
+            $meta[RequestExecutorInterface::META_BYTES_SENT] + $bytesWritten
+        );
+
+        return $result;
     }
 
     /**
@@ -64,16 +71,20 @@ class WriteIoHandler extends AbstractOobHandler
      * @param WriteOperation     $operation Current write operation instance
      * @param SocketInterface    $socket Socket object
      * @param OperationInterface $nextOperation Desirable next operation
+     * @param int                $bytesWritten Amount of written bytes
      *
      * @return OperationInterface Actual next operation
      */
     private function writeDataToSocket(
         WriteOperation $operation,
         SocketInterface $socket,
-        OperationInterface $nextOperation = null
+        OperationInterface $nextOperation = null,
+        &$bytesWritten = null
     ) {
         $result               = $nextOperation;
         $extractNextOperation = true;
+        $bytesWritten         = 0;
+
         if ($operation->hasData()) {
             $data    = $operation->getData();
             $length  = strlen($data);
@@ -88,6 +99,8 @@ class WriteIoHandler extends AbstractOobHandler
 
                 $result = $operation;
             }
+
+            $bytesWritten = $written;
         }
 
         if ($extractNextOperation && ($operation instanceof InProgressWriteOperation)) {
