@@ -9,7 +9,6 @@
  */
 namespace AsyncSockets\Socket\Io;
 
-use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -45,25 +44,19 @@ abstract class AbstractIo implements IoInterface
     }
 
     /**
-     * Throw network operation exception
+     * Return last php error message as string
      *
-     * @param bool   $condition Condition, which must evaluates to true for throwing exception
-     * @param string $message Exception message
-     * @param bool   $includeLastError Flag whether to include php error message
-     *
-     * @return void
-     * @throws NetworkSocketException
+     * @return string
      */
-    protected function throwNetworkSocketExceptionIf($condition, $message, $includeLastError = false)
+    protected function getLastPhpErrorMessage()
     {
-        if ($condition) {
-            $lastError = $includeLastError ? error_get_last() : null;
-            if ($lastError) {
-                $phpMessage = explode(':', $lastError['message'], 2);
-                $phpMessage = trim(trim(end($phpMessage)), '.') . '.';
-                $message   .= ' ' . $phpMessage;
-            }
-            throw new NetworkSocketException($this->socket, $message);
+        $lastError = error_get_last();
+        if ($lastError) {
+            $phpMessage = explode(':', $lastError['message'], 2);
+            $phpMessage = trim(trim(end($phpMessage)), '.') . '.';
+            return $phpMessage;
         }
+
+        return '';
     }
 }

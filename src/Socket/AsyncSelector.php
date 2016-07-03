@@ -77,82 +77,6 @@ class AsyncSelector
     }
 
     /**
-     * Add socket into selector list
-     *
-     * @param StreamResourceInterface $streamResource Resource object
-     * @param string                  $operation One of OperationInterface::OPERATION_* consts
-     *
-     * @return void
-     */
-    public function addSocketOperation(StreamResourceInterface $streamResource, $operation)
-    {
-        $this->streamResources[$operation][spl_object_hash($streamResource)] = $streamResource;
-    }
-
-    /**
-     * Add array of socket with specified operation
-     *
-     * @param StreamResourceInterface[] $streamResources List of resources. Value depends on second argument.
-     *                                     If string is provided, then it must be array of StreamResourceInterface.
-     *                                     If $operation parameter is omitted then this argument must contain
-     *                                     pairs [StreamResourceInterface, operation] for each element
-     * @param string                    $operation Operation, one of OperationInterface::OPERATION_* consts
-     *
-     * @return void
-     * @throws \InvalidArgumentException
-     */
-    public function addSocketOperationArray(array $streamResources, $operation = null)
-    {
-        foreach ($streamResources as $streamResource) {
-            if ($operation !== null) {
-                $this->addSocketOperation($streamResource, $operation);
-            } else {
-                if (!is_array($streamResource) || count($streamResource) !== 2) {
-                    throw new \InvalidArgumentException(
-                        'First parameter must contain pair (SocketInterface, operation)'
-                    );
-                }
-
-                $this->addSocketOperation(reset($streamResource), end($streamResource));
-            }
-        }
-    }
-
-    /**
-     * Remove given socket from select list
-     *
-     * @param StreamResourceInterface $streamResource Stream resource object
-     * @param string                  $operation One of OperationInterface::OPERATION_* consts
-     *
-     * @return void
-     */
-    public function removeSocketOperation(StreamResourceInterface $streamResource, $operation)
-    {
-        $hash = spl_object_hash($streamResource);
-        if (isset($this->streamResources[$operation], $this->streamResources[$operation][$hash])) {
-            unset($this->streamResources[$operation][$hash]);
-            if (!$this->streamResources[$operation]) {
-                unset($this->streamResources[$operation]);
-            }
-        }
-    }
-
-    /**
-     * Remove all previously defined operations on this socket and adds socket into list of given operation
-     *
-     * @param StreamResourceInterface $streamResource Stream resource object
-     * @param string                  $operation One of OperationInterface::OPERATION_* consts
-     *
-     * @return void
-     */
-    public function changeSocketOperation(StreamResourceInterface $streamResource, $operation)
-    {
-        $this->removeAllSocketOperations($streamResource);
-
-        $this->addSocketOperation($streamResource, $operation);
-    }
-
-    /**
      * Return socket objects for operations
      *
      * @param string $operation One of OperationInterface::OPERATION_* consts
@@ -175,117 +99,22 @@ class AsyncSelector
     }
 
     /**
-     * Get socket objects by resources and remove them from work list
+     * Calculate amount of attempts for select operation
      *
-     * @param resource[] $resources Stream resources
-     * @param string     $operation One of OperationInterface::OPERATION_* consts
-     * @param bool       $isOutOfBand Is it OOB operation
+     * @param int|null $seconds Amount of seconds
+     * @param int|null $usec Amount of microseconds
      *
-     * @return StreamResourceInterface[]
+     * @return int
      */
-    private function popSocketsByResources(array $resources, $operation, $isOutOfBand)
+    private function calculateAttemptsCount($seconds, $usec)
     {
-        if (!$resources || !isset($this->streamResources[$operation])) {
-            return [];
-        }
-
-        $result = [];
-        foreach ($this->streamResources[$operation] as $socket) {
-            /** @var StreamResourceInterface $socket */
-            $socketResource = $socket->getStreamResource();
-            $isReadySocket  = in_array($socketResource, $resources, true) &&
-                                 $this->isActuallyReadyForIo($socketResource, $operation, $isOutOfBand);
-
-            if ($isReadySocket) {
-                $result[] = $socket;
-            }
+        $result = $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) :
+            self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
+        if ($result < self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT) {
+            $result = self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
         }
 
         return $result;
-    }
-
-    /**
-     * Extract context from given lists of resources
-     *
-     * @param resource[] $read Read-ready resources
-     * @param resource[] $write Write-ready resources
-     * @param resource[] $oob Oob-ready resources
-     *
-     * @return SelectContext|null
-     */
-    private function extractContext(array $read, array $write, array $oob)
-    {
-        $readyRead  = $this->popSocketsByResources($read, OperationInterface::OPERATION_READ, false);
-        $readyWrite = $this->popSocketsByResources($write, OperationInterface::OPERATION_WRITE, false);
-        $readyOob   = array_merge(
-            $this->popSocketsByResources($oob, OperationInterface::OPERATION_READ, true),
-            $this->popSocketsByResources($oob, OperationInterface::OPERATION_WRITE, true)
-        );
-
-        if ($readyRead || $readyWrite || $readyOob) {
-            return new SelectContext($readyRead, $readyWrite, $readyOob);
-        }
-
-        return null;
-    }
-
-    /**
-     * Checks whether given socket can process I/O operation after stream_select return
-     *
-     * @param resource $stream Socket resource
-     * @param string   $operation One of OperationInterface::OPERATION_* consts
-     * @param bool     $isOutOfBand Is it OOB operation
-     *
-     * @return bool
-     */
-    private function isActuallyReadyForIo($stream, $operation, $isOutOfBand)
-    {
-        /** map[isServer][operation][isOutOfBand] = result */
-        $map = [
-            0 => [
-                // https://bugs.php.net/bug.php?id=65137
-                OperationInterface::OPERATION_READ => [
-                    0 => stream_socket_recvfrom($stream, 1, STREAM_PEEK) !== false,
-                    1 => stream_socket_recvfrom($stream, 1, STREAM_PEEK | STREAM_OOB) !== false
-                ],
-                OperationInterface::OPERATION_WRITE => [
-                    0 => true,
-                    1 => true
-                ]
-            ],
-            1 => [
-                OperationInterface::OPERATION_READ => [
-                    0 => true,
-                    1 => true
-                ],
-                OperationInterface::OPERATION_WRITE => [
-                    0 => true,
-                    1 => true
-                ]
-            ]
-        ];
-
-        $serverIdx = (int) (bool) $this->isSocketServer($stream);
-        $oobIdx    = (int) (bool) $isOutOfBand;
-
-        return $map[$serverIdx][$operation][$oobIdx];
-    }
-
-    /**
-     * Remove given socket from all operations
-     *
-     * @param StreamResourceInterface $streamResource Resource object
-     *
-     * @return void
-     */
-    public function removeAllSocketOperations(StreamResourceInterface $streamResource)
-    {
-        $opList = [ OperationInterface::OPERATION_READ,
-                    OperationInterface::OPERATION_WRITE  ];
-
-        foreach ($opList as $op) {
-            $this->removeSocketOperation($streamResource, $op);
-        }
     }
 
     /**
@@ -323,22 +152,101 @@ class AsyncSelector
     }
 
     /**
-     * Calculate amount of attempts for select operation
+     * Extract context from given lists of resources
      *
-     * @param int|null $seconds Amount of seconds
-     * @param int|null $usec Amount of microseconds
+     * @param resource[] $read Read-ready resources
+     * @param resource[] $write Write-ready resources
+     * @param resource[] $oob Oob-ready resources
      *
-     * @return int
+     * @return SelectContext|null
      */
-    private function calculateAttemptsCount($seconds, $usec)
+    private function extractContext(array $read, array $write, array $oob)
     {
-        $result = $seconds !== null ? ceil(($seconds * 1E6 + $usec) / self::ATTEMPT_DELAY) :
-            self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
-        if ($result < self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT) {
-            $result = self::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT;
+        $readyRead  = $this->popSocketsByResources($read, OperationInterface::OPERATION_READ, false);
+        $readyWrite = $this->popSocketsByResources($write, OperationInterface::OPERATION_WRITE, false);
+        $readyOob   = array_merge(
+            $this->popSocketsByResources($oob, OperationInterface::OPERATION_READ, true),
+            $this->popSocketsByResources($oob, OperationInterface::OPERATION_WRITE, true)
+        );
+
+        if ($readyRead || $readyWrite || $readyOob) {
+            return new SelectContext($readyRead, $readyWrite, $readyOob);
         }
-        
+
+        return null;
+    }
+
+    /**
+     * Get socket objects by resources and remove them from work list
+     *
+     * @param resource[] $resources Stream resources
+     * @param string     $operation One of OperationInterface::OPERATION_* consts
+     * @param bool       $isOutOfBand Is it OOB operation
+     *
+     * @return StreamResourceInterface[]
+     */
+    private function popSocketsByResources(array $resources, $operation, $isOutOfBand)
+    {
+        if (!$resources || !isset($this->streamResources[$operation])) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($this->streamResources[$operation] as $socket) {
+            /** @var StreamResourceInterface $socket */
+            $socketResource = $socket->getStreamResource();
+            $isReadySocket  = in_array($socketResource, $resources, true) &&
+                                 $this->isActuallyReadyForIo($socketResource, $operation, $isOutOfBand);
+
+            if ($isReadySocket) {
+                $result[] = $socket;
+            }
+        }
+
         return $result;
+    }
+
+    /**
+     * Checks whether given socket can process I/O operation after stream_select return
+     *
+     * @param resource $stream Socket resource
+     * @param string   $operation One of OperationInterface::OPERATION_* consts
+     * @param bool     $isOutOfBand Is it OOB operation
+     *
+     * @return bool
+     */
+    private function isActuallyReadyForIo($stream, $operation, $isOutOfBand)
+    {
+        /** map[isServer][operation][isOutOfBand] = result */
+        $hasOobData = stream_socket_recvfrom($stream, 1, STREAM_PEEK | STREAM_OOB) !== false;
+        $map = [
+            0 => [
+                // https://bugs.php.net/bug.php?id=65137
+                OperationInterface::OPERATION_READ => [
+                    0 => stream_socket_recvfrom($stream, 1, STREAM_PEEK) !== false,
+                    1 => $hasOobData
+                ],
+                OperationInterface::OPERATION_WRITE => [
+                    0 => true,
+                    1 => $hasOobData
+                ]
+            ],
+            1 => [
+                OperationInterface::OPERATION_READ => [
+                    0 => true,
+                    1 => $hasOobData
+                ],
+                OperationInterface::OPERATION_WRITE => [
+                    0 => true,
+                    1 => $hasOobData
+                ]
+            ]
+        ];
+
+        $serverIdx = (int) (bool) $this->isSocketServer($stream);
+        $oobIdx    = (int) (bool) $isOutOfBand;
+
+        return $map[$serverIdx][$operation][$oobIdx];
     }
 
     /**
@@ -352,5 +260,98 @@ class AsyncSelector
     {
         return stream_socket_get_name($resource, false) &&
                !stream_socket_get_name($resource, true);
+    }
+
+    /**
+     * Add array of socket with specified operation
+     *
+     * @param StreamResourceInterface[] $streamResources List of resources. Value depends on second argument.
+     *                                     If string is provided, then it must be array of StreamResourceInterface.
+     *                                     If $operation parameter is omitted then this argument must contain
+     *                                     pairs [StreamResourceInterface, operation] for each element
+     * @param string                    $operation Operation, one of OperationInterface::OPERATION_* consts
+     *
+     * @return void
+     * @throws \InvalidArgumentException
+     */
+    public function addSocketOperationArray(array $streamResources, $operation = null)
+    {
+        foreach ($streamResources as $streamResource) {
+            if ($operation !== null) {
+                $this->addSocketOperation($streamResource, $operation);
+            } else {
+                if (!is_array($streamResource) || count($streamResource) !== 2) {
+                    throw new \InvalidArgumentException(
+                        'First parameter must contain pair (SocketInterface, operation)'
+                    );
+                }
+
+                $this->addSocketOperation(reset($streamResource), end($streamResource));
+            }
+        }
+    }
+
+    /**
+     * Add socket into selector list
+     *
+     * @param StreamResourceInterface $streamResource Resource object
+     * @param string                  $operation One of OperationInterface::OPERATION_* consts
+     *
+     * @return void
+     */
+    public function addSocketOperation(StreamResourceInterface $streamResource, $operation)
+    {
+        $this->streamResources[$operation][spl_object_hash($streamResource)] = $streamResource;
+    }
+
+    /**
+     * Remove all previously defined operations on this socket and adds socket into list of given operation
+     *
+     * @param StreamResourceInterface $streamResource Stream resource object
+     * @param string                  $operation One of OperationInterface::OPERATION_* consts
+     *
+     * @return void
+     */
+    public function changeSocketOperation(StreamResourceInterface $streamResource, $operation)
+    {
+        $this->removeAllSocketOperations($streamResource);
+
+        $this->addSocketOperation($streamResource, $operation);
+    }
+
+    /**
+     * Remove given socket from all operations
+     *
+     * @param StreamResourceInterface $streamResource Resource object
+     *
+     * @return void
+     */
+    public function removeAllSocketOperations(StreamResourceInterface $streamResource)
+    {
+        $opList = [ OperationInterface::OPERATION_READ,
+                    OperationInterface::OPERATION_WRITE  ];
+
+        foreach ($opList as $op) {
+            $this->removeSocketOperation($streamResource, $op);
+        }
+    }
+
+    /**
+     * Remove given socket from select list
+     *
+     * @param StreamResourceInterface $streamResource Stream resource object
+     * @param string                  $operation One of OperationInterface::OPERATION_* consts
+     *
+     * @return void
+     */
+    public function removeSocketOperation(StreamResourceInterface $streamResource, $operation)
+    {
+        $hash = spl_object_hash($streamResource);
+        if (isset($this->streamResources[$operation], $this->streamResources[$operation][$hash])) {
+            unset($this->streamResources[$operation][$hash]);
+            if (!$this->streamResources[$operation]) {
+                unset($this->streamResources[$operation]);
+            }
+        }
     }
 }

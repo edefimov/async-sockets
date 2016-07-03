@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\Socket\Io;
 
+use AsyncSockets\Frame\FixedLengthFramePicker;
 use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Socket\Io\AbstractIo;
 use AsyncSockets\Socket\Io\DatagramClientIo;
@@ -27,18 +28,6 @@ class DatagramClientIoTest extends AbstractClientIoTest
      * @var string
      */
     protected $address;
-
-    /** {@inheritdoc} */
-    protected function createIoInterface(SocketInterface $socket)
-    {
-        return new DatagramClientIo($socket, '127.0.0.1:4325');
-    }
-
-    /** {@inheritdoc} */
-    protected function setConnectedStateForTestObject($isConnected)
-    {
-        // nothing is required
-    }
 
     /**
      * testReadBasicDatagram
@@ -67,6 +56,58 @@ class DatagramClientIoTest extends AbstractClientIoTest
 
         $frame = $this->object->read(new RawFramePicker(), $this->context, false);
         self::assertEquals($expectedData, (string) $frame, 'Incorrect frame');
+        self::assertSame($remoteAddress, $frame->getRemoteAddress(), 'Incorrect remote address');
+    }
+
+    /**
+     * setUpIoObject
+     *
+     * @param string|null $remoteAddress Remote address for I/O object
+     *
+     * @return void
+     */
+    protected function setUpIoObject($remoteAddress)
+    {
+        $socket = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\SocketInterface',
+            [],
+            '',
+            true,
+            true,
+            true,
+            ['getStreamResource']
+        );
+        $this->address = $remoteAddress;
+        $socket->expects(self::any())->method('getStreamResource')->willReturn(fopen('php://temp', 'rw'));
+        $this->object = new DatagramClientIo($socket, $this->address);
+    }
+
+    /**
+     * testSequentialDataReading
+     *
+     * @return void
+     */
+    public function testSequentialDataReading()
+    {
+        $remoteAddress = '127.0.0.1:5353';
+        $this->setUpIoObject($remoteAddress);
+
+        $expectedData = $data = md5(microtime(true));
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function ($handle, $size, $flags, &$address) use (&$data) {
+                $address = $this->address;
+                $result  = $data;
+
+                if (!($flags & STREAM_PEEK)) {
+                    $data = '';
+                }
+                return $result;
+            }
+        );
+
+        $this->object->read(new FixedLengthFramePicker(1), $this->context, false);
+        $frame = $this->object->read(new RawFramePicker(), $this->context, false);
+        self::assertEquals(substr($expectedData, 1), (string) $frame, 'Incorrect frame');
         self::assertSame($remoteAddress, $frame->getRemoteAddress(), 'Incorrect remote address');
     }
 
@@ -200,27 +241,16 @@ class DatagramClientIoTest extends AbstractClientIoTest
         ];
     }
 
-    /**
-     * setUpIoObject
-     *
-     * @param string|null $remoteAddress Remote address for I/O object
-     *
-     * @return void
-     */
-    protected function setUpIoObject($remoteAddress)
+    /** {@inheritdoc} */
+    protected function createIoInterface(SocketInterface $socket)
     {
-        $socket = $this->getMockForAbstractClass(
-            'AsyncSockets\Socket\SocketInterface',
-            [],
-            '',
-            true,
-            true,
-            true,
-            ['getStreamResource']
-        );
-        $this->address = $remoteAddress;
-        $socket->expects(self::any())->method('getStreamResource')->willReturn(fopen('php://temp', 'rw'));
-        $this->object = new DatagramClientIo($socket, $this->address);
+        return new DatagramClientIo($socket, '127.0.0.1:4325');
+    }
+
+    /** {@inheritdoc} */
+    protected function setConnectedStateForTestObject($isConnected)
+    {
+        // nothing is required
     }
 
     /** {@inheritdoc} */

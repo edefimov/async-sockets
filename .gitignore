@@ -4,5 +4,6 @@ vendor/
 /config.yml
 phpunit.xml
 composer.lock
+humbug.json
 !tests/docker/mthr-server/php.conf/*.ini.dist
 tests/docker/mthr-server/php.conf/*.ini

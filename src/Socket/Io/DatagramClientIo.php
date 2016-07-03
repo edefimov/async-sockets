@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\Socket\Io;
 
+use AsyncSockets\Exception\SendDataException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -62,7 +63,10 @@ class DatagramClientIo extends AbstractClientIo
     protected function writeRawData($data, $isOutOfBand)
     {
         $result = stream_socket_sendto($this->socket->getStreamResource(), $data, 0, $this->remoteAddress);
-        $this->throwNetworkSocketExceptionIf($result < 0, 'Failed to send data.');
+        if ($result < 0) {
+            throw new SendDataException($this->socket, 'Failed to send data.');
+        }
+
         return $result;
     }
 

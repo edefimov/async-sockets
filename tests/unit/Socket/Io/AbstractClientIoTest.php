@@ -19,32 +19,30 @@ use Tests\Application\Mock\PhpFunctionMocker;
  */
 class AbstractClientIoTest extends AbstractIoTest
 {
-    /** {@inheritdoc} */
-    protected function createSocketInterface()
+    /**
+     * testWriteFailureWithAttempts
+     *
+     * @return void
+     */
+    public function testWriteFailureWithAttempts()
     {
-        $socket = $this->getMockForAbstractClass(
-            'AsyncSockets\Socket\SocketInterface',
-            [],
-            '',
-            true,
-            true,
-            true,
-            ['getStreamResource']
-        );
-
-        return $socket;
+        $this->prepareFor(__FUNCTION__);
+        $this->ensureSocketIsOpened();
+        $this->setExpectedException('AsyncSockets\Exception\SendDataException', 'Failed to send data.');
+        $this->setConnectedStateForTestObject(true);
+        for ($i = 0; $i < AbstractClientIo::IO_ATTEMPTS; $i++) {
+            $this->object->write('something', $this->context, false);
+        }
     }
 
-    /** {@inheritdoc} */
-    protected function createIoInterface(SocketInterface $socket)
+    /**
+     * ensureSocketIsOpened
+     *
+     * @return void
+     */
+    protected function ensureSocketIsOpened()
     {
-        $object = $this->getMockBuilder('AsyncSockets\Socket\Io\AbstractClientIo')
-                    ->setConstructorArgs([$socket, 0])
-                    ->setMethods(['isConnected'])
-                    ->enableProxyingToOriginalMethods()
-                    ->getMockForAbstractClass();
-
-        return $object;
+        $this->socket->expects(self::any())->method('getStreamResource')->willReturn(fopen('php://temp', 'r+'));
     }
 
     /**
@@ -59,22 +57,6 @@ class AbstractClientIoTest extends AbstractIoTest
         $object = $this->object;
         /** @var \PHPUnit_Framework_MockObject_MockObject $object */
         $object->expects(self::any())->method('isConnected')->willReturn($isConnected);
-    }
-
-    /**
-     * testWriteFailureWithAttempts
-     *
-     * @return void
-     */
-    public function testWriteFailureWithAttempts()
-    {
-        $this->prepareFor(__FUNCTION__);
-        $this->ensureSocketIsOpened();
-        $this->setExpectedException('AsyncSockets\Exception\NetworkSocketException', 'Failed to send data.');
-        $this->setConnectedStateForTestObject(true);
-        for ($i = 0; $i < AbstractClientIo::IO_ATTEMPTS; $i++) {
-            $this->object->write('something', $this->context, false);
-        }
     }
 
     /**
@@ -142,7 +124,7 @@ class AbstractClientIoTest extends AbstractIoTest
         }
 
         $this->setExpectedException(
-            '\AsyncSockets\Exception\NetworkSocketException',
+            'AsyncSockets\Exception\SendDataException',
             'Failed to send data.'
         );
 
@@ -181,8 +163,6 @@ class AbstractClientIoTest extends AbstractIoTest
         $this->object->write('something', $this->context, true);
     }
 
-
-
     /**
      * testExceptionIsThrownWhenOobDataLengthMoreThanPacketSize
      *
@@ -215,21 +195,39 @@ class AbstractClientIoTest extends AbstractIoTest
     }
 
     /** {@inheritdoc} */
+    protected function createSocketInterface()
+    {
+        $socket = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\SocketInterface',
+            [],
+            '',
+            true,
+            true,
+            true,
+            ['getStreamResource']
+        );
+
+        return $socket;
+    }
+
+    /** {@inheritdoc} */
+    protected function createIoInterface(SocketInterface $socket)
+    {
+        $object = $this->getMockBuilder('AsyncSockets\Socket\Io\AbstractClientIo')
+                    ->setConstructorArgs([$socket, 0])
+                    ->setMethods(['isConnected'])
+                    ->enableProxyingToOriginalMethods()
+                    ->getMockForAbstractClass();
+
+        return $object;
+    }
+
+    /** {@inheritdoc} */
     protected function tearDown()
     {
         parent::tearDown();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fwrite')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
-    }
-
-    /**
-     * ensureSocketIsOpened
-     *
-     * @return void
-     */
-    protected function ensureSocketIsOpened()
-    {
-        $this->socket->expects(self::any())->method('getStreamResource')->willReturn(fopen('php://temp', 'r+'));
     }
 }

@@ -9,9 +9,9 @@
  */
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Exception\NetworkSocketException;
-use AsyncSockets\Socket\Io\StreamedServerIo;
+use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Socket\Io\DatagramServerIo;
+use AsyncSockets\Socket\Io\StreamedServerIo;
 
 /**
  * Class ServerSocket
@@ -31,10 +31,27 @@ class ServerSocket extends AbstractSocket
         );
 
         if ($errno || $resource === false) {
-            throw new NetworkSocketException($this, $errstr, $errno);
+            throw new ConnectionException($this, $errstr, $errno);
         }
 
         return $resource;
+    }
+
+    /** {@inheritdoc} */
+    protected function createIoInterface($type, $address)
+    {
+        switch ($type) {
+            case self::SOCKET_TYPE_UNIX:
+                return new StreamedServerIo($this);
+            case self::SOCKET_TYPE_TCP:
+                return new StreamedServerIo($this);
+            case self::SOCKET_TYPE_UDG:
+                return new DatagramServerIo($this, true);
+            case self::SOCKET_TYPE_UDP:
+                return new DatagramServerIo($this, false);
+            default:
+                throw new \LogicException("Unsupported socket resource type {$type}");
+        }
     }
 
     /**
@@ -71,22 +88,5 @@ class ServerSocket extends AbstractSocket
         return isset($connectionLessMap[ $scheme ]) ?
             STREAM_SERVER_BIND :
             STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
-    }
-
-    /** {@inheritdoc} */
-    protected function createIoInterface($type, $address)
-    {
-        switch ($type) {
-            case self::SOCKET_TYPE_UNIX:
-                return new StreamedServerIo($this);
-            case self::SOCKET_TYPE_TCP:
-                return new StreamedServerIo($this);
-            case self::SOCKET_TYPE_UDG:
-                return new DatagramServerIo($this, true);
-            case self::SOCKET_TYPE_UDP:
-                return new DatagramServerIo($this, false);
-            default:
-                throw new \LogicException("Unsupported socket resource type {$type}");
-        }
     }
 }

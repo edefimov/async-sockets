@@ -10,7 +10,7 @@
 
 namespace AsyncSockets\Socket;
 
-use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Exception\ConnectionException;
 
 /**
  * Class PersistentClientSocket
@@ -49,7 +49,7 @@ class PersistentClientSocket extends AbstractClientSocket
         );
 
         if ($errno || $resource === false) {
-            throw new NetworkSocketException($this, $errstr, $errno);
+            throw new ConnectionException($this, $errstr, $errno);
         }
 
         return $resource;

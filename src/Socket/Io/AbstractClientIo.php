@@ -10,8 +10,9 @@
 namespace AsyncSockets\Socket\Io;
 
 use AsyncSockets\Exception\ConnectionException;
+use AsyncSockets\Exception\DisconnectException;
 use AsyncSockets\Exception\FrameException;
-use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Exception\SendDataException;
 use AsyncSockets\Exception\UnsupportedOperationException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\PartialFrame;
@@ -65,47 +66,6 @@ abstract class AbstractClientIo extends AbstractIo
         $this->maxOobPacketLength = $maxOobPacketLength;
     }
 
-    /**
-     * Read raw data from network into given picker
-     *
-     * @param FramePickerInterface $picker Frame picker
-     * @param bool                 $isOutOfBand Flag if these are out of band data
-     *
-     * @return string Data after end of frame
-     */
-    abstract protected function readRawDataIntoPicker(FramePickerInterface $picker, $isOutOfBand);
-
-    /**
-     * Write data to socket
-     *
-     * @param string $data Data to write
-     * @param bool $isOutOfBand Flag if data are out of band
-     *
-     * @return int Number of written bytes
-     */
-    abstract protected function writeRawData($data, $isOutOfBand);
-
-    /**
-     * Check whether given socket resource is connected
-     *
-     * @return bool
-     */
-    abstract protected function isConnected();
-
-    /**
-     * Return true if frame can be collected in nearest future, false otherwise
-     *
-     * @return bool
-     */
-    abstract protected function canReachFrame();
-
-    /**
-     * Return remote socket ip address
-     *
-     * @return string
-     */
-    abstract protected function getRemoteAddress();
-
     /** {@inheritdoc} */
     final public function read(FramePickerInterface $picker, Context $context, $isOutOfBand)
     {
@@ -121,6 +81,10 @@ abstract class AbstractClientIo extends AbstractIo
 
             $isEndOfFrameReached = $picker->isEof();
             if (!$isEndOfFrameReached && !$this->canReachFrame()) {
+                if (!$this->isConnected()) {
+                    throw new DisconnectException($this->socket, 'Remote connection has been lost.');
+                }
+
                 throw new FrameException($picker, $this->socket, 'Failed to receive desired frame.');
             }
         }
@@ -142,13 +106,44 @@ abstract class AbstractClientIo extends AbstractIo
         $result              = $this->writeRawData($data, $isOutOfBand);
         $this->writeAttempts = $result > 0 ? self::IO_ATTEMPTS : $this->writeAttempts - 1;
 
-        $this->throwNetworkSocketExceptionIf(
-            !$this->writeAttempts && $result !== strlen($data),
-            'Failed to send data.'
-        );
+        if (!$this->writeAttempts) {
+            throw new SendDataException($this->socket, 'Failed to send data.');
+        }
 
         return $result;
     }
+
+    /**
+     * Verify, that we are in connected state
+     *
+     * @return void
+     * @throws ConnectionException
+     */
+    private function setConnectedState()
+    {
+        $resource = $this->socket->getStreamResource();
+        if (!is_resource($resource)) {
+            $message = $this->state === self::STATE_CONNECTED ?
+                'Connection was unexpectedly closed.' :
+                'Can not start io operation on uninitialized socket.';
+            throw new ConnectionException($this->socket, $message);
+        }
+
+        if ($this->state !== self::STATE_CONNECTED) {
+            if (!$this->isConnected()) {
+                throw new ConnectionException($this->socket, 'Connection refused.');
+            }
+
+            $this->state = self::STATE_CONNECTED;
+        }
+    }
+
+    /**
+     * Check whether given socket resource is connected
+     *
+     * @return bool
+     */
+    abstract protected function isConnected();
 
     /**
      * Verifies given data according to OOB rules
@@ -178,47 +173,6 @@ abstract class AbstractClientIo extends AbstractIo
     }
 
     /**
-     * Verify, that we are in connected state
-     *
-     * @return void
-     * @throws ConnectionException
-     */
-    private function setConnectedState()
-    {
-        $resource = $this->socket->getStreamResource();
-        if (!is_resource($resource)) {
-            $message = $this->state === self::STATE_CONNECTED ?
-                'Connection was unexpectedly closed.' :
-                'Can not start io operation on uninitialized socket.';
-            throw new ConnectionException($this->socket, $message);
-        }
-
-        if ($this->state !== self::STATE_CONNECTED) {
-            if (!$this->isConnected()) {
-                throw new ConnectionException($this->socket, 'Connection refused.');
-            }
-
-            $this->state = self::STATE_CONNECTED;
-        }
-    }
-
-    /**
-     * Checks that we are in connected state
-     *
-     * @param string $message Message to pass in exception
-     *
-     * @return void
-     * @throws NetworkSocketException
-     */
-    final protected function throwExceptionIfNotConnected($message)
-    {
-        $this->throwNetworkSocketExceptionIf(
-            !$this->isConnected(),
-            $message
-        );
-    }
-
-    /**
      * Read unhandled data if there is something from the previous operation
      *
      * @param FramePickerInterface $picker Frame picker to use
@@ -239,4 +193,38 @@ abstract class AbstractClientIo extends AbstractIo
 
         return $picker->isEof();
     }
+
+    /**
+     * Return remote socket ip address
+     *
+     * @return string
+     */
+    abstract protected function getRemoteAddress();
+
+    /**
+     * Read raw data from network into given picker
+     *
+     * @param FramePickerInterface $picker Frame picker
+     * @param bool                 $isOutOfBand Flag if these are out of band data
+     *
+     * @return string Data after end of frame
+     */
+    abstract protected function readRawDataIntoPicker(FramePickerInterface $picker, $isOutOfBand);
+
+    /**
+     * Return true if frame can be collected in nearest future, false otherwise
+     *
+     * @return bool
+     */
+    abstract protected function canReachFrame();
+
+    /**
+     * Write data to socket
+     *
+     * @param string $data Data to write
+     * @param bool $isOutOfBand Flag if data are out of band
+     *
+     * @return int Number of written bytes
+     */
+    abstract protected function writeRawData($data, $isOutOfBand);
 }

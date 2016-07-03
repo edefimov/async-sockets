@@ -9,6 +9,9 @@
  */
 namespace AsyncSockets\Socket\Io;
 
+use AsyncSockets\Exception\DisconnectException;
+use AsyncSockets\Exception\RecvDataException;
+use AsyncSockets\Exception\SendDataException;
 use AsyncSockets\Frame\FramePickerInterface;
 
 /**
@@ -39,6 +42,58 @@ class StreamedClientIo extends AbstractClientIo
     protected function readRawDataIntoPicker(FramePickerInterface $picker, $isOutOfBand)
     {
         return $isOutOfBand ? $this->readOobData($picker) : $this->readRegularData($picker);
+    }
+
+    /** {@inheritdoc} */
+    protected function writeRawData($data, $isOutOfBand)
+    {
+        $resource = $this->socket->getStreamResource();
+        $test     = stream_socket_sendto($resource, '');
+        if ($test !== 0) {
+            throw new SendDataException(
+                $this->socket,
+                trim('Failed to send data. ' . $this->getLastPhpErrorMessage())
+            );
+        }
+
+        $written = $isOutOfBand ?
+            $this->writeOobData($resource, $data) :
+            fwrite($resource, $data, strlen($data));
+
+        if ($written === false) {
+            throw new SendDataException(
+                $this->socket,
+                trim('Failed to send data. ' . $this->getLastPhpErrorMessage())
+            );
+        }
+
+        if ($written === 0 && !$this->isConnected()) {
+            throw new DisconnectException($this->socket, 'Remote connection has been lost.');
+        }
+
+        return $written;
+    }
+
+    /** {@inheritdoc} */
+    protected function isConnected()
+    {
+        return $this->resolveRemoteAddress() !== false;
+    }
+
+    /** {@inheritdoc} */
+    protected function getRemoteAddress()
+    {
+        if ($this->remoteAddress === null) {
+            $this->remoteAddress = $this->resolveRemoteAddress();
+        }
+
+        return $this->remoteAddress;
+    }
+
+    /** {@inheritdoc} */
+    protected function canReachFrame()
+    {
+        return $this->readAttempts > 0 && $this->isConnected();
     }
 
     /**
@@ -78,7 +133,13 @@ class StreamedClientIo extends AbstractClientIo
 
         do {
             $data = fread($resource, self::SOCKET_BUFFER_SIZE);
-            $this->throwNetworkSocketExceptionIf($data === false, 'Failed to read data.', true);
+            if ($data === false) {
+                throw new RecvDataException(
+                    $this->socket,
+                    trim('Failed to read data. ' . $this->getLastPhpErrorMessage())
+                );
+            }
+
             $isDataEmpty = $data === '';
             $result      = $picker->pickUpData($data, $this->getRemoteAddress());
 
@@ -86,6 +147,34 @@ class StreamedClientIo extends AbstractClientIo
             $readContext['isStreamDataEmpty'] = $this->isReadDataActuallyEmpty($data);
             $this->readAttempts               = $this->resolveReadAttempts($readContext, $this->readAttempts);
         } while (!$picker->isEof() && !$isDataEmpty);
+
+        return $result;
+    }
+
+    /**
+     * Return first byte from socket buffer
+     *
+     * @return string
+     */
+    private function getDataInSocket()
+    {
+        return stream_socket_recvfrom($this->socket->getStreamResource(), 1, STREAM_PEEK);
+    }
+
+    /**
+     * Checks whether data read from stream buffer can be filled later
+     *
+     * @param string $data Read data
+     *
+     * @return bool
+     */
+    private function isReadDataActuallyEmpty($data)
+    {
+        $result = false;
+        if ($data === '') {
+            $dataInSocket = $this->getDataInSocket();
+            $result       = $dataInSocket === '' || $dataInSocket === false;
+        }
 
         return $result;
     }
@@ -107,86 +196,6 @@ class StreamedClientIo extends AbstractClientIo
 
     }
 
-    /** {@inheritdoc} */
-    protected function writeRawData($data, $isOutOfBand)
-    {
-        $resource = $this->socket->getStreamResource();
-        $test     = stream_socket_sendto($resource, '');
-        $this->throwNetworkSocketExceptionIf($test !== 0, 'Failed to send data.', true);
-
-        $written = $isOutOfBand ?
-            $this->writeOobData($resource, $data) :
-            fwrite($resource, $data, strlen($data));
-
-        $this->throwNetworkSocketExceptionIf($written === false, 'Failed to send data.', true);
-
-        if ($written === 0) {
-            $this->throwExceptionIfNotConnected('Remote connection has been lost.');
-        }
-
-        return $written;
-    }
-
-    /** {@inheritdoc} */
-    protected function isConnected()
-    {
-        return $this->resolveRemoteAddress() !== false;
-    }
-
-    /** {@inheritdoc} */
-    protected function getRemoteAddress()
-    {
-        if ($this->remoteAddress === null) {
-            $this->remoteAddress = $this->resolveRemoteAddress();
-        }
-
-        return $this->remoteAddress;
-    }
-
-    /**
-     * Checks whether data read from stream buffer can be filled later
-     *
-     * @param string $data Read data
-     *
-     * @return bool
-     */
-    private function isReadDataActuallyEmpty($data)
-    {
-        $result = false;
-        if ($data === '') {
-            $dataInSocket = $this->getDataInSocket();
-            $result       = $dataInSocket === '' || $dataInSocket === false;
-        }
-
-        return $result;
-    }
-
-    /** {@inheritdoc} */
-    protected function canReachFrame()
-    {
-        return $this->readAttempts > 0 && $this->isConnected();
-    }
-
-    /**
-     * Return first byte from socket buffer
-     *
-     * @return string
-     */
-    private function getDataInSocket()
-    {
-        return stream_socket_recvfrom($this->socket->getStreamResource(), 1, STREAM_PEEK);
-    }
-
-    /**
-     * Return remote address if we connected or false otherwise
-     *
-     * @return string|bool
-     */
-    private function resolveRemoteAddress()
-    {
-        return stream_socket_get_name($this->socket->getStreamResource(), true);
-    }
-
     /**
      * Write out-of-band data
      *
@@ -201,7 +210,13 @@ class StreamedClientIo extends AbstractClientIo
         $dataLength = strlen($data);
         for ($i = 0; $i < $dataLength; $i++) {
             $written = stream_socket_sendto($socket, $data[$i], STREAM_OOB);
-            $this->throwNetworkSocketExceptionIf($written < 0, 'Failed to send data.', true);
+            if ($written < 0) {
+                throw new SendDataException(
+                    $this->socket,
+                    trim('Failed to send data. ' . $this->getLastPhpErrorMessage())
+                );
+            }
+
             if ($written === 0) {
                 break;
             }
@@ -210,5 +225,15 @@ class StreamedClientIo extends AbstractClientIo
         }
 
         return $result;
+    }
+
+    /**
+     * Return remote address if we connected or false otherwise
+     *
+     * @return string|bool
+     */
+    private function resolveRemoteAddress()
+    {
+        return stream_socket_get_name($this->socket->getStreamResource(), true);
     }
 }
