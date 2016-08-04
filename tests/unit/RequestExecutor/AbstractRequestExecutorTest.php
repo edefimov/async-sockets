@@ -17,14 +17,14 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\NativeRequestExecutor;
 use AsyncSockets\RequestExecutor\NoLimitationSolver;
-use AsyncSockets\Operation\OperationInterface;
-use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
@@ -54,81 +54,6 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
      * @var RequestExecutorInterface
      */
     protected $executor;
-
-    /**
-     * Create RequestExecutor for tests
-     *
-     * @return RequestExecutorInterface
-     */
-    abstract protected function createRequestExecutor();
-
-    /** {@inheritdoc} */
-    protected function setUp()
-    {
-        parent::setUp();
-        $isOpened             = false;
-        $this->socketResource = fopen('php://temp', 'r+');
-        $this->socket         = $this->getMockForAbstractClass(
-            'AsyncSockets\Socket\SocketInterface',
-            [ ],
-            '',
-            false,
-            true,
-            true,
-            [ 'getStreamResource', 'read', 'open', 'close' ]
-        );
-        $this->socket->expects(self::any())->method('getStreamResource')->willReturnCallback(
-            function () use (&$isOpened) {
-                return $isOpened ? $this->socketResource : null;
-            }
-        );
-        $this->socket->expects(self::any())->method('open')->willReturnCallback(
-            function () use (&$isOpened) {
-                $isOpened = true;
-            }
-        );
-
-        $this->socket->expects(self::any())->method('read')->willReturnCallback(function () {
-            $mock = $this->getMockForAbstractClass(
-                'AsyncSockets\Frame\FrameInterface',
-                [ ],
-                '',
-                false,
-                true,
-                true,
-                [ 'getData', '__toString' ]
-            );
-
-            $mock->expects(self::any())->method('getData')->willReturn('');
-            $mock->expects(self::any())->method('__toString')->willReturn('');
-            return $mock;
-        });
-        $this->executor = $this->createRequestExecutor();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
-            function ($socket, $length, $flags = null) {
-                return $flags & STREAM_OOB ? false : '';
-            }
-        );
-
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable(function ($handle, $data) {
-            return strlen($data);
-        });
-
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(function () {
-            return 'php://temp';
-        });
-    }
-
-    /** {@inheritdoc} */
-    protected function tearDown()
-    {
-        parent::tearDown();
-        PhpFunctionMocker::getPhpFunctionMocker('microtime')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->restoreNativeHandler();
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
-    }
 
     /**
      * testExceptionOnMethodCall
@@ -567,6 +492,25 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
     }
 
     /**
+     * verifyEvent
+     *
+     * @param Event      $event Event to test
+     * @param \Countable $mock Mock object with sequence information
+     * @param int        $sequence Sequence number of this event
+     *
+     * @return void
+     */
+    private function verifyEvent(
+        Event $event,
+        \Countable $mock,
+        $sequence
+    ) {
+        self::assertEquals($sequence, count($mock), $event->getType() . ' must be fired ' . $sequence);
+        self::assertSame($this->socket, $event->getSocket(), 'Strange socket provided');
+        self::assertNotNull($event->getExecutor(), 'Request executor was not provided');
+    }
+
+    /**
      * testLimitationDecider
      *
      * @param OperationInterface $operation Operation to execute
@@ -781,6 +725,77 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
     }
 
     /**
+     * Return socket object for given event type
+     *
+     * @param string $eventType Event type
+     *
+     * @return SocketInterface
+     */
+    protected function getSocketForEventType($eventType)
+    {
+        switch ($eventType) {
+            case EventType::ACCEPT:
+                $mock = $this->getMock(
+                    'AsyncSockets\Socket\ServerSocket',
+                    ['read', 'createSocketResource' , 'write', 'createIoInterface']
+                );
+
+                $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
+                    function () {
+                        return fopen('php://temp', 'rw');
+                    }
+                );
+                $mock->expects(self::any())->method('createIoInterface')->willReturnCallback(
+                    function () {
+                        return $this->getMockForAbstractClass('AsyncSockets\Socket\Io\IoInterface');
+                    }
+                );
+                $mock->expects(self::any())->method('read')->willReturnCallback(
+                    function () {
+                        $mock = $this->getMock(
+                            'AsyncSockets\Frame\AcceptedFrame',
+                            [ 'getClientSocket', 'getClientAddress' ],
+                            [ ],
+                            '',
+                            false
+                        );
+
+                        $mock->expects(self::any())->method('getClientAddress')->willReturn('127.0.0.1:11111');
+                        $mock->expects(self::any())
+                             ->method('getClientSocket')
+                             ->willReturn($this->getMock('AsyncSockets\Socket\ClientSocket'));
+
+                        return $mock;
+                    }
+                );
+                return $mock;
+            default:
+                return $this->socket;
+        }
+    }
+
+    /**
+     * Return handler function for testing exceptions in event
+     *
+     * @param string     $eventType Event type
+     * @param \Exception $exception Exception to throw for test
+     *
+     * @return \Closure
+     */
+    private function getEventTypeHandler($eventType, \Exception $exception)
+    {
+        return function (Event $event) use ($eventType, $exception) {
+            $readWriteTypes = [ EventType::READ, EventType::WRITE, EventType::OOB ];
+            $throwException = $event->getType() === $eventType ||
+                              (in_array($eventType, $readWriteTypes, true) &&
+                               in_array($event->getType(), $readWriteTypes, true));
+            if ($throwException) {
+                throw $exception;
+            }
+        };
+    }
+
+    /**
      * testThrowingSocketExceptionsInEvent
      *
      * @param string             $eventType Event type to throw exception in
@@ -874,6 +889,46 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
     }
 
     /**
+     * testMultipleEventHandlers
+     *
+     * @return void
+     */
+    public function testMultipleEventHandlers()
+    {
+        $meta = [
+            NativeRequestExecutor::META_ADDRESS => 'php://temp',
+        ];
+
+        $this->executor->socketBag()->addSocket(
+            $this->getSocketForEventType(EventType::READ),
+            new ReadOperation(),
+            $meta
+        );
+
+        $mock = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMock();
+        $mock->expects(self::exactly(2))
+             ->method('count');
+
+        $this->executor->withEventHandler(
+            new CallbackEventHandler(
+                [
+                    EventType::INITIALIZE => [ $mock, 'count' ]
+                ]
+            )
+        );
+
+        $this->executor->withEventHandler(
+            new CallbackEventHandler(
+                [
+                    EventType::INITIALIZE => [ $mock, 'count' ]
+                ]
+            )
+        );
+
+        $this->executor->executeRequest();
+    }
+
+    /**
      * socketOperationDataProvider
      *
      * @return array
@@ -931,93 +986,78 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
         return $result;
     }
 
-    /**
-     * verifyEvent
-     *
-     * @param Event      $event Event to test
-     * @param \Countable $mock Mock object with sequence information
-     * @param int        $sequence Sequence number of this event
-     *
-     * @return void
-     */
-    private function verifyEvent(
-        Event $event,
-        \Countable $mock,
-        $sequence
-    ) {
-        self::assertEquals($sequence, count($mock), $event->getType() . ' must be fired ' . $sequence);
-        self::assertSame($this->socket, $event->getSocket(), 'Strange socket provided');
-        self::assertNotNull($event->getExecutor(), 'Request executor was not provided');
-    }
-
-    /**
-     * Return socket object for given event type
-     *
-     * @param string $eventType Event type
-     *
-     * @return SocketInterface
-     */
-    protected function getSocketForEventType($eventType)
+    /** {@inheritdoc} */
+    protected function setUp()
     {
-        switch ($eventType) {
-            case EventType::ACCEPT:
-                $mock = $this->getMock(
-                    'AsyncSockets\Socket\ServerSocket',
-                    ['read', 'createSocketResource' , 'write', 'createIoInterface']
-                );
-
-                $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
-                    function () {
-                        return fopen('php://temp', 'rw');
-                    }
-                );
-                $mock->expects(self::any())->method('createIoInterface')->willReturnCallback(
-                    function () {
-                        return $this->getMockForAbstractClass('AsyncSockets\Socket\Io\IoInterface');
-                    }
-                );
-                $mock->expects(self::any())->method('read')->willReturnCallback(
-                    function () {
-                        $mock = $this->getMock(
-                            'AsyncSockets\Frame\AcceptedFrame',
-                            [ 'getClientSocket', 'getClientAddress' ],
-                            [ ],
-                            '',
-                            false
-                        );
-
-                        $mock->expects(self::any())->method('getClientAddress')->willReturn('127.0.0.1:11111');
-                        $mock->expects(self::any())
-                             ->method('getClientSocket')
-                             ->willReturn($this->getMock('AsyncSockets\Socket\ClientSocket'));
-
-                        return $mock;
-                    }
-                );
-                return $mock;
-            default:
-                return $this->socket;
-        }
-    }
-
-    /**
-     * Return handler function for testing exceptions in event
-     *
-     * @param string     $eventType Event type
-     * @param \Exception $exception Exception to throw for test
-     *
-     * @return \Closure
-     */
-    private function getEventTypeHandler($eventType, \Exception $exception)
-    {
-        return function (Event $event) use ($eventType, $exception) {
-            $readWriteTypes = [ EventType::READ, EventType::WRITE, EventType::OOB ];
-            $throwException = $event->getType() === $eventType ||
-                              (in_array($eventType, $readWriteTypes, true) &&
-                               in_array($event->getType(), $readWriteTypes, true));
-            if ($throwException) {
-                throw $exception;
+        parent::setUp();
+        $isOpened             = false;
+        $this->socketResource = fopen('php://temp', 'r+');
+        $this->socket         = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\SocketInterface',
+            [ ],
+            '',
+            false,
+            true,
+            true,
+            [ 'getStreamResource', 'read', 'open', 'close' ]
+        );
+        $this->socket->expects(self::any())->method('getStreamResource')->willReturnCallback(
+            function () use (&$isOpened) {
+                return $isOpened ? $this->socketResource : null;
             }
-        };
+        );
+        $this->socket->expects(self::any())->method('open')->willReturnCallback(
+            function () use (&$isOpened) {
+                $isOpened = true;
+            }
+        );
+
+        $this->socket->expects(self::any())->method('read')->willReturnCallback(function () {
+            $mock = $this->getMockForAbstractClass(
+                'AsyncSockets\Frame\FrameInterface',
+                [ ],
+                '',
+                false,
+                true,
+                true,
+                [ 'getData', '__toString' ]
+            );
+
+            $mock->expects(self::any())->method('getData')->willReturn('');
+            $mock->expects(self::any())->method('__toString')->willReturn('');
+            return $mock;
+        });
+        $this->executor = $this->createRequestExecutor();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function ($socket, $length, $flags = null) {
+                return $flags & STREAM_OOB ? false : '';
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable(function ($handle, $data) {
+            return strlen($data);
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(function () {
+            return 'php://temp';
+        });
     }
+
+    /** {@inheritdoc} */
+    protected function tearDown()
+    {
+        parent::tearDown();
+        PhpFunctionMocker::getPhpFunctionMocker('microtime')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->restoreNativeHandler();
+    }
+
+    /**
+     * Create RequestExecutor for tests
+     *
+     * @return RequestExecutorInterface
+     */
+    abstract protected function createRequestExecutor();
 }

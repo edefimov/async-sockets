@@ -97,6 +97,9 @@ added socket. There are four implementations of this interface out of the box:
    automatically removes completed sockets from ``RequestExecutor``. Recommended to use for accepted clients
    from server sockets.
 
+.. note::
+   You can register several global event handlers using ``withEventHandler`` method of ``RequestExecutorInterface``.
+
 .. _EventDispatcher: http://symfony.com/doc/current/components/event_dispatcher/introduction.html
 
 The limitation solver is the component restricting amount of executed at once requests. Out of the box two strategies
