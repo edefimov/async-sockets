@@ -97,7 +97,7 @@ interface RequestExecutorInterface
      *
      * @return void
      */
-    public function withEventHandler(EventHandlerInterface $handler = null);
+    public function withEventHandler(EventHandlerInterface $handler);
 
     /**
      * Set solver for limiting running at once requests. You can additionally implement EventHandlerInterface

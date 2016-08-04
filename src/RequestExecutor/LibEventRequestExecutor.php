@@ -104,7 +104,7 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     protected function initializeRequest(EventCaller $eventCaller)
     {
         parent::initializeRequest($eventCaller);
-        $this->base        = new LeBase();
+        $this->base = new LeBase();
 
         $this->connectStage    = $this->stageFactory->createConnectStage($this, $eventCaller, $this->solver);
         $this->ioStage         = $this->stageFactory->createIoStage($this, $eventCaller);
@@ -131,6 +131,26 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
         $this->disconnectStage->processStage($items);
     }
 
+    /** {@inheritdoc} */
+    public function stopRequest()
+    {
+        parent::stopRequest();
+        $this->base->breakLoop();
+    }
+
+    /**
+     * Connect sockets to server
+     *
+     * @return void
+     */
+    private function connectSockets()
+    {
+        $items = $this->socketBag->getItems();
+        foreach ($this->connectStage->processStage($items) as $item) {
+            $this->setupEvent($item, $this->resolveTimeout($item));
+        }
+    }
+
     /**
      * Setup libevent for given operation
      *
@@ -151,13 +171,6 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
                 $this->onEvent($descriptor, LeCallbackInterface::EVENT_READ);
             }
         }
-    }
-
-    /** {@inheritdoc} */
-    public function stopRequest()
-    {
-        parent::stopRequest();
-        $this->base->breakLoop();
     }
 
     /** {@inheritdoc} */
@@ -185,19 +198,6 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
         }
 
         $this->connectSockets();
-    }
-
-    /**
-     * Connect sockets to server
-     *
-     * @return void
-     */
-    private function connectSockets()
-    {
-        $items = $this->socketBag->getItems();
-        foreach ($this->connectStage->processStage($items) as $item) {
-            $this->setupEvent($item, $this->resolveTimeout($item));
-        }
     }
 
     /**

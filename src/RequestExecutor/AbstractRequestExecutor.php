@@ -23,6 +23,27 @@ use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 abstract class AbstractRequestExecutor implements RequestExecutorInterface, EventHandlerInterface
 {
     /**
+     * Decider for request limitation
+     *
+     * @var LimitationSolverInterface
+     */
+    protected $solver;
+
+    /**
+     * EventHandlerInterface
+     *
+     * @var EventHandlerInterface[]
+     */
+    protected $eventHandlers = [];
+
+    /**
+     * Socket bag
+     *
+     * @var SocketBag
+     */
+    protected $socketBag;
+
+    /**
      * Flag, indicating stopping request
      *
      * @var bool
@@ -35,27 +56,6 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
      * @var bool
      */
     private $isRequestStopInProgress = false;
-
-    /**
-     * Decider for request limitation
-     *
-     * @var LimitationSolverInterface
-     */
-    protected $solver;
-
-    /**
-     * EventHandlerInterface
-     *
-     * @var EventHandlerInterface
-     */
-    protected $eventHandler;
-
-    /**
-     * Socket bag
-     *
-     * @var SocketBag
-     */
-    protected $socketBag;
 
     /**
      * Flag whether request is executing
@@ -81,9 +81,10 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
     }
 
     /** {@inheritdoc} */
-    public function withEventHandler(EventHandlerInterface $handler = null)
+    public function withEventHandler(EventHandlerInterface $handler)
     {
-        $this->eventHandler = $handler;
+        $key = spl_object_hash($handler);
+        $this->eventHandlers[$key] = $handler;
     }
 
     /** {@inheritdoc} */
@@ -116,8 +117,8 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
 
         $eventCaller = new EventCaller($this);
         try {
-            if ($this->eventHandler) {
-                $eventCaller->addHandler($this->eventHandler);
+            foreach ($this->eventHandlers as $handler) {
+                $eventCaller->addHandler($handler);
             }
 
             if ($this->solver instanceof EventHandlerInterface) {
@@ -166,15 +167,6 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
         $this->isRequestStopped = true;
     }
 
-    /** {@inheritdoc} */
-    public function invokeEvent(Event $event)
-    {
-        if ($this->isRequestStopped && !$this->isRequestStopInProgress) {
-            $this->isRequestStopInProgress = true;
-            throw new StopRequestExecuteException();
-        }
-    }
-
     /**
      * Prepare executor for request
      *
@@ -188,6 +180,15 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
     }
 
     /**
+     * Execute network request
+     *
+     * @param EventCaller $eventCaller Event caller object
+     *
+     * @return void
+     */
+    abstract protected function doExecuteRequest(EventCaller $eventCaller);
+
+    /**
      * Terminate request in executor
      *
      * @return void
@@ -196,15 +197,6 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
     {
         // empty body
     }
-
-    /**
-     * Execute network request
-     *
-     * @param EventCaller $eventCaller Event caller object
-     *
-     * @return void
-     */
-    abstract protected function doExecuteRequest(EventCaller $eventCaller);
 
     /**
      * Disconnect given sockets
@@ -230,6 +222,15 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
             }
 
             $item->setMetadata(self::META_REQUEST_COMPLETE, true);
+        }
+    }
+
+    /** {@inheritdoc} */
+    public function invokeEvent(Event $event)
+    {
+        if ($this->isRequestStopped && !$this->isRequestStopInProgress) {
+            $this->isRequestStopInProgress = true;
+            throw new StopRequestExecuteException();
         }
     }
 }
