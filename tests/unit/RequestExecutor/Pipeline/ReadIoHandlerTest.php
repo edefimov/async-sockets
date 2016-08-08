@@ -27,6 +27,7 @@ use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\ReadIoHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
+use Tests\Application\Mock\PhpFunctionMocker;
 
 /**
  * Class ReadIoHandlerTest
@@ -68,30 +69,44 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
         $this->socket->expects(self::never())->method('write');
 
         $this->mockEventHandler->expects(self::once())
-                          ->method('invokeEvent')
-                          ->willReturnCallback(
-                              function (Event $event) use ($frame, $eventType) {
-                                  $this->validateEventContext($event);
-                                  self::assertEquals($eventType, $event->getType(), 'Incorrect event fired');
-                                  if ($event instanceof ReadEvent) {
-                                      self::assertSame($frame, $event->getFrame());
-                                  }
-                              }
-                          );
+                               ->method('invokeEvent')
+                               ->willReturnCallback(
+                                   function (Event $event) use ($frame, $eventType) {
+                                       $this->validateEventContext($event);
+                                       self::assertEquals($eventType, $event->getType(), 'Incorrect event fired');
+                                       if ($event instanceof ReadEvent) {
+                                           self::assertSame($frame, $event->getFrame());
+                                       }
+                                   }
+                               );
 
         $descriptor = $this->getMockedDescriptor(
             new ReadOperation(),
             $this->socket,
             RequestDescriptor::RDS_READ
         );
-        $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED] = mt_rand(1000, 10000);
-        $descriptor->expects(self::once())
-                   ->method('setMetadata')
-                   ->with(
-                       RequestExecutorInterface::META_BYTES_RECEIVED,
-                       $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED] + strlen((string) $frame)
-                   );
+        $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED]             = mt_rand(1000, 10000);
+        $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED]          = 1;
+        $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION] = 1e10;
 
+        $descriptor->expects(self::exactly(2))
+                   ->method('setMetadata')
+                    ->willReturnCallback(function ($key, $value) use ($frame) {
+                        switch ($key) {
+                            case RequestExecutorInterface::META_BYTES_RECEIVED:
+                                self::assertSame(
+                                    $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED] +
+                                        strlen((string) $frame),
+                                    $value,
+                                    'Unexpected bytes received value'
+                                );
+                                break;
+                            case RequestExecutorInterface::META_RECEIVE_SPEED:
+                                break;
+                            default:
+                                self::fail('Unexpected metadata change with key ' . $key);
+                        }
+                    });
 
         $result = $this->handler->handle(
             $descriptor,
@@ -223,6 +238,41 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
             'AsyncSockets\Operation\ReadOperation',
             $result,
             'Incorrect operation for accept event'
+        );
+    }
+
+    /**
+     * testThatTooSlowRateCausesException
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\TooSlowRecvException
+     */
+    public function testThatTooSlowRateCausesException()
+    {
+        $this->socket->expects(self::any())->method('read')->willReturnCallback(
+            function (FramePickerInterface $picker) {
+                $picker->pickUpData('test', '127.0.0.1');
+                return new PartialFrame($picker->createFrame());
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable(function () {
+            return 2;
+        });
+
+        $descriptor = $this->getMockedDescriptor(
+            new ReadOperation(),
+            $this->socket,
+            RequestDescriptor::RDS_READ
+        );
+        $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED]          = 1e10;
+        $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION] = 1;
+        $this->metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME]     = 0;
+
+        $this->handler->handle(
+            $descriptor,
+            $this->executor,
+            $this->mockEventHandler
         );
     }
 

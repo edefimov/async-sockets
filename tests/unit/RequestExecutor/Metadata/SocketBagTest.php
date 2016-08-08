@@ -10,8 +10,8 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
-use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -94,6 +94,10 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
             RequestExecutorInterface::META_BYTES_RECEIVED => [
                 'value' => 0,
                 'message' => 'Incorrect bytes received counter initial value'
+            ],
+            RequestExecutorInterface::META_RECEIVE_SPEED => [
+                'value' => 0,
+                'message' => 'Incorrect bytes receive speed counter initial value'
             ],
         ];
 
@@ -302,6 +306,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
                 RequestExecutorInterface::META_LAST_IO_START_TIME     => 1,
                 RequestExecutorInterface::META_BYTES_SENT             => 1,
                 RequestExecutorInterface::META_BYTES_RECEIVED         => 1,
+                RequestExecutorInterface::META_RECEIVE_SPEED          => 1,
             ];
 
             $metadata = [ ];

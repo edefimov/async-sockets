@@ -10,8 +10,8 @@
 namespace AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\Event\Event;
-use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\Socket\PersistentClientSocket;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\StreamResourceInterface;
@@ -86,6 +86,13 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     private $state = 0;
 
     /**
+     * Array of counters
+     *
+     * @var SpeedRateCounter[]
+     */
+    private $counters;
+
+    /**
      * RequestDescriptor constructor.
      *
      * @param SocketInterface       $socket Socket object
@@ -103,7 +110,18 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
         $this->operation = $operation;
         $this->metadata  = $metadata;
         $this->handlers  = $handlers;
+        $this->counters  = [];
         $this->initialize();
+    }
+
+    /**
+     * Initialize data before request
+     *
+     * @return void
+     */
+    public function initialize()
+    {
+        $this->isRunning = false;
     }
 
     /**
@@ -126,16 +144,6 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     public function setOperation(OperationInterface $operation)
     {
         $this->operation = $operation;
-    }
-
-    /**
-     * Initialize data before request
-     *
-     * @return void
-     */
-    public function initialize()
-    {
-        $this->isRunning = false;
     }
 
     /**
@@ -274,5 +282,32 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     public function clearState($state)
     {
         $this->state &= ~$state;
+    }
+
+    /**
+     * Registers counter in this descriptor
+     *
+     * @param string           $name SpeedRateCounter name for retrieving
+     * @param SpeedRateCounter $counter A counter object
+     *
+     * @return void
+     */
+    public function registerCounter($name, SpeedRateCounter $counter)
+    {
+        if (!isset($this->counters[$name])) {
+            $this->counters[$name] = $counter;
+        }
+    }
+
+    /**
+     * Return counter by given name
+     *
+     * @param string $name SpeedRateCounter name
+     *
+     * @return SpeedRateCounter|null
+     */
+    public function getCounter($name)
+    {
+        return isset($this->counters[$name]) ? $this->counters[$name] : null;
     }
 }

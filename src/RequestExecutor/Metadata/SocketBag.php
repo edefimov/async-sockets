@@ -84,11 +84,13 @@ class SocketBag implements SocketBagInterface
 
         $meta = array_merge(
             [
-                RequestExecutorInterface::META_ADDRESS               => null,
-                RequestExecutorInterface::META_USER_CONTEXT          => null,
-                RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => null,
-                RequestExecutorInterface::META_CONNECTION_TIMEOUT    => $this->connectTimeout,
-                RequestExecutorInterface::META_IO_TIMEOUT            => $this->ioTimeout,
+                RequestExecutorInterface::META_ADDRESS                    => null,
+                RequestExecutorInterface::META_USER_CONTEXT               => null,
+                RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT      => null,
+                RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => null,
+                RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => null,
+                RequestExecutorInterface::META_CONNECTION_TIMEOUT         => $this->connectTimeout,
+                RequestExecutorInterface::META_IO_TIMEOUT                 => $this->ioTimeout,
             ],
             $metadata ?: [],
             [
@@ -98,6 +100,7 @@ class SocketBag implements SocketBagInterface
                 RequestExecutorInterface::META_BYTES_SENT             => 0,
                 RequestExecutorInterface::META_BYTES_RECEIVED         => 0,
                 RequestExecutorInterface::META_REQUEST_COMPLETE       => false,
+                RequestExecutorInterface::META_RECEIVE_SPEED          => 0,
             ]
         );
 
@@ -161,11 +164,13 @@ class SocketBag implements SocketBagInterface
     public function setSocketMetaData(SocketInterface $socket, $key, $value = null)
     {
         $writableKeys = [
-            RequestExecutorInterface::META_ADDRESS               => 1,
-            RequestExecutorInterface::META_USER_CONTEXT          => 1,
-            RequestExecutorInterface::META_CONNECTION_TIMEOUT    => 1,
-            RequestExecutorInterface::META_IO_TIMEOUT            => 1,
-            RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => 1,
+            RequestExecutorInterface::META_ADDRESS                    => 1,
+            RequestExecutorInterface::META_USER_CONTEXT               => 1,
+            RequestExecutorInterface::META_CONNECTION_TIMEOUT         => 1,
+            RequestExecutorInterface::META_IO_TIMEOUT                 => 1,
+            RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT      => 1,
+            RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => 1,
+            RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => 1,
         ];
 
         if (!is_array($key)) {

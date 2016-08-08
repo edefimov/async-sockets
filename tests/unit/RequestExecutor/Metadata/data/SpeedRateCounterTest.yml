@@ -1,0 +1,85 @@
+averageRawValuesProvider:
+  - # 0, counter doesn't tick
+    measures:
+      - [10, 20]
+      - [20, 40]
+    minSpeed: 1
+    maxDuration: 5000
+    expectedSpeed: 4
+    expectedDuration: 0
+    accuracy: 0
+  - # 1, low rate, duration tick
+    measures:
+      - [1, 4]
+      - [2, 8]
+    minSpeed: 2000
+    maxDuration: 5
+    expectedSpeed: 8
+    expectedDuration: 1
+    accuracy: 0.001
+  - # 2, tick during stream
+    measures:
+      - [1, 4]
+      - [2, 8]
+      - [3, 12]
+      - [4, 16]
+    minSpeed: 2000
+    maxDuration: 5
+    expectedSpeed: 16
+    expectedDuration: 3
+    accuracy: 0.001
+  - # 3, no settings - no ticks
+    measures:
+      - [1, 4]
+      - [2, 8]
+      - [3, 12]
+      - [4, 16]
+    minSpeed: ~
+    maxDuration: ~
+    expectedSpeed: 16
+    expectedDuration: 0
+    accuracy: 0.001
+  - # 4, one setting - no ticks
+    measures:
+      - [1, 4]
+      - [2, 8]
+      - [3, 12]
+      - [4, 16]
+    minSpeed: ~
+    maxDuration: 5
+    expectedSpeed: 16
+    expectedDuration: 0
+    accuracy: 0.001
+  - # 5, one setting - no ticks
+    measures:
+      - [1, 4]
+      - [2, 8]
+      - [3, 12]
+      - [4, 16]
+    minSpeed: 5
+    maxDuration: ~
+    expectedSpeed: 16
+    expectedDuration: 0
+    accuracy: 0.001
+  - # 6, reset duration
+    measures:
+      - [1, 4]
+      - [2, 5]
+      - [3, 6]
+      - [4, 7]
+    minSpeed: 7
+    maxDuration: 10
+    expectedSpeed: 7
+    expectedDuration: 0
+    accuracy: 0.001
+  - # 7, boundary situation
+    measures:
+      - [1, 6]
+      - [2, 7]
+    minSpeed: 7
+    maxDuration: 1
+    expectedSpeed: 7
+    expectedDuration: 0
+    accuracy: 0.001
+
+
