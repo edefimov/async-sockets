@@ -2,23 +2,23 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
 namespace Demo\Component;
 
-use AsyncSockets\Event\SocketExceptionEvent;
-use Demo\Frame\SimpleHttpFramePicker;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
+use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Operation\SslHandshakeOperation;
 use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use Demo\Frame\SimpleHttpFramePicker;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**

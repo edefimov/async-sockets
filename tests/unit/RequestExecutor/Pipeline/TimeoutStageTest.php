@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -14,9 +14,9 @@ use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\TimeoutEvent;
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\TimeoutStage;
-use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 

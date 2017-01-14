@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -16,9 +16,9 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Frame\MarkerFramePicker;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\SocketInterface;
 use Symfony\Component\Console\Command\Command;

@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -13,10 +13,10 @@ namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Operation\OperationInterface;
-use AsyncSockets\RequestExecutor\Pipeline\SelectStage;
 use AsyncSockets\Operation\ReadOperation;
-use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Operation\WriteOperation;
+use AsyncSockets\RequestExecutor\Pipeline\SelectStage;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\SelectContext;
 use AsyncSockets\Socket\SocketInterface;
