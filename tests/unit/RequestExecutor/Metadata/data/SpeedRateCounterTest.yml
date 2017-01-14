@@ -5,7 +5,7 @@ averageRawValuesProvider:
       - [20, 40]
     minSpeed: 1
     maxDuration: 5000
-    expectedSpeed: 4
+    expectedSpeed: 6
     expectedDuration: 0
     accuracy: 0
   - # 1, low rate, duration tick
@@ -14,7 +14,7 @@ averageRawValuesProvider:
       - [2, 8]
     minSpeed: 2000
     maxDuration: 5
-    expectedSpeed: 8
+    expectedSpeed: 12
     expectedDuration: 1
     accuracy: 0.001
   - # 2, tick during stream
@@ -22,10 +22,10 @@ averageRawValuesProvider:
       - [1, 4]
       - [2, 8]
       - [3, 12]
-      - [4, 16]
+      - [4, 36]
     minSpeed: 2000
     maxDuration: 5
-    expectedSpeed: 16
+    expectedSpeed: 20
     expectedDuration: 3
     accuracy: 0.001
   - # 3, no settings - no ticks
@@ -33,10 +33,10 @@ averageRawValuesProvider:
       - [1, 4]
       - [2, 8]
       - [3, 12]
-      - [4, 16]
+      - [4, 36]
     minSpeed: ~
     maxDuration: ~
-    expectedSpeed: 16
+    expectedSpeed: 20
     expectedDuration: 0
     accuracy: 0.001
   - # 4, one setting - no ticks
@@ -44,10 +44,10 @@ averageRawValuesProvider:
       - [1, 4]
       - [2, 8]
       - [3, 12]
-      - [4, 16]
+      - [4, 36]
     minSpeed: ~
     maxDuration: 5
-    expectedSpeed: 16
+    expectedSpeed: 20
     expectedDuration: 0
     accuracy: 0.001
   - # 5, one setting - no ticks
@@ -55,17 +55,17 @@ averageRawValuesProvider:
       - [1, 4]
       - [2, 8]
       - [3, 12]
-      - [4, 16]
+      - [4, 36]
     minSpeed: 5
     maxDuration: ~
-    expectedSpeed: 16
+    expectedSpeed: 20
     expectedDuration: 0
     accuracy: 0.001
   - # 6, reset duration
     measures:
       - [1, 4]
       - [2, 5]
-      - [3, 6]
+      - [3, 5]
       - [4, 7]
     minSpeed: 7
     maxDuration: 10
@@ -78,7 +78,7 @@ averageRawValuesProvider:
       - [2, 7]
     minSpeed: 7
     maxDuration: 1
-    expectedSpeed: 7
+    expectedSpeed: 13
     expectedDuration: 0
     accuracy: 0.001
 

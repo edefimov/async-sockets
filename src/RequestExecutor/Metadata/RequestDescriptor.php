@@ -37,6 +37,11 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     const RDS_OOB = 0x0004;
 
     /**
+     * Minimum transfer rate counter
+     */
+    const COUNTER_TRANSFER_MIN_RATE = 'speed_rate_counter';
+
+    /**
      * Socket for this operation
      *
      * @var SocketInterface

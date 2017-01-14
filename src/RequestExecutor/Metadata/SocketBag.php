@@ -119,7 +119,6 @@ class SocketBag implements SocketBagInterface
         $this->requireDescriptor($socket)->setOperation($operation);
     }
 
-
     /** {@inheritdoc} */
     public function hasSocket(SocketInterface $socket)
     {
@@ -152,6 +151,17 @@ class SocketBag implements SocketBagInterface
         }
 
         $this->items[$key]->postpone();
+    }
+
+    /** {@inheritdoc} */
+    public function resetSpeedRateCounters(SocketInterface $socket)
+    {
+        $descriptor = $this->requireDescriptor($socket);
+        $counter    = $descriptor->getCounter(RequestDescriptor::COUNTER_TRANSFER_MIN_RATE);
+        if ($counter) {
+            $counter->reset();
+            $descriptor->setMetadata(RequestExecutorInterface::META_RECEIVE_SPEED, null);
+        }
     }
 
     /** {@inheritdoc} */

@@ -11,6 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
@@ -288,6 +289,50 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     public function testCantOperateNonAddedSocket()
     {
         $this->bag->getSocketMetaData($this->socket);
+    }
+
+    /**
+     * testCantResetNonAddedSocket
+     *
+     * @return void
+     * @depends testAddSocket
+     * @expectedException \OutOfBoundsException
+     */
+    public function testCantResetNonAddedSocket()
+    {
+        $this->bag->resetSpeedRateCounters($this->socket);
+    }
+
+    /**
+     * testResettingRateCounter
+     *
+     * @return void
+     */
+    public function testResettingRateCounter()
+    {
+        $this->bag->addSocket(
+            $this->socket,
+            $this->operation
+        );
+
+        $descriptor = $this->bag->getItems();
+        $descriptor = reset($descriptor);
+
+        self::assertInstanceOf(
+            'AsyncSockets\RequestExecutor\Metadata\RequestDescriptor',
+            $descriptor,
+            'Unexpected object returned'
+        );
+
+        $counter = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\SpeedRateCounter')
+            ->disableOriginalConstructor()
+            ->setMethods(['reset'])
+            ->getMockForAbstractClass();
+
+        $descriptor->registerCounter(RequestDescriptor::COUNTER_TRANSFER_MIN_RATE, $counter);
+        $counter->expects(self::once())->method('reset');
+
+        $this->bag->resetSpeedRateCounters($this->socket);
     }
 
     /**

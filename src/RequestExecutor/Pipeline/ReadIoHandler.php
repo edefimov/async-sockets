@@ -140,7 +140,7 @@ class ReadIoHandler extends AbstractOobHandler implements FramePickerInterface
     private function handleRecvSpeed(RequestDescriptor $descriptor, $bytesRead)
     {
         $meta    = $descriptor->getMetadata();
-        $counter = $descriptor->getCounter(__METHOD__);
+        $counter = $descriptor->getCounter(RequestDescriptor::COUNTER_TRANSFER_MIN_RATE);
 
         try {
             if (!$counter) {
@@ -149,7 +149,7 @@ class ReadIoHandler extends AbstractOobHandler implements FramePickerInterface
                     $meta[RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION]
                 );
                 $counter->advance($meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME], 0);
-                $descriptor->registerCounter(__METHOD__, $counter);
+                $descriptor->registerCounter(RequestDescriptor::COUNTER_TRANSFER_MIN_RATE, $counter);
             }
 
             $counter->advance(microtime(true), $bytesRead);

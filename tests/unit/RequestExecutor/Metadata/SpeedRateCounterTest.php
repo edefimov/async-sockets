@@ -83,7 +83,7 @@ class SpeedRateCounterTest extends AbstractTestCase
 
         $object->reset();
         self::assertSame(0, $object->getCurrentDuration(), 'Incorrect duration');
-        self::assertNull($object->getCurrentSpeed(), 'Incorrect speed');
+        self::assertSame(0, $object->getCurrentSpeed(), 'Incorrect speed');
     }
 
     /**

@@ -95,9 +95,20 @@ interface SocketBagInterface extends \Countable
     public function postponeSocket(SocketInterface $socket);
 
     /**
+     * Resets transfer rate counter when transfer is actually completed. This is need to be done when using
+     * META_MIN_RECEIVE_SPEED and META_MIN_RECEIVE_SPEED_DURATION settings;
+     *
+     * @param SocketInterface $socket Socket object
+     *
+     * @return void
+     * @api
+     */
+    public function resetSpeedRateCounters(SocketInterface $socket);
+
+    /**
      * Return array with meta information about socket
      *
-     * @param SocketInterface $socket Added socket
+     * @param SocketInterface $socket Socket object
      *
      * @return array Key-value array where key is one of META_* consts
      * @throws \OutOfBoundsException If given socket is not added to this bag
@@ -109,7 +120,7 @@ interface SocketBagInterface extends \Countable
     /**
      * Set metadata for given socket
      *
-     * @param SocketInterface $socket Added socket
+     * @param SocketInterface $socket Socket object
      * @param string|array    $key Either string or key-value array of metadata. If string, then value must be
      *                             passed in third argument, if array, then third argument will be ignored
      * @param mixed           $value Value for key

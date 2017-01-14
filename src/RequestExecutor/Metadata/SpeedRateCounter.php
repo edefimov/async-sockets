@@ -15,39 +15,32 @@ namespace AsyncSockets\RequestExecutor\Metadata;
 class SpeedRateCounter
 {
     /**
-     * Array of measurements
-     *
-     * @var array
-     */
-    private $measures = [];
-
-    /**
-     * Amount of measures to take
+     * Amount of processed bytes
      *
      * @var int
      */
-    private $maxMeasures;
+    private $totalBytesProcessed;
 
     /**
-     * Minimum amount of measures
+     * Time when request is started
      *
      * @var int
      */
-    private $minMeasures;
+    private $initialTime;
 
     /**
-     * Current min value
-     *
-     * @var double
-     */
-    private $currentSpeed;
-
-    /**
-     * Duration of speed below min in seconds
+     * Time of last measurement
      *
      * @var int
      */
-    private $currentDuration;
+    private $currentTime;
+
+    /**
+     * Time when speed felt below minimal
+     *
+     * @var int
+     */
+    private $slowStartTime;
 
     /**
      * Minimum allowed speed in bytes per second
@@ -64,6 +57,13 @@ class SpeedRateCounter
     private $maxDuration;
 
     /**
+     * Current speed
+     *
+     * @var double
+     */
+    private $currentSpeed;
+
+    /**
      * SpeedRateCounter constructor.
      *
      * @param double $minSpeed Minimum allowed speed in bytes per second
@@ -71,8 +71,6 @@ class SpeedRateCounter
      */
     public function __construct($minSpeed, $maxDuration)
     {
-        $this->maxMeasures = 2;
-        $this->minMeasures = 2;
         $this->minSpeed    = $minSpeed;
         $this->maxDuration = $maxDuration;
         $this->reset();
@@ -85,9 +83,11 @@ class SpeedRateCounter
      */
     public function reset()
     {
-        $this->measures        = [];
-        $this->currentSpeed    = 0;
-        $this->currentDuration = 0;
+        $this->initialTime         = null;
+        $this->currentTime         = null;
+        $this->totalBytesProcessed = 0;
+        $this->currentSpeed        = 0;
+        $this->slowStartTime       = null;
     }
 
     /**
@@ -101,20 +101,20 @@ class SpeedRateCounter
      */
     public function advance($time, $value)
     {
-        $this->addMeasure($time, $value);
+        $this->measure($time, $value);
         $this->currentSpeed = $this->getAverageSpeed();
-        if ($this->minSpeed === null || $this->maxDuration === null) {
+        if ($this->minSpeed === null || $this->maxDuration === null || $this->currentSpeed === null) {
             return;
         }
 
-        if ($this->currentSpeed !== null) {
-            $this->currentDuration = $this->currentSpeed < $this->minSpeed ?
-                $this->currentDuration + $this->getElapsedTime() :
-                0;
+        if ($this->currentSpeed < $this->minSpeed) {
+            $this->slowStartTime = $this->slowStartTime !== null ? $this->slowStartTime : $time;
 
-            if ($this->currentDuration > $this->maxDuration) {
+            if ($time - $this->slowStartTime > $this->maxDuration) {
                 throw new \OverflowException();
             }
+        } else {
+            $this->slowStartTime = null;
         }
     }
 
@@ -126,12 +126,15 @@ class SpeedRateCounter
      *
      * @return void
      */
-    private function addMeasure($time, $value)
+    private function measure($time, $value)
     {
-        $this->measures[] = [ $time, $value ];
-        if (count($this->measures) > $this->maxMeasures) {
-            array_shift($this->measures);
+        if ($this->initialTime === null) {
+            $this->initialTime = $time;
+        } else {
+            $this->currentTime = $time;
         }
+
+        $this->totalBytesProcessed += $value;
     }
 
     /**
@@ -141,27 +144,9 @@ class SpeedRateCounter
      */
     private function getAverageSpeed()
     {
-        $elapsed = $this->getElapsedTime();
-        $end     = end($this->measures);
+        $timeElapsed = $this->currentTime - $this->initialTime;
 
-        return $elapsed ? $end[1] / $elapsed : null;
-    }
-
-    /**
-     * Return elapsed time for average value
-     *
-     * @return double
-     */
-    private function getElapsedTime()
-    {
-        if (count($this->measures) < $this->minMeasures) {
-            return null;
-        }
-
-        $end   = end($this->measures);
-        $start = reset($this->measures);
-
-        return $end[0] - $start[0];
+        return $timeElapsed >= 1 ? ($this->totalBytesProcessed / $timeElapsed) : 0;
     }
 
     /**
@@ -181,6 +166,6 @@ class SpeedRateCounter
      */
     public function getCurrentDuration()
     {
-        return $this->currentDuration;
+        return $this->slowStartTime !== null ? $this->currentTime - $this->slowStartTime : 0;
     }
 }
