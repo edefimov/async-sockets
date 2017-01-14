@@ -9,6 +9,7 @@ fi
 
 if [[ "${TRAVIS_PHP_VERSION}" != "hhvm" &&
       "${TRAVIS_PHP_VERSION}" != "7.0" &&
+      "${TRAVIS_PHP_VERSION}" != "7.1" &&
       "${TRAVIS_PHP_VERSION}" != "nightly" ]]; then
     echo "yes" | pecl install event
 

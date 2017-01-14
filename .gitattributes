@@ -1,5 +1,6 @@
-/composer.lock        export-ignore
+/composer.lock.dist   export-ignore
 /demos                export-ignore
+/docs                 export-ignore
 /tests                export-ignore
 /.gitattributes       export-ignore
 /.gitignore           export-ignore
@@ -8,3 +9,4 @@
 /travis-install.sh    export-ignore
 /phpunit.xml.dist     export-ignore
 /config.yml.dist      export-ignore
+/humbug.json.dist     export-ignore
