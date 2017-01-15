@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -12,7 +12,6 @@ namespace Tests\AsyncSockets\Socket\Io;
 
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\Io\DisconnectedIo;
-use AsyncSockets\Socket\Io\IoInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**

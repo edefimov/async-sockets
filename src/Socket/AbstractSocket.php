@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -12,6 +12,7 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Frame\FramePickerInterface;
+use AsyncSockets\Socket\Io\AbstractIo;
 use AsyncSockets\Socket\Io\Context;
 use AsyncSockets\Socket\Io\DisconnectedIo;
 use AsyncSockets\Socket\Io\IoInterface;
@@ -84,24 +85,14 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /**
-     * Create certain socket resource
+     * Set disconnected state for socket
      *
-     * @param string   $address Network address to open in form transport://path:port
-     * @param resource $context Valid stream context created by function stream_context_create or null
-     *
-     * @return resource
+     * @return void
      */
-    abstract protected function createSocketResource($address, $context);
-
-    /**
-     * Create I/O interface for socket
-     *
-     * @param string $type Type of this socket, one of SOCKET_TYPE_* consts
-     * @param string $address Address passed to open method
-     *
-     * @return IoInterface
-     */
-    abstract protected function createIoInterface($type, $address);
+    private function setDisconnectedState()
+    {
+        $this->ioInterface = new DisconnectedIo($this);
+    }
 
     /** {@inheritdoc} */
     public function open($address, $context = null)
@@ -111,26 +102,28 @@ abstract class AbstractSocket implements SocketInterface
             $context ?: stream_context_get_default()
         );
 
-        $result = false;
-        if (is_resource($this->resource)) {
-            $result              = true;
-            $this->remoteAddress = $address;
-
-            // https://bugs.php.net/bug.php?id=51056
-            stream_set_blocking($this->resource, 0);
-
-            // https://bugs.php.net/bug.php?id=52602
-            stream_set_timeout($this->resource, 0, 0);
-
-            $this->ioInterface = $this->createIoInterface(
-                $this->resolveSocketType(),
-                $address
+        if (!is_resource($this->resource)) {
+            throw new ConnectionException(
+                $this,
+                'Can not allocate socket resource.'
             );
-
-            $this->context->reset();
         }
 
-        return $result;
+        $this->remoteAddress = $address;
+
+        // https://bugs.php.net/bug.php?id=51056
+        stream_set_blocking($this->resource, 0);
+
+        // https://bugs.php.net/bug.php?id=52602
+        stream_set_timeout($this->resource, 0, 0);
+        stream_set_chunk_size($this->resource, AbstractIo::SOCKET_BUFFER_SIZE);
+
+        $this->ioInterface = $this->createIoInterface(
+            $this->resolveSocketType(),
+            $address
+        );
+
+        $this->context->reset();
     }
 
     /** {@inheritdoc} */
@@ -174,6 +167,40 @@ abstract class AbstractSocket implements SocketInterface
     }
 
     /**
+     * @inheritDoc
+     */
+    public function __toString()
+    {
+        return $this->remoteAddress ?
+            sprintf(
+                '[#%s, %s]',
+                preg_replace('/Resource id #(\d+)/i', '$1', (string) $this->resource),
+                $this->remoteAddress
+            ) :
+            '[closed socket]';
+    }
+
+    /**
+     * Create certain socket resource
+     *
+     * @param string   $address Network address to open in form transport://path:port
+     * @param resource $context Valid stream context created by function stream_context_create or null
+     *
+     * @return resource
+     */
+    abstract protected function createSocketResource($address, $context);
+
+    /**
+     * Create I/O interface for socket
+     *
+     * @param string $type Type of this socket, one of SOCKET_TYPE_* consts
+     * @param string $address Address passed to open method
+     *
+     * @return IoInterface
+     */
+    abstract protected function createIoInterface($type, $address);
+
+    /**
      * Get current socket type
      *
      * @return string One of SOCKET_TYPE_* consts
@@ -201,23 +228,5 @@ abstract class AbstractSocket implements SocketInterface
         }
 
         return self::SOCKET_TYPE_UNKNOWN;
-    }
-
-    /**
-     * Set disconnected state for socket
-     *
-     * @return void
-     */
-    private function setDisconnectedState()
-    {
-        $this->ioInterface = new DisconnectedIo($this);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function __toString()
-    {
-        return $this->remoteAddress ?: '"closed socket"';
     }
 }

@@ -1,0 +1,8 @@
+slowuploadtest:
+  build: ./
+  volumes:
+    - ../../../src:/async-sockets/src
+    - ../../../vendor:/async-sockets/vendor
+    - ../../../demos:/async-sockets/demos
+  ports:
+    - 10031

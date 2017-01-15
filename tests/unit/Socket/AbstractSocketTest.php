@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -31,6 +31,16 @@ class AbstractSocketTest extends AbstractTestCase
     protected $socket;
 
     /**
+     * testStringCastingForClosedSocket
+     *
+     * @return void
+     */
+    public function testStringCastingForClosedSocket()
+    {
+        self::assertSame('[closed socket]', (string) $this->socket, 'Incorrect string casting for closed socket');
+    }
+
+    /**
      * testBlockingModeWillChange
      *
      * @return void
@@ -49,6 +59,29 @@ class AbstractSocketTest extends AbstractTestCase
             function ($resource, $isBlocking) {
                 self::assertEquals(false, $isBlocking, 'Unexpected value passed');
                 return \stream_set_blocking($resource, $isBlocking);
+            }
+        );
+
+        $this->socket->open('php://temp');
+        self::assertRegExp(
+            '#\[\#\d+, php://temp\]#',
+            (string) $this->socket,
+            'Incorrect string casting for opened socket'
+        );
+    }
+
+    /**
+     * testSystemStreamSettingsChange
+     *
+     * @return void
+     */
+    public function testSystemStreamSettingsChange()
+    {
+        PhpFunctionMocker::getPhpFunctionMocker('stream_set_timeout')->setCallable(
+            function ($socket, $seconds, $microseconds = 0) {
+                self::assertSame($this->socket->getStreamResource(), $socket, 'Unexpected socket resource');
+                self::assertSame(0, $seconds, 'Seconds must be set to zero on socket initialization');
+                self::assertSame(0, $microseconds, 'Microseconds must be set to zero on socket initialization');
             }
         );
 
@@ -131,6 +164,30 @@ class AbstractSocketTest extends AbstractTestCase
     }
 
     /**
+     * testThatFailedSocketResourceAllocationThrowsException
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\ConnectionException
+     * @expectedExceptionMessage Can not allocate socket resource.
+     */
+    public function testThatFailedSocketResourceAllocationThrowsException()
+    {
+        $socket = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\AbstractSocket',
+            [ ],
+            '',
+            true,
+            true,
+            true,
+            ['createSocketResource']
+        );
+
+
+        $socket->expects(self::any())->method('createSocketResource')->willReturn(false);
+        $socket->open('no matter');
+    }
+
+    /**
      * testExceptionWillBeThrownIfSocketTypeIsUnknown
      *
      * @return void
@@ -162,31 +219,6 @@ class AbstractSocketTest extends AbstractTestCase
         ];
     }
 
-    /**
-     * Create SocketInterface implementation for test
-     *
-     * @return SocketInterface
-     */
-    protected function createSocketInterface()
-    {
-        $mock = $this->getMockForAbstractClass(
-            'AsyncSockets\Socket\AbstractSocket',
-            [ ],
-            '',
-            true,
-            true,
-            true,
-            ['createSocketResource']
-        );
-
-        $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
-            function () {
-                return fopen('php://temp', 'rw');
-            }
-        );
-        return $mock;
-    }
-
     /** {@inheritdoc} */
     protected function setUp()
     {
@@ -212,6 +244,32 @@ class AbstractSocketTest extends AbstractTestCase
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('stream_select')->restoreNativeHandler();
+        PhpFunctionMocker::getPhpFunctionMocker('stream_set_timeout')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('fwrite')->restoreNativeHandler();
+    }
+
+    /**
+     * Create SocketInterface implementation for test
+     *
+     * @return SocketInterface
+     */
+    protected function createSocketInterface()
+    {
+        $mock = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\AbstractSocket',
+            [ ],
+            '',
+            true,
+            true,
+            true,
+            ['createSocketResource']
+        );
+
+        $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
+            function () {
+                return fopen('php://temp', 'rw');
+            }
+        );
+        return $mock;
     }
 }

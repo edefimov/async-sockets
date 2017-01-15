@@ -2,13 +2,14 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -35,32 +36,23 @@ class SocketBag implements SocketBagInterface
     private $items;
 
     /**
-     * Default connection timeout
+     * Configuration
      *
-     * @var double
+     * @var Configuration
      */
-    private $connectTimeout;
-
-    /**
-     * Default I/O timeout
-     *
-     * @var double
-     */
-    private $ioTimeout;
+    private $configuration;
 
     /**
      * SocketBag constructor.
      *
      * @param RequestExecutorInterface $executor Owner RequestExecutor
-     * @param double                   $connectTimeout Default connection timeout
-     * @param double                   $ioTimeout Default I/O timeout
+     * @param Configuration            $configuration Configuration with default values
      */
-    public function __construct(RequestExecutorInterface $executor, $connectTimeout, $ioTimeout)
+    public function __construct(RequestExecutorInterface $executor, Configuration $configuration)
     {
-        $this->executor       = $executor;
-        $this->items          = [ ];
-        $this->connectTimeout = $connectTimeout;
-        $this->ioTimeout      = $ioTimeout;
+        $this->executor      = $executor;
+        $this->items         = [];
+        $this->configuration = $configuration;
     }
 
     /** {@inheritdoc} */
@@ -84,18 +76,28 @@ class SocketBag implements SocketBagInterface
 
         $meta = array_merge(
             [
-                RequestExecutorInterface::META_ADDRESS               => null,
-                RequestExecutorInterface::META_USER_CONTEXT          => null,
-                RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => null,
-                RequestExecutorInterface::META_CONNECTION_TIMEOUT    => $this->connectTimeout,
-                RequestExecutorInterface::META_IO_TIMEOUT            => $this->ioTimeout,
+                RequestExecutorInterface::META_ADDRESS                    => null,
+                RequestExecutorInterface::META_USER_CONTEXT               => null,
+                RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT      => $this->configuration->getStreamContext(),
+                RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => $this->configuration->getMinReceiveSpeed(),
+                RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION =>
+                                                                    $this->configuration->getMinReceiveSpeedDuration(),
+                RequestExecutorInterface::META_MIN_SEND_SPEED             => $this->configuration->getMinSendSpeed(),
+                RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION    =>
+                                                                    $this->configuration->getMinSendSpeedDuration(),
+                RequestExecutorInterface::META_CONNECTION_TIMEOUT         => $this->configuration->getConnectTimeout(),
+                RequestExecutorInterface::META_IO_TIMEOUT                 => $this->configuration->getIoTimeout(),
             ],
             $metadata ?: [],
             [
                 RequestExecutorInterface::META_CONNECTION_START_TIME  => null,
                 RequestExecutorInterface::META_CONNECTION_FINISH_TIME => null,
                 RequestExecutorInterface::META_LAST_IO_START_TIME     => null,
+                RequestExecutorInterface::META_BYTES_SENT             => 0,
+                RequestExecutorInterface::META_BYTES_RECEIVED         => 0,
                 RequestExecutorInterface::META_REQUEST_COMPLETE       => false,
+                RequestExecutorInterface::META_RECEIVE_SPEED          => 0,
+                RequestExecutorInterface::META_SEND_SPEED             => 0,
             ]
         );
 
@@ -113,7 +115,6 @@ class SocketBag implements SocketBagInterface
     {
         $this->requireDescriptor($socket)->setOperation($operation);
     }
-
 
     /** {@inheritdoc} */
     public function hasSocket(SocketInterface $socket)
@@ -150,6 +151,14 @@ class SocketBag implements SocketBagInterface
     }
 
     /** {@inheritdoc} */
+    public function resetTransferRateCounters(SocketInterface $socket)
+    {
+        $descriptor = $this->requireDescriptor($socket);
+        $descriptor->resetCounter(RequestDescriptor::COUNTER_RECV_MIN_RATE);
+        $descriptor->resetCounter(RequestDescriptor::COUNTER_SEND_MIN_RATE);
+    }
+
+    /** {@inheritdoc} */
     public function getSocketMetaData(SocketInterface $socket)
     {
         return $this->requireDescriptor($socket)->getMetadata();
@@ -159,11 +168,15 @@ class SocketBag implements SocketBagInterface
     public function setSocketMetaData(SocketInterface $socket, $key, $value = null)
     {
         $writableKeys = [
-            RequestExecutorInterface::META_ADDRESS               => 1,
-            RequestExecutorInterface::META_USER_CONTEXT          => 1,
-            RequestExecutorInterface::META_CONNECTION_TIMEOUT    => 1,
-            RequestExecutorInterface::META_IO_TIMEOUT            => 1,
-            RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => 1,
+            RequestExecutorInterface::META_ADDRESS                    => 1,
+            RequestExecutorInterface::META_USER_CONTEXT               => 1,
+            RequestExecutorInterface::META_CONNECTION_TIMEOUT         => 1,
+            RequestExecutorInterface::META_IO_TIMEOUT                 => 1,
+            RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT      => 1,
+            RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => 1,
+            RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => 1,
+            RequestExecutorInterface::META_MIN_SEND_SPEED             => 1,
+            RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION    => 1,
         ];
 
         if (!is_array($key)) {

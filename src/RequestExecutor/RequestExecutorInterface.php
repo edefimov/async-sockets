@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -45,6 +45,27 @@ interface RequestExecutorInterface
     const META_LAST_IO_START_TIME = 'lastIoStartTime';
 
     /**
+     * Amount of bytes sent by this socket. Read-only value
+     */
+    const META_BYTES_SENT = 'bytesSent';
+
+    /**
+     * Amount of bytes received by this socket. Read-only value
+     */
+    const META_BYTES_RECEIVED = 'bytesReceived';
+
+    /**
+     * Data receiving speed in bytes per second. Read-only value
+     */
+    const META_RECEIVE_SPEED = 'receiveSpeed';
+
+
+    /**
+     * Data sending speed in bytes per second. Read-only value
+     */
+    const META_SEND_SPEED = 'sendSpeed';
+
+    /**
      * Any user-defined value, not used internally at all.
      */
     const META_USER_CONTEXT = 'userContext';
@@ -82,6 +103,26 @@ interface RequestExecutorInterface
      * @see RequestExecutorInterface::META_CONNECTION_TIMEOUT
      */
     const META_IO_TIMEOUT = 'ioTimeout';
+
+    /**
+     * Minimum receive speed for this socket in bytes per second
+     */
+    const META_MIN_RECEIVE_SPEED = 'minReceiveSpeed';
+
+    /**
+     * Time after which a receive request will be treated as too slow and aborted, in seconds
+     */
+    const META_MIN_RECEIVE_SPEED_DURATION = 'minReceiveSpeedDuration';
+
+    /**
+     * Minimum send speed for this socket in bytes per second
+     */
+    const META_MIN_SEND_SPEED = 'minSendSpeed';
+
+    /**
+     * Time after which a send request will be treated as too slow and aborted, in seconds
+     */
+    const META_MIN_SEND_SPEED_DURATION = 'minSendSpeedDuration';
 
     /**
      * Return socket bag, associated with this executor

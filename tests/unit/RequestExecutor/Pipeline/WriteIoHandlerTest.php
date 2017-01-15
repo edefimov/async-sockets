@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -16,9 +16,10 @@ use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Operation\InProgressWriteOperation;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
-use AsyncSockets\Operation\WriteOperation;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
  * Class WriteIoHandlerTest
@@ -59,10 +60,11 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
      */
     public function testWriteInSingleRequest()
     {
-        $testData = md5(microtime(true));
+        $testData   = md5(microtime(true));
+        $lengthData = strlen($testData);
 
         $this->socket->expects(self::never())->method('read');
-        $this->socket->expects(self::any())->method('write')->willReturn(strlen($testData));
+        $this->socket->expects(self::any())->method('write')->willReturn($lengthData);
 
         $this->mockEventHandler->expects(self::once())
                           ->method('invokeEvent')
@@ -76,12 +78,28 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                               );
                           });
 
+        $descriptor = $this->getMockedDescriptor(
+            new WriteOperation($testData),
+            $this->socket,
+            RequestDescriptor::RDS_WRITE
+        );
+
+        $this->metadata[RequestExecutorInterface::META_BYTES_SENT] = mt_rand(1000, 10000);
+        $descriptor->expects(self::exactly(2))
+            ->method('setMetadata')
+            ->withConsecutive(
+                [
+                    RequestExecutorInterface::META_BYTES_SENT,
+                    $this->metadata[ RequestExecutorInterface::META_BYTES_SENT ] + $lengthData,
+                ],
+                [
+                    RequestExecutorInterface::META_SEND_SPEED,
+                    0.0,
+                ]
+            );
+
         $result = $this->handler->handle(
-            $this->getMockedDescriptor(
-                new WriteOperation($testData),
-                $this->socket,
-                RequestDescriptor::RDS_WRITE
-            ),
+            $descriptor,
             $this->executor,
             $this->mockEventHandler
         );

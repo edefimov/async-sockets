@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -16,14 +16,14 @@ use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\Operation\InProgressWriteOperation;
-use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
+use AsyncSockets\Operation\WriteOperation;
+use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
-use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\Application\Mock\PhpFunctionMocker;
 

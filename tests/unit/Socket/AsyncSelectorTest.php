@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -57,6 +57,28 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     {
         $this->selector->addSocketOperation($this->socket, $operation);
         $this->verifySocketSelectOperation($countRead, $countWrite);
+    }
+
+    /**
+     * Check validity of select operation
+     *
+     * @param int $countRead Amount of sockets, that must be ready to read
+     * @param int $countWrite Amount of sockets, that must be ready to write
+     *
+     * @return void
+     */
+    private function verifySocketSelectOperation($countRead, $countWrite)
+    {
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () {
+                return '';
+            }
+        );
+        $result = $this->selector->select(0);
+        self::assertCount($countRead, $result->getRead(), 'Unexpected result of read selector');
+        self::assertCount($countWrite, $result->getWrite(), 'Unexpected result of write selector');
+        $testSocket = $result->getRead() + $result->getWrite();
+        self::assertSame($this->socket, $testSocket[ 0 ], 'Unexpected object returned for operation');
     }
 
     /**
@@ -295,6 +317,48 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testIoOperations
+     *
+     * @param \Closure   $createMockFn SocketInterface fn(); Socket create function
+     * @param callable[] $callables Initial callables
+     * @param string     $operation Operation name
+     * @param \Closure   $expectedResultFn Array of expected results in context form array fn(SocketInterface $socket)
+     * @param bool       $shouldReturnSocket Flag if socket must be returned in select context
+     *
+     * @dataProvider socketOperationsDataProvider
+     */
+    public function testIoOperations(
+        \Closure $createMockFn,
+        array $callables,
+        $operation,
+        \Closure $expectedResultFn,
+        $shouldReturnSocket
+    ) {
+        $socket = $createMockFn();
+        if (!$shouldReturnSocket) {
+            $this->setExpectedException('AsyncSockets\Exception\TimeoutException');
+        }
+
+        foreach ($callables as $name => $callable) {
+            PhpFunctionMocker::getPhpFunctionMocker($name)->setCallable($callable);
+        }
+
+        $this->selector->addSocketOperation($socket, $operation);
+        $context = $this->selector->select(0);
+
+        $expectedResult = $expectedResultFn($socket);
+        self::assertSame(count($context->getRead()), count($expectedResult['read']), 'Incorrect data in read array');
+        self::assertSame(count($context->getWrite()), count($expectedResult['write']), 'Incorrect data in write array');
+        self::assertSame(count($context->getOob()), count($expectedResult['oob']), 'Incorrect data in oob array');
+
+        self::assertContains(
+            $socket,
+            array_merge($context->getRead(), $context->getWrite(), $context->getOob()),
+            'Socket was not found in result context'
+        );
+    }
+
+    /**
      * socketOperationDataProvider
      *
      * @return array
@@ -318,6 +382,360 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
         return [
             [ [ [ $this->socket ] ] ],
             [ [ $this->socket ] ],
+        ];
+    }
+
+    /**
+     * socketOperationsDataProvider
+     *
+     * @return array
+     */
+    public function socketOperationsDataProvider()
+    {
+        $resource = fopen('php://temp', 'r+');
+        $fnCreateMock = function ($className) use ($resource) {
+            return function () use ($className, $resource) {
+                $mock = $this->getMockBuilder($className)
+                             ->setMethods(['getStreamResource'])
+                             ->disableOriginalConstructor()
+                             ->getMockForAbstractClass();
+                $mock->expects(self::any())->method('getStreamResource')->willReturn($resource);
+
+                return $mock;
+            };
+        };
+
+        $clientFn = $fnCreateMock('AsyncSockets\Socket\ClientSocket');
+        $serverFn = $fnCreateMock('AsyncSockets\Socket\ServerSocket');
+        $verifyFn = function ($keyName) {
+            return function (SocketInterface $socket) use ($keyName) {
+                return ($keyName ? [ $keyName => [$socket] ] : []) + [
+                    'read'  => [],
+                    'write' => [],
+                    'oob'   => [],
+                ];
+            };
+        };
+
+        $streamSocketRecvFromOobDataReady = function ($socket, $length, $flags) {
+            return $flags & (STREAM_PEEK | STREAM_OOB) === (STREAM_PEEK | STREAM_OOB) ? true : false;
+        };
+
+        return [
+            // 0. client read usual
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [ $resource ];
+                        $write = [ ];
+                        $oob = [ ];
+
+                        return 1;
+                    },
+                    'stream_socket_recvfrom' => function () {
+                        return true;
+                    }
+                ],
+                OperationInterface::OPERATION_READ,
+                $verifyFn('read'),
+                true
+            ],
+            // 1. client read not ready
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [  ];
+                        $write = [ ];
+                        $oob = [ ];
+
+                        return 0;
+                    },
+                    'stream_socket_recvfrom' => function () {
+                        return false;
+                    }
+                ],
+                OperationInterface::OPERATION_READ,
+                $verifyFn(null),
+                false
+            ],
+            // 2. client write
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [  ];
+                        $write = [ $resource ];
+                        $oob = [ ];
+
+                        return 1;
+                    },
+                ],
+                OperationInterface::OPERATION_WRITE,
+                $verifyFn('write'),
+                true
+            ],
+            // 3. client write not read
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [  ];
+                        $write = [ ];
+                        $oob = [ ];
+
+                        return 0;
+                    },
+                ],
+                OperationInterface::OPERATION_WRITE,
+                $verifyFn(null),
+                false
+            ],
+            // 4. client oob with read
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [  ];
+                        $write = [  ];
+                        $oob = [ $resource ];
+
+                        return 1;
+                    },
+                    'stream_socket_recvfrom' => $streamSocketRecvFromOobDataReady
+                ],
+                OperationInterface::OPERATION_READ,
+                $verifyFn('oob'),
+                true
+            ],
+            // 5. client oob with read when oob not ready
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [  ];
+                        $write = [  ];
+                        $oob = [ $resource ];
+
+                        return 1;
+                    },
+                    'stream_socket_recvfrom' => function () {
+                        return false;
+                    }
+                ],
+                OperationInterface::OPERATION_READ,
+                $verifyFn('oob'),
+                false
+            ],
+            // 6. client oob with write
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [  ];
+                        $write = [  ];
+                        $oob = [ $resource ];
+
+                        return 1;
+                    },
+                    'stream_socket_recvfrom' => $streamSocketRecvFromOobDataReady
+                ],
+                OperationInterface::OPERATION_WRITE,
+                $verifyFn('oob'),
+                true
+            ],
+            // 7. server read
+            [
+                $serverFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [ $resource ];
+                        $write = [ ];
+                        $oob = [ ];
+
+                        return 1;
+                    },
+                    'stream_socket_get_name' => function ($socket, $isPeer) {
+                        return $isPeer ? false : '127.0.0.1:867';
+                    }
+                ],
+                OperationInterface::OPERATION_READ,
+                $verifyFn('read'),
+                true
+            ],
+            // 8. server write
+            [
+                $serverFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read = [  ];
+                        $write = [ $resource ];
+                        $oob = [ ];
+
+                        return 1;
+                    },
+                ],
+                OperationInterface::OPERATION_WRITE,
+                $verifyFn('write'),
+                true
+            ],
+            // 9. server oob with read
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read  = [  ];
+                        $write = [  ];
+                        $oob   = [ $resource ];
+
+                        return 1;
+                    },
+                    'stream_socket_get_name' => function ($socket, $isPeer) {
+                        return $isPeer ? false : '127.0.0.1:867';
+                    },
+                    'stream_socket_recvfrom' => $streamSocketRecvFromOobDataReady,
+                ],
+                OperationInterface::OPERATION_READ,
+                $verifyFn('oob'),
+                true
+            ],
+            // 10. server oob with read not ready
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read  = [  ];
+                        $write = [  ];
+                        $oob   = [ $resource ];
+
+                        return 1;
+                    },
+                    'stream_socket_get_name' => function ($socket, $isPeer) {
+                        return $isPeer ? false : '127.0.0.1:867';
+                    },
+                    'stream_socket_recvfrom' => function () {
+                        return false;
+                    },
+                ],
+                OperationInterface::OPERATION_READ,
+                $verifyFn(null),
+                false
+            ],
+            // 11. server oob with write
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read  = [  ];
+                        $write = [  ];
+                        $oob   = [ $resource ];
+
+                        return 1;
+                    },
+                    'stream_socket_recvfrom' => $streamSocketRecvFromOobDataReady
+                ],
+                OperationInterface::OPERATION_WRITE,
+                $verifyFn('oob'),
+                true
+            ],
+            // 12. server oob not ready with write
+            [
+                $clientFn,
+                [
+                    'stream_select' => function (
+                        array &$read = null,
+                        array &$write = null,
+                        array &$oob = null
+                    ) use (
+                        $resource
+                    ) {
+                        $read  = [  ];
+                        $write = [  ];
+                        $oob   = [ $resource ];
+
+                        return 1;
+                    },
+                    'stream_socket_recvfrom' => function () {
+                        return false;
+                    }
+                ],
+                OperationInterface::OPERATION_WRITE,
+                $verifyFn('null'),
+                false
+            ],
         ];
     }
 
@@ -348,27 +766,5 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->restoreNativeHandler();
         PhpFunctionMocker::getPhpFunctionMocker('usleep')->restoreNativeHandler();
         $this->socket->close();
-    }
-
-    /**
-     * Check validity of select operation
-     *
-     * @param int $countRead Amount of sockets, that must be ready to read
-     * @param int $countWrite Amount of sockets, that must be ready to write
-     *
-     * @return void
-     */
-    private function verifySocketSelectOperation($countRead, $countWrite)
-    {
-        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
-            function () {
-                return '';
-            }
-        );
-        $result = $this->selector->select(0);
-        self::assertCount($countRead, $result->getRead(), 'Unexpected result of read selector');
-        self::assertCount($countWrite, $result->getWrite(), 'Unexpected result of write selector');
-        $testSocket = $result->getRead() + $result->getWrite();
-        self::assertSame($this->socket, $testSocket[ 0 ], 'Unexpected object returned for operation');
     }
 }

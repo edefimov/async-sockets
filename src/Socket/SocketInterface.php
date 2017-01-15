@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -27,7 +27,7 @@ interface SocketInterface extends StreamResourceInterface
      * @param string        $address Network address to open in form transport://path:port
      * @param resource|null $context Valid stream context created by function stream_context_create or null
      *
-     * @return bool
+     * @return void
      * @throws NetworkSocketException
      *
      * @api

@@ -2,13 +2,14 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
 namespace AsyncSockets\Socket\Io;
 
+use AsyncSockets\Exception\SendDataException;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Socket\SocketInterface;
 
@@ -62,7 +63,10 @@ class DatagramClientIo extends AbstractClientIo
     protected function writeRawData($data, $isOutOfBand)
     {
         $result = stream_socket_sendto($this->socket->getStreamResource(), $data, 0, $this->remoteAddress);
-        $this->throwNetworkSocketExceptionIf($result < 0, 'Failed to send data.');
+        if ($result < 0) {
+            throw SendDataException::failedToSendData($this->socket);
+        }
+
         return $result;
     }
 

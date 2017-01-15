@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -12,6 +12,7 @@ namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
 use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
 
@@ -147,6 +148,64 @@ class RequestDescriptorTest extends AbstractTestCase
 
         /** @var \AsyncSockets\Event\Event $event */
         $operation->invokeEvent($event);
+    }
+
+    /**
+     * testCreatingStreamContext
+     *
+     * @return void
+     */
+    public function testCreatingStreamContext()
+    {
+        $descriptor = new RequestDescriptor(
+            $this->socket,
+            $this->operation,
+            [ RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => null ]
+        );
+
+        $meta       = $descriptor->getMetadata();
+        $context    = $meta[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT];
+        self::assertSame(stream_context_get_default(), $context, 'Incorrect initial context');
+    }
+
+    /**
+     * testSettingStreamContext
+     *
+     * @return void
+     */
+    public function testSettingStreamContext()
+    {
+        $descriptor = new RequestDescriptor(
+            $this->socket,
+            $this->operation,
+            [  ]
+        );
+
+        $descriptor->setMetadata(RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT, null);
+
+        $meta       = $descriptor->getMetadata();
+        $context    = $meta[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT];
+        self::assertSame(stream_context_get_default(), $context, 'Incorrect context set ');
+    }
+
+    /**
+     * testSettingStreamContext
+     *
+     * @return void
+     */
+    public function testSettingStreamContextViaArray()
+    {
+        $descriptor = new RequestDescriptor(
+            $this->socket,
+            $this->operation,
+            [  ]
+        );
+
+        $descriptor->setMetadata([ RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT => null]);
+
+        $meta       = $descriptor->getMetadata();
+        $context    = $meta[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT];
+        self::assertSame(stream_context_get_default(), $context, 'Incorrect context set ');
     }
 
     /**

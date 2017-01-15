@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -55,7 +55,10 @@ class WriteIoHandler extends AbstractOobHandler
             $nextOperation = $operation;
         }
 
-        return $this->writeDataToSocket($operation, $socket, $nextOperation);
+        $result = $this->writeDataToSocket($operation, $socket, $nextOperation, $bytesWritten);
+        $this->handleTransferCounter(RequestDescriptor::COUNTER_SEND_MIN_RATE, $descriptor, $bytesWritten);
+
+        return $result;
     }
 
     /**
@@ -64,16 +67,20 @@ class WriteIoHandler extends AbstractOobHandler
      * @param WriteOperation     $operation Current write operation instance
      * @param SocketInterface    $socket Socket object
      * @param OperationInterface $nextOperation Desirable next operation
+     * @param int                $bytesWritten Amount of written bytes
      *
      * @return OperationInterface Actual next operation
      */
     private function writeDataToSocket(
         WriteOperation $operation,
         SocketInterface $socket,
-        OperationInterface $nextOperation = null
+        OperationInterface $nextOperation = null,
+        &$bytesWritten = null
     ) {
         $result               = $nextOperation;
         $extractNextOperation = true;
+        $bytesWritten         = 0;
+
         if ($operation->hasData()) {
             $data    = $operation->getData();
             $length  = strlen($data);
@@ -88,6 +95,8 @@ class WriteIoHandler extends AbstractOobHandler
 
                 $result = $operation;
             }
+
+            $bytesWritten = $written;
         }
 
         if ($extractNextOperation && ($operation instanceof InProgressWriteOperation)) {

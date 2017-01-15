@@ -2,7 +2,7 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -18,13 +18,16 @@ use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\Frame;
 use AsyncSockets\Frame\FrameInterface;
+use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\ReadIoHandler;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
+use Tests\Application\Mock\PhpFunctionMocker;
 
 /**
  * Class ReadIoHandlerTest
@@ -57,27 +60,56 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
      */
     public function testReadInSingleRequest(FrameInterface $frame, $eventType, $mustBeReturned)
     {
-        $this->socket->expects(self::any())->method('read')->willReturn($frame);
+        $this->socket->expects(self::any())->method('read')->willReturnCallback(
+            function (FramePickerInterface $picker) use ($frame) {
+                $picker->pickUpData((string) $frame, '127.0.0.1');
+                return $frame;
+            }
+        );
         $this->socket->expects(self::never())->method('write');
 
         $this->mockEventHandler->expects(self::once())
-                          ->method('invokeEvent')
-                          ->willReturnCallback(
-                              function (Event $event) use ($frame, $eventType) {
-                                  $this->validateEventContext($event);
-                                  self::assertEquals($eventType, $event->getType(), 'Incorrect event fired');
-                                  if ($event instanceof ReadEvent) {
-                                      self::assertSame($frame, $event->getFrame());
-                                  }
-                              }
-                          );
+                               ->method('invokeEvent')
+                               ->willReturnCallback(
+                                   function (Event $event) use ($frame, $eventType) {
+                                       $this->validateEventContext($event);
+                                       self::assertEquals($eventType, $event->getType(), 'Incorrect event fired');
+                                       if ($event instanceof ReadEvent) {
+                                           self::assertSame($frame, $event->getFrame());
+                                       }
+                                   }
+                               );
+
+        $descriptor = $this->getMockedDescriptor(
+            new ReadOperation(),
+            $this->socket,
+            RequestDescriptor::RDS_READ
+        );
+        $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED]             = mt_rand(1000, 10000);
+        $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED]          = 1;
+        $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION] = 1e10;
+
+        $descriptor->expects(self::exactly(2))
+                   ->method('setMetadata')
+                    ->willReturnCallback(function ($key, $value) use ($frame) {
+                        switch ($key) {
+                            case RequestExecutorInterface::META_BYTES_RECEIVED:
+                                self::assertSame(
+                                    $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED] +
+                                        strlen((string) $frame),
+                                    $value,
+                                    'Unexpected bytes received value'
+                                );
+                                break;
+                            case RequestExecutorInterface::META_RECEIVE_SPEED:
+                                break;
+                            default:
+                                self::fail('Unexpected metadata change with key ' . $key);
+                        }
+                    });
 
         $result = $this->handler->handle(
-            $this->getMockedDescriptor(
-                new ReadOperation(),
-                $this->socket,
-                RequestDescriptor::RDS_READ
-            ),
+            $descriptor,
             $this->executor,
             $this->mockEventHandler
         );
@@ -206,6 +238,41 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
             'AsyncSockets\Operation\ReadOperation',
             $result,
             'Incorrect operation for accept event'
+        );
+    }
+
+    /**
+     * testThatTooSlowRateCausesException
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\SlowSpeedTransferException
+     */
+    public function testThatTooSlowRateCausesException()
+    {
+        $this->socket->expects(self::any())->method('read')->willReturnCallback(
+            function (FramePickerInterface $picker) {
+                $picker->pickUpData('test', '127.0.0.1');
+                return new PartialFrame($picker->createFrame());
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable(function () {
+            return 2;
+        });
+
+        $descriptor = $this->getMockedDescriptor(
+            new ReadOperation(),
+            $this->socket,
+            RequestDescriptor::RDS_READ
+        );
+        $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED]          = 1e10;
+        $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION] = 1;
+        $this->metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME]     = 0;
+
+        $this->handler->handle(
+            $descriptor,
+            $this->executor,
+            $this->mockEventHandler
         );
     }
 

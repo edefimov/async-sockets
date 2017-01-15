@@ -2,16 +2,18 @@
 /**
  * Async sockets
  *
- * @copyright Copyright (c) 2015-2016, Efimov Evgenij <edefimov.it@gmail.com>
+ * @copyright Copyright (c) 2015-2017, Efimov Evgenij <edefimov.it@gmail.com>
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\Configuration\StreamContext;
 use AsyncSockets\Event\Event;
-use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\PersistentClientSocket;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\StreamResourceInterface;
@@ -37,6 +39,16 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     const RDS_OOB = 0x0004;
 
     /**
+     * Minimum transfer rate counter for receiving data
+     */
+    const COUNTER_RECV_MIN_RATE = 'recv_speed_rate_counter';
+
+    /**
+     * Minimum transfer rate counter for sending data
+     */
+    const COUNTER_SEND_MIN_RATE = 'send_speed_rate_counter';
+
+    /**
      * Socket for this operation
      *
      * @var SocketInterface
@@ -48,7 +60,7 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
      *
      * @var array
      */
-    private $metadata;
+    private $metadata = [];
 
     /**
      * Event handler object
@@ -86,6 +98,13 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     private $state = 0;
 
     /**
+     * Array of counters
+     *
+     * @var SpeedRateCounter[]
+     */
+    private $counters;
+
+    /**
      * RequestDescriptor constructor.
      *
      * @param SocketInterface       $socket Socket object
@@ -101,9 +120,20 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     ) {
         $this->socket    = $socket;
         $this->operation = $operation;
-        $this->metadata  = $metadata;
         $this->handlers  = $handlers;
+        $this->counters  = [];
+        $this->setMetadata($metadata);
         $this->initialize();
+    }
+
+    /**
+     * Initialize data before request
+     *
+     * @return void
+     */
+    public function initialize()
+    {
+        $this->isRunning = false;
     }
 
     /**
@@ -126,16 +156,6 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     public function setOperation(OperationInterface $operation)
     {
         $this->operation = $operation;
-    }
-
-    /**
-     * Initialize data before request
-     *
-     * @return void
-     */
-    public function initialize()
-    {
-        $this->isRunning = false;
     }
 
     /**
@@ -198,12 +218,19 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     public function setMetadata($key, $value = null)
     {
         if (!is_array($key)) {
-            $this->metadata[$key] = $value;
+            $this->metadata[$key]   = $value;
+            $isStreamContextChanged = $key === RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT;
         } else {
             $this->metadata = array_merge(
                 $this->metadata,
                 $key
             );
+            $isStreamContextChanged = array_key_exists(RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT, $key);
+        }
+
+        if ($isStreamContextChanged) {
+            $context = new StreamContext($this->metadata[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT]);
+            $this->metadata[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT] = $context->getResource();
         }
     }
 
@@ -274,5 +301,61 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     public function clearState($state)
     {
         $this->state &= ~$state;
+    }
+
+    /**
+     * Registers counter in this descriptor
+     *
+     * @param string           $name SpeedRateCounter name for retrieving
+     * @param SpeedRateCounter $counter A counter object
+     *
+     * @return void
+     */
+    public function registerCounter($name, SpeedRateCounter $counter)
+    {
+        if (!isset($this->counters[$name])) {
+            $this->counters[$name] = $counter;
+        }
+    }
+
+    /**
+     * Return counter by given name
+     *
+     * @param string $name SpeedRateCounter name
+     *
+     * @return SpeedRateCounter|null
+     */
+    public function getCounter($name)
+    {
+        return isset($this->counters[$name]) ? $this->counters[$name] : null;
+    }
+
+    /**
+     * Resets counter with given name
+     *
+     * @param string $name Counter name
+     *
+     * @return void
+     */
+    public function resetCounter($name)
+    {
+        $counter = $this->getCounter($name);
+        if (!$counter) {
+            return;
+        }
+
+        $resetMetadata = [
+            self::COUNTER_RECV_MIN_RATE => [
+                RequestExecutorInterface::META_RECEIVE_SPEED => 0,
+            ],
+            self::COUNTER_SEND_MIN_RATE => [
+                RequestExecutorInterface::META_SEND_SPEED => 0,
+            ],
+        ];
+
+        $counter->reset();
+        if (isset($resetMetadata[$name])) {
+            $this->setMetadata($resetMetadata[$name]);
+        }
     }
 }
