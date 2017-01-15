@@ -245,7 +245,7 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
      * testThatTooSlowRateCausesException
      *
      * @return void
-     * @expectedException \AsyncSockets\Exception\TooSlowRecvException
+     * @expectedException \AsyncSockets\Exception\SlowSpeedTransferException
      */
     public function testThatTooSlowRateCausesException()
     {

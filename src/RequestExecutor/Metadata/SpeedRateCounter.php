@@ -24,35 +24,35 @@ class SpeedRateCounter
     /**
      * Time when request is started
      *
-     * @var int
+     * @var double
      */
     private $initialTime;
 
     /**
      * Time of last measurement
      *
-     * @var int
+     * @var double
      */
     private $currentTime;
 
     /**
      * Time when speed felt below minimal
      *
-     * @var int
+     * @var double
      */
     private $slowStartTime;
 
     /**
      * Minimum allowed speed in bytes per second
      *
-     * @var float
+     * @var double
      */
     private $minSpeed;
 
     /**
      * Maximum duration of minimum speed in seconds
      *
-     * @var float
+     * @var double
      */
     private $maxDuration;
 
@@ -86,7 +86,7 @@ class SpeedRateCounter
         $this->initialTime         = null;
         $this->currentTime         = null;
         $this->totalBytesProcessed = 0;
-        $this->currentSpeed        = 0;
+        $this->currentSpeed        = 0.0;
         $this->slowStartTime       = null;
     }
 
@@ -103,18 +103,20 @@ class SpeedRateCounter
     {
         $this->measure($time, $value);
         $this->currentSpeed = $this->getAverageSpeed();
-        if ($this->minSpeed === null || $this->maxDuration === null || $this->currentSpeed === null) {
+        $skipCheck = $this->minSpeed === null ||
+                     $this->maxDuration === null ||
+                     $this->currentSpeed === null ||
+                     $this->currentSpeed >= $this->minSpeed;
+
+        if ($skipCheck) {
+            $this->slowStartTime = null;
             return;
         }
 
-        if ($this->currentSpeed < $this->minSpeed) {
-            $this->slowStartTime = $this->slowStartTime !== null ? $this->slowStartTime : $time;
+        $this->slowStartTime = $this->slowStartTime !== null ? $this->slowStartTime : $time;
 
-            if ($time - $this->slowStartTime > $this->maxDuration) {
-                throw new \OverflowException();
-            }
-        } else {
-            $this->slowStartTime = null;
+        if ($time - $this->slowStartTime > $this->maxDuration) {
+            throw new \OverflowException();
         }
     }
 
@@ -146,7 +148,7 @@ class SpeedRateCounter
     {
         $timeElapsed = $this->currentTime - $this->initialTime;
 
-        return $timeElapsed >= 1 ? ($this->totalBytesProcessed / $timeElapsed) : 0;
+        return $timeElapsed > 0 ? ($this->totalBytesProcessed / $timeElapsed) : 0.0;
     }
 
     /**
@@ -162,10 +164,10 @@ class SpeedRateCounter
     /**
      * Return duration of current slow speed
      *
-     * @return int
+     * @return double
      */
     public function getCurrentDuration()
     {
-        return $this->slowStartTime !== null ? $this->currentTime - $this->slowStartTime : 0;
+        return $this->slowStartTime !== null ? $this->currentTime - $this->slowStartTime : 0.0;
     }
 }

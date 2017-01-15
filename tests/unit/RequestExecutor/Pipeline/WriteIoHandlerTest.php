@@ -85,11 +85,17 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
         );
 
         $this->metadata[RequestExecutorInterface::META_BYTES_SENT] = mt_rand(1000, 10000);
-        $descriptor->expects(self::once())
+        $descriptor->expects(self::exactly(2))
             ->method('setMetadata')
-            ->with(
-                RequestExecutorInterface::META_BYTES_SENT,
-                $this->metadata[RequestExecutorInterface::META_BYTES_SENT] + $lengthData
+            ->withConsecutive(
+                [
+                    RequestExecutorInterface::META_BYTES_SENT,
+                    $this->metadata[ RequestExecutorInterface::META_BYTES_SENT ] + $lengthData,
+                ],
+                [
+                    RequestExecutorInterface::META_SEND_SPEED,
+                    0.0,
+                ]
             );
 
         $result = $this->handler->handle(

@@ -236,8 +236,60 @@ class StreamedClientIoTest extends AbstractClientIoTest
         for ($i = 0; $i < StreamedClientIo::READ_ATTEMPTS; $i++) {
             $this->object->read($picker, $this->context, false);
         }
+    }
 
-        self::fail('Exception was not thrown');
+    /**
+     * testExceptionWillBeThrownIfConnectionLost
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\DisconnectException
+     */
+    public function testExceptionWillBeThrownIfConnectionLost()
+    {
+        /** @var FramePickerInterface|\PHPUnit_Framework_MockObject_MockObject $picker */
+        $picker = $this->getMock(
+            'AsyncSockets\Frame\FramePickerInterface',
+            ['isEof', 'pickUpData', 'createFrame']
+        );
+
+        $picker->expects(self::any())->method('isEof')->willReturn(false);
+        $picker->expects(self::any())->method('pickUpData')->willReturnCallback(function ($data) {
+            return $data;
+        });
+        $picker->expects(self::any())->method('createFrame')->willReturnCallback(function () {
+            return $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface');
+        });
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
+            function () {
+                return false;
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('fread')->setCallable(
+            function () {
+                return '';
+            }
+        );
+
+        $this->ensureSocketIsOpened();
+        $this->setConnectedStateForTestObject(true);
+        $mock = $this->getMockBuilder('Countable')
+            ->setMethods(['count'])
+            ->getMockForAbstractClass();
+        $mock->expects(self::any())
+            ->method('count')
+            ->willReturnOnConsecutiveCalls(false);
+
+
+        for ($i = 0; $i < StreamedClientIo::READ_ATTEMPTS; $i++) {
+            if ($i === StreamedClientIo::READ_ATTEMPTS-1) {
+                PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')
+                                 ->setCallable([$mock, 'count']);
+            }
+
+            $this->object->read($picker, $this->context, false);
+        }
     }
 
     /**
@@ -322,6 +374,30 @@ class StreamedClientIoTest extends AbstractClientIoTest
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable([ $expectation, 'count' ]);
         $object->write($data, $this->context, true);
         self::assertTrue($hasSentAnything, 'Data were not actually sent');
+    }
+
+    /**
+     * testOobWritingError
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\SendDataException
+     */
+    public function testOobWritingError()
+    {
+        $this->setConnectedStateForTestObject(true);
+        $this->ensureSocketIsOpened();
+        $object = new StreamedClientIo($this->socket, 1);
+
+        $expectation = $this->getMockBuilder('Countable')
+            ->setMethods(['count'])
+            ->getMockForAbstractClass();
+
+        $expectation->expects(self::any())
+            ->method('count')
+            ->willReturnOnConsecutiveCalls(0, -1);
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable([ $expectation, 'count' ]);
+        $object->write('x', $this->context, true);
     }
 
     /**

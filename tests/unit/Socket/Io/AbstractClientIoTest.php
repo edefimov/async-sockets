@@ -194,6 +194,34 @@ class AbstractClientIoTest extends AbstractIoTest
         $this->object->write($data, $this->context, true);
     }
 
+    /**
+     * testConnectionIsUnexpectedlyClosed
+     *
+     * @return void
+     * @expectedException \AsyncSockets\Exception\ConnectionException
+     * @expectedExceptionMessage Connection was unexpectedly closed.
+     */
+    public function testConnectionIsUnexpectedlyClosed()
+    {
+        PhpFunctionMocker::getPhpFunctionMocker('fwrite')->setCallable(
+            function ($resource, $data) {
+                return strlen($data);
+            }
+         );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable(
+            function ($resource, $data) {
+                return strlen($data);
+            }
+         );
+
+        $this->setConnectedStateForTestObject(true);
+        $this->ensureSocketIsOpened();
+        $this->object->write('1', $this->context, false);
+        fclose($this->socket->getStreamResource());
+        $this->object->write('2', $this->context, false);
+    }
+
     /** {@inheritdoc} */
     protected function createSocketInterface()
     {

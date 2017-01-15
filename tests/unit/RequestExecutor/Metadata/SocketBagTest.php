@@ -100,6 +100,26 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
                 'value' => 0,
                 'message' => 'Incorrect bytes receive speed counter initial value'
             ],
+            RequestExecutorInterface::META_SEND_SPEED => [
+                'value' => 0,
+                'message' => 'Incorrect bytes send speed counter initial value'
+            ],
+            RequestExecutorInterface::META_MIN_RECEIVE_SPEED => [
+                'value' => null,
+                'message' => 'Incorrect min receive speed setting'
+            ],
+            RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => [
+                'value' => null,
+                'message' => 'Incorrect receive duration setting'
+            ],
+            RequestExecutorInterface::META_MIN_SEND_SPEED => [
+                'value' => null,
+                'message' => 'Incorrect min send speed setting'
+            ],
+            RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION => [
+                'value' => null,
+                'message' => 'Incorrect send duration setting'
+            ],
         ];
 
         $meta = $this->bag->getSocketMetaData($this->socket);
@@ -329,7 +349,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
             ->setMethods(['reset'])
             ->getMockForAbstractClass();
 
-        $descriptor->registerCounter(RequestDescriptor::COUNTER_TRANSFER_MIN_RATE, $counter);
+        $descriptor->registerCounter(RequestDescriptor::COUNTER_RECV_MIN_RATE, $counter);
         $counter->expects(self::once())->method('reset');
 
         $this->bag->resetSpeedRateCounters($this->socket);
@@ -352,6 +372,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
                 RequestExecutorInterface::META_BYTES_SENT             => 1,
                 RequestExecutorInterface::META_BYTES_RECEIVED         => 1,
                 RequestExecutorInterface::META_RECEIVE_SPEED          => 1,
+                RequestExecutorInterface::META_SEND_SPEED             => 1,
             ];
 
             $metadata = [ ];

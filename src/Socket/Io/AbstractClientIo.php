@@ -82,7 +82,7 @@ abstract class AbstractClientIo extends AbstractIo
             $isEndOfFrameReached = $picker->isEof();
             if (!$isEndOfFrameReached && !$this->canReachFrame()) {
                 if (!$this->isConnected()) {
-                    throw new DisconnectException($this->socket, 'Remote connection has been lost.');
+                    throw DisconnectException::lostRemoteConnection($this->socket);
                 }
 
                 throw new FrameException($picker, $this->socket, 'Failed to receive desired frame.');
@@ -102,12 +102,15 @@ abstract class AbstractClientIo extends AbstractIo
     {
         $this->setConnectedState();
         $this->verifyOobData($isOutOfBand, $data);
+        if (empty($data)) {
+            return 0;
+        }
 
         $result              = $this->writeRawData($data, $isOutOfBand);
         $this->writeAttempts = $result > 0 ? self::IO_ATTEMPTS : $this->writeAttempts - 1;
 
         if (!$this->writeAttempts) {
-            throw new SendDataException($this->socket, 'Failed to send data.');
+            throw SendDataException::failedToSendData($this->socket);
         }
 
         return $result;

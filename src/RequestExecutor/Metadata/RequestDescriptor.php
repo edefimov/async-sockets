@@ -12,6 +12,7 @@ namespace AsyncSockets\RequestExecutor\Metadata;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\PersistentClientSocket;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\StreamResourceInterface;
@@ -37,9 +38,14 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     const RDS_OOB = 0x0004;
 
     /**
-     * Minimum transfer rate counter
+     * Minimum transfer rate counter for receiving data
      */
-    const COUNTER_TRANSFER_MIN_RATE = 'speed_rate_counter';
+    const COUNTER_RECV_MIN_RATE = 'recv_speed_rate_counter';
+
+    /**
+     * Minimum transfer rate counter for sending data
+     */
+    const COUNTER_SEND_MIN_RATE = 'send_speed_rate_counter';
 
     /**
      * Socket for this operation
@@ -314,5 +320,34 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     public function getCounter($name)
     {
         return isset($this->counters[$name]) ? $this->counters[$name] : null;
+    }
+
+    /**
+     * Resets counter with given name
+     *
+     * @param string $name Counter name
+     *
+     * @return void
+     */
+    public function resetCounter($name)
+    {
+        $counter = $this->getCounter($name);
+        if (!$counter) {
+            return;
+        }
+
+        $resetMetadata = [
+            self::COUNTER_RECV_MIN_RATE => [
+                RequestExecutorInterface::META_RECEIVE_SPEED => 0,
+            ],
+            self::COUNTER_SEND_MIN_RATE => [
+                RequestExecutorInterface::META_SEND_SPEED => 0,
+            ],
+        ];
+
+        $counter->reset();
+        if (isset($resetMetadata[$name])) {
+            $this->setMetadata($resetMetadata[$name]);
+        }
     }
 }

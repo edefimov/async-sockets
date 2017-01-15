@@ -6,7 +6,7 @@ averageRawValuesProvider:
     minSpeed: 1
     maxDuration: 5000
     expectedSpeed: 6
-    expectedDuration: 0
+    expectedDuration: 0.0
     accuracy: 0
   - # 1, low rate, duration tick
     measures:
@@ -37,7 +37,7 @@ averageRawValuesProvider:
     minSpeed: ~
     maxDuration: ~
     expectedSpeed: 20
-    expectedDuration: 0
+    expectedDuration: 0.0
     accuracy: 0.001
   - # 4, one setting - no ticks
     measures:
@@ -48,7 +48,7 @@ averageRawValuesProvider:
     minSpeed: ~
     maxDuration: 5
     expectedSpeed: 20
-    expectedDuration: 0
+    expectedDuration: 0.0
     accuracy: 0.001
   - # 5, one setting - no ticks
     measures:
@@ -59,7 +59,7 @@ averageRawValuesProvider:
     minSpeed: 5
     maxDuration: ~
     expectedSpeed: 20
-    expectedDuration: 0
+    expectedDuration: 0.0
     accuracy: 0.001
   - # 6, reset duration
     measures:
@@ -70,7 +70,7 @@ averageRawValuesProvider:
     minSpeed: 7
     maxDuration: 10
     expectedSpeed: 7
-    expectedDuration: 0
+    expectedDuration: 0.0
     accuracy: 0.001
   - # 7, boundary situation
     measures:
@@ -79,7 +79,7 @@ averageRawValuesProvider:
     minSpeed: 7
     maxDuration: 1
     expectedSpeed: 13
-    expectedDuration: 0
+    expectedDuration: 0.0
     accuracy: 0.001
 
 

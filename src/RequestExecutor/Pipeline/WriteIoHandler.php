@@ -56,11 +56,7 @@ class WriteIoHandler extends AbstractOobHandler
         }
 
         $result = $this->writeDataToSocket($operation, $socket, $nextOperation, $bytesWritten);
-        $meta   = $descriptor->getMetadata();
-        $descriptor->setMetadata(
-            RequestExecutorInterface::META_BYTES_SENT,
-            $meta[RequestExecutorInterface::META_BYTES_SENT] + $bytesWritten
-        );
+        $this->handleTransferCounter(RequestDescriptor::COUNTER_SEND_MIN_RATE, $descriptor, $bytesWritten);
 
         return $result;
     }

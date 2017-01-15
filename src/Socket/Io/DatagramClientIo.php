@@ -64,7 +64,7 @@ class DatagramClientIo extends AbstractClientIo
     {
         $result = stream_socket_sendto($this->socket->getStreamResource(), $data, 0, $this->remoteAddress);
         if ($result < 0) {
-            throw new SendDataException($this->socket, 'Failed to send data.');
+            throw SendDataException::failedToSendData($this->socket);
         }
 
         return $result;

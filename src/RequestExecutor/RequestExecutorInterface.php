@@ -59,6 +59,12 @@ interface RequestExecutorInterface
      */
     const META_RECEIVE_SPEED = 'receiveSpeed';
 
+
+    /**
+     * Data sending speed in bytes per second. Read-only value
+     */
+    const META_SEND_SPEED = 'sendSpeed';
+
     /**
      * Any user-defined value, not used internally at all.
      */
@@ -104,9 +110,19 @@ interface RequestExecutorInterface
     const META_MIN_RECEIVE_SPEED = 'minReceiveSpeed';
 
     /**
-     * Time after which a request will be treated as too slow and aborted, in seconds
+     * Time after which a receive request will be treated as too slow and aborted, in seconds
      */
     const META_MIN_RECEIVE_SPEED_DURATION = 'minReceiveSpeedDuration';
+
+    /**
+     * Minimum send speed for this socket in bytes per second
+     */
+    const META_MIN_SEND_SPEED = 'minSendSpeed';
+
+    /**
+     * Time after which a send request will be treated as too slow and aborted, in seconds
+     */
+    const META_MIN_SEND_SPEED_DURATION = 'minSendSpeedDuration';
 
     /**
      * Return socket bag, associated with this executor

@@ -89,6 +89,8 @@ class SocketBag implements SocketBagInterface
                 RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT      => null,
                 RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => null,
                 RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => null,
+                RequestExecutorInterface::META_MIN_SEND_SPEED             => null,
+                RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION    => null,
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT         => $this->connectTimeout,
                 RequestExecutorInterface::META_IO_TIMEOUT                 => $this->ioTimeout,
             ],
@@ -101,6 +103,7 @@ class SocketBag implements SocketBagInterface
                 RequestExecutorInterface::META_BYTES_RECEIVED         => 0,
                 RequestExecutorInterface::META_REQUEST_COMPLETE       => false,
                 RequestExecutorInterface::META_RECEIVE_SPEED          => 0,
+                RequestExecutorInterface::META_SEND_SPEED             => 0,
             ]
         );
 
@@ -156,12 +159,7 @@ class SocketBag implements SocketBagInterface
     /** {@inheritdoc} */
     public function resetSpeedRateCounters(SocketInterface $socket)
     {
-        $descriptor = $this->requireDescriptor($socket);
-        $counter    = $descriptor->getCounter(RequestDescriptor::COUNTER_TRANSFER_MIN_RATE);
-        if ($counter) {
-            $counter->reset();
-            $descriptor->setMetadata(RequestExecutorInterface::META_RECEIVE_SPEED, null);
-        }
+        $this->requireDescriptor($socket)->resetCounter(RequestDescriptor::COUNTER_RECV_MIN_RATE);
     }
 
     /** {@inheritdoc} */
@@ -181,6 +179,8 @@ class SocketBag implements SocketBagInterface
             RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT      => 1,
             RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => 1,
             RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => 1,
+            RequestExecutorInterface::META_MIN_SEND_SPEED             => 1,
+            RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION    => 1,
         ];
 
         if (!is_array($key)) {

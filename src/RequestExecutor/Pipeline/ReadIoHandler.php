@@ -12,7 +12,6 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Event\AcceptEvent;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Exception\AcceptException;
-use AsyncSockets\Exception\TooSlowRecvException;
 use AsyncSockets\Frame\AcceptedFrame;
 use AsyncSockets\Frame\FramePickerInterface;
 use AsyncSockets\Frame\PartialFrame;
@@ -20,7 +19,6 @@ use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
-use AsyncSockets\RequestExecutor\Metadata\SpeedRateCounter;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -120,50 +118,7 @@ class ReadIoHandler extends AbstractOobHandler implements FramePickerInterface
      */
     private function appendReadBytes(RequestDescriptor $descriptor, $bytesRead)
     {
-        $meta = $descriptor->getMetadata();
-        $descriptor->setMetadata(
-            RequestExecutorInterface::META_BYTES_RECEIVED,
-            $meta[RequestExecutorInterface::META_BYTES_RECEIVED] + $bytesRead
-        );
-
-        $this->handleRecvSpeed($descriptor, $bytesRead);
-    }
-
-    /**
-     * Process download rate for descriptor
-     *
-     * @param RequestDescriptor $descriptor The descriptor
-     * @param int               $bytesRead Amount of read bytes
-     *
-     * @return void
-     */
-    private function handleRecvSpeed(RequestDescriptor $descriptor, $bytesRead)
-    {
-        $meta    = $descriptor->getMetadata();
-        $counter = $descriptor->getCounter(RequestDescriptor::COUNTER_TRANSFER_MIN_RATE);
-
-        try {
-            if (!$counter) {
-                $counter = new SpeedRateCounter(
-                    $meta[RequestExecutorInterface::META_MIN_RECEIVE_SPEED],
-                    $meta[RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION]
-                );
-                $counter->advance($meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME], 0);
-                $descriptor->registerCounter(RequestDescriptor::COUNTER_TRANSFER_MIN_RATE, $counter);
-            }
-
-            $counter->advance(microtime(true), $bytesRead);
-            $descriptor->setMetadata(
-                RequestExecutorInterface::META_RECEIVE_SPEED,
-                $counter->getCurrentSpeed() ?: $meta[RequestExecutorInterface::META_RECEIVE_SPEED]
-            );
-        } catch (\OverflowException $e) {
-            throw TooSlowRecvException::tooSlowDataReceiving(
-                $descriptor->getSocket(),
-                $counter->getCurrentSpeed(),
-                $counter->getCurrentDuration()
-            );
-        }
+        $this->handleTransferCounter(RequestDescriptor::COUNTER_RECV_MIN_RATE, $descriptor, $bytesRead);
     }
 
     /**

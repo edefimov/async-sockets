@@ -13,7 +13,6 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Frame\MarkerFramePicker;
-use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
@@ -26,23 +25,16 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Class SlowDownloadTestCommand
+ * Class SlowUploadTestCommand
  */
-class SlowDownloadTestCommand extends Command
+class SlowUploadTestCommand extends Command
 {
-    /**
-     * Content length
-     *
-     * @var int
-     */
-    private $contentLength;
-
     /**
      * Received bytes
      *
      * @var int
      */
-    private $receivedLength;
+    private $transferedLength;
 
     /**
      * @inheritDoc
@@ -50,19 +42,19 @@ class SlowDownloadTestCommand extends Command
     protected function configure()
     {
         parent::configure();
-        $this->setName('test:slow-download')
+        $this->setName('test:slow-upload')
             ->addOption(
                 'min-speed',
                 null,
                 InputOption::VALUE_REQUIRED,
-                'Min receive rate in bytes per second',
+                'Min send rate in bytes per second',
                 1 * 1024 * 1024
             )->addOption(
                 'duration',
                 null,
                 InputOption::VALUE_REQUIRED,
-                'Min receive speed duration in seconds',
-                30
+                'Min send speed duration in seconds',
+                5
             );
     }
 
@@ -71,51 +63,78 @@ class SlowDownloadTestCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        // http://download.thinkbroadband.com/1GB.zip
         $factory  = new AsyncSocketFactory();
         $socket   = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
         $executor = $factory->createRequestExecutor();
         $progress = null;
-        $output->writeln('Starting download 1GB file');
+        $output->writeln('Starting upload 5MB file');
+
+        $dataSize    = 5 * 1024 * 1024;
+        $boundary    = sha1(microtime(true));
+        $frameEnd    = "\r\n--{$boundary}--\r\n";
+        $dirOnServer = sha1('async-sockets-tests');
+        $fileHeader  = "--{$boundary}\r\n" .
+                       "Content-Disposition: form-data; name=\"testFile\"; filename=\"test.txt\"\r\n" .
+                       "Content-Type: application/octet-stream\r\n" .
+                       "Content-Transfer-Encoding: binary\r\n\r\n";
+
+        $contentLength = strlen($fileHeader) + $dataSize + strlen($frameEnd);
 
         $executor->socketBag()->addSocket(
             $socket,
-            new WriteOperation("GET /1GB.zip HTTP/1.1\nHost: download.thinkbroadband.co\n\n"),
+            new WriteOperation("POST /post.php?dir={$dirOnServer} HTTP/1.0\r\n" .
+                               "Host: posttestserver.com\r\n" .
+                               "Content-Type: multipart/form-data; boundary={$boundary}\r\n" .
+                               "Content-Length: {$contentLength}\r\n\r\n" .
+                               $fileHeader),
             [
-                RequestExecutorInterface::META_ADDRESS                    => "tcp://download.thinkbroadband.com:80",
+                RequestExecutorInterface::META_ADDRESS                    => "tls://posttestserver.com:443",
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT         => 30,
                 RequestExecutorInterface::META_IO_TIMEOUT                 => 30,
-                RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => (int) $input->getOption('min-speed'),
-                RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => (int) $input->getOption('duration'),
+                RequestExecutorInterface::META_MIN_SEND_SPEED             => (int) $input->getOption('min-speed'),
+                RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION    => (int) $input->getOption('duration'),
+                RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => 1024 * 1024 * 1024,
+                RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => 1,
             ],
             new CallbackEventHandler(
                 [
-                    EventType::WRITE => function (WriteEvent $event) {
-                        $event->nextIs(new ReadOperation(new MarkerFramePicker('HTTP', "\r\n\r\n", true)));
+                    EventType::READ => function (ReadEvent $event) use ($output) {
+                        $output->writeln($event->getFrame()->getData());
                     },
-                    EventType::READ => function (ReadEvent $event) use (&$progress, $output) {
-                        if (!$this->contentLength) {
-                            $this->contentLength  = $this->getContentLength($event->getFrame()->getData());
-                            $this->receivedLength = 0;
-                            $progress = new ProgressBar($output, $this->contentLength);
+                    EventType::WRITE => function (WriteEvent $event) use (&$progress, $output, $dataSize, $frameEnd) {
+                        if (!$progress) {
+                            $this->transferedLength = 0;
+                            $progress               = new ProgressBar($output, $dataSize);
                             $progress->setFormat('%current%/%max% [%bar%] %percent:3s%% %speed%');
                             $progress->setRedrawFrequency(100000);
-                            $event->nextIs(new ReadOperation(new RawFramePicker()));
+                            $event->nextIs(new WriteOperation());
                             return;
                         }
 
                         /** @var ProgressBar $progress */
-                        $received              = strlen($event->getFrame()->getData());
-                        $this->receivedLength += $received;
+                        $transferLength = 8192;
+                        if ($this->transferedLength + $transferLength >= $dataSize) {
+                            $transferLength = $dataSize - $this->transferedLength;
+                            $data           = str_repeat('x', $transferLength);
+                            $data          .= $frameEnd;
+                        } else {
+                            $data = str_repeat('x', $transferLength);
+                        }
+
+                        $event->getOperation()->setData($data);
+
+                        $this->transferedLength += $transferLength;
                         $progress->setMessage(
                             $event->getExecutor()
                                   ->socketBag()
-                                  ->getSocketMetaData($event->getSocket())[RequestExecutorInterface::META_RECEIVE_SPEED],
+                                  ->getSocketMetaData($event->getSocket())[RequestExecutorInterface::META_SEND_SPEED],
                             'speed'
                         );
-                        $progress->advance($received);
-                        if ($this->receivedLength < $this->contentLength) {
-                            $event->nextIs(new ReadOperation(new RawFramePicker()));
+                        $progress->advance($transferLength);
+                        if ($this->transferedLength < $dataSize) {
+                            $event->nextIs(new WriteOperation());
+                        } else {
+                            $event->nextIs(new ReadOperation(new MarkerFramePicker(null, "\r\n\r\n")));
                         }
                     },
                     EventType::EXCEPTION => $this->getExceptionHandler($output)

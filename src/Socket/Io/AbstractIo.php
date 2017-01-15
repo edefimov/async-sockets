@@ -51,7 +51,7 @@ abstract class AbstractIo implements IoInterface
     protected function getLastPhpErrorMessage()
     {
         $lastError = error_get_last();
-        if ($lastError) {
+        if (!empty($lastError)) {
             $phpMessage = explode(':', $lastError['message'], 2);
             $phpMessage = trim(trim(end($phpMessage)), '.') . '.';
             return $phpMessage;

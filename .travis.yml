@@ -28,16 +28,16 @@ install:
   - bash ./travis-install.sh
 
 before_script:
-  - if [[ $TRAVIS_PHP_VERSION = '7.1' ]]; then PHPUNIT_FLAGS_1="--coverage-clover ./build/logs/clover-with-eventdispatcher.xml"; else PHPUNIT_FLAGS_1=""; fi
-  - if [[ $TRAVIS_PHP_VERSION = '7.1' ]]; then PHPUNIT_FLAGS_2="--coverage-clover ./build/logs/clover-no-eventdispatcher.xml"; else PHPUNIT_FLAGS_2=""; fi
+  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then PHPUNIT_FLAGS_1="--coverage-clover ./build/logs/clover-with-eventdispatcher.xml"; else PHPUNIT_FLAGS_1=""; fi
+  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then PHPUNIT_FLAGS_2="--coverage-clover ./build/logs/clover-no-eventdispatcher.xml"; else PHPUNIT_FLAGS_2=""; fi
 
 script:
   - vendor/bin/phpunit -c tests/travis/travis.phpunit.xml -d zend.enable_gc=0 $PHPUNIT_FLAGS_1
   - vendor/bin/phpunit -c tests/travis/no-eventdispatcher.phpunit.xml -d zend.enable_gc=0 $PHPUNIT_FLAGS_2
 
 after_script:
-  - if [[ $TRAVIS_PHP_VERSION = '7.1' ]]; then php ocular.phar code-coverage:upload --format=php-clover ./build/logs/clover-with-eventdispatcher.xml; fi
-  - if [[ $TRAVIS_PHP_VERSION = '7.1' ]]; then php ocular.phar code-coverage:upload --format=php-clover ./build/logs/clover-no-eventdispatcher.xml; fi
+  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then php ocular.phar code-coverage:upload --format=php-clover ./build/logs/clover-with-eventdispatcher.xml; fi
+  - if [[ $TRAVIS_PHP_VERSION = '5.6' ]]; then php ocular.phar code-coverage:upload --format=php-clover ./build/logs/clover-no-eventdispatcher.xml; fi
 
 matrix:
   allow_failures:

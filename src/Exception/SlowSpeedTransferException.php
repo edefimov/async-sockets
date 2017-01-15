@@ -12,9 +12,9 @@ namespace AsyncSockets\Exception;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
- * Class TooSlowRecvException. Thrown when transfer speed is slow then given in socket setup
+ * Class SlowSpeedTransferException. Thrown when transfer speed is slow then given in socket setup
  */
-class TooSlowRecvException extends RecvDataException
+class SlowSpeedTransferException extends TransferException
 {
     /**
      * Speed at the moment of exception in bytes per second
@@ -35,30 +35,52 @@ class TooSlowRecvException extends RecvDataException
      */
     public function __construct(
         SocketInterface $socket,
+        $direction,
         $speed,
         $duration,
         $message = '',
         $code = 0,
         \Exception $previous = null
     ) {
-        parent::__construct($socket, $message, $code, $previous);
+        parent::__construct($socket, $direction, $message, $code, $previous);
         $this->speed    = $speed;
         $this->duration = $duration;
     }
 
     /**
-     * tooSlowDataReceiving
+     * Create exception for slow receive speed
      *
      * @param SocketInterface $socket Socket
      * @param double          $speed Speed at the moment of exception in bytes per second
      * @param int             $duration Duration of low speed in seconds
      *
-     * @return TooSlowRecvException
+     * @return SlowSpeedTransferException
      */
     public static function tooSlowDataReceiving(SocketInterface $socket, $speed, $duration)
     {
         return new self(
             $socket,
+            self::DIRECTION_RECV,
+            $speed,
+            $duration,
+            'Data transfer is going to be aborted because of too slow speed.'
+        );
+    }
+
+    /**
+     * Create exception for slow send speed
+     *
+     * @param SocketInterface $socket Socket
+     * @param double          $speed Speed at the moment of exception in bytes per second
+     * @param int             $duration Duration of low speed in seconds
+     *
+     * @return SlowSpeedTransferException
+     */
+    public static function tooSlowDataSending(SocketInterface $socket, $speed, $duration)
+    {
+        return new self(
+            $socket,
+            self::DIRECTION_SEND,
             $speed,
             $duration,
             'Data transfer is going to be aborted because of too slow speed.'

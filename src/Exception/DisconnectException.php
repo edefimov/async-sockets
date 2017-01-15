@@ -9,10 +9,22 @@
  */
 namespace AsyncSockets\Exception;
 
+use AsyncSockets\Socket\SocketInterface;
+
 /**
  * Class DisconnectException. Socket has been unexpectedly disconnected
  */
 class DisconnectException extends ConnectionException
 {
-
+    /**
+     * Creates lost remote connection exception
+     *
+     * @param SocketInterface $socket
+     *
+     * @return DisconnectException
+     */
+    public static function lostRemoteConnection(SocketInterface $socket)
+    {
+        return new self($socket, 'Remote connection has been lost.');
+    }
 }
