@@ -97,28 +97,6 @@ class ConnectStage extends AbstractTimeAwareStage
     }
 
     /**
-     * Return stream context from meta data
-     *
-     * @param array $meta Socket metadata
-     *
-     * @return resource|null
-     */
-    private function getStreamContextFromMetaData($meta)
-    {
-        $metaStreamContext = $meta[ RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT ];
-        if (is_resource($metaStreamContext)) {
-            return $metaStreamContext;
-        } elseif (is_array($metaStreamContext)) {
-            return stream_context_create(
-                isset($metaStreamContext[ 'options' ]) ? $metaStreamContext[ 'options' ] : [ ],
-                isset($metaStreamContext[ 'params' ]) ? $metaStreamContext[ 'params' ] : [ ]
-            );
-        }
-
-        return null;
-    }
-
-    /**
      * Start connecting process
      *
      * @param RequestDescriptor $descriptor Socket operation data
@@ -140,7 +118,7 @@ class ConnectStage extends AbstractTimeAwareStage
 
             $socket->open(
                 $meta[ RequestExecutorInterface::META_ADDRESS ],
-                $this->getStreamContextFromMetaData($meta)
+                $meta[ RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT]
             );
 
             $descriptor->setRunning(true);

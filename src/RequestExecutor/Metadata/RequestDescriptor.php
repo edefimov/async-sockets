@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\Configuration\StreamContext;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
@@ -59,7 +60,7 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
      *
      * @var array
      */
-    private $metadata;
+    private $metadata = [];
 
     /**
      * Event handler object
@@ -119,9 +120,9 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     ) {
         $this->socket    = $socket;
         $this->operation = $operation;
-        $this->metadata  = $metadata;
         $this->handlers  = $handlers;
         $this->counters  = [];
+        $this->setMetadata($metadata);
         $this->initialize();
     }
 
@@ -217,12 +218,19 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     public function setMetadata($key, $value = null)
     {
         if (!is_array($key)) {
-            $this->metadata[$key] = $value;
+            $this->metadata[$key]   = $value;
+            $isStreamContextChanged = $key === RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT;
         } else {
             $this->metadata = array_merge(
                 $this->metadata,
                 $key
             );
+            $isStreamContextChanged = array_key_exists(RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT, $key);
+        }
+
+        if ($isStreamContextChanged) {
+            $context = new StreamContext($this->metadata[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT]);
+            $this->metadata[RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT] = $context->getResource();
         }
     }
 

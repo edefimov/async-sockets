@@ -103,7 +103,7 @@ interface SocketBagInterface extends \Countable
      * @return void
      * @api
      */
-    public function resetSpeedRateCounters(SocketInterface $socket);
+    public function resetTransferRateCounters(SocketInterface $socket);
 
     /**
      * Return array with meta information about socket

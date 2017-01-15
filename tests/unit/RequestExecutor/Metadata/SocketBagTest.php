@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
@@ -241,11 +242,12 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
      * @param string $phpName Name in php file
      * @param string $key Key in metadata array
      * @param bool   $isReadOnly Flag whether it is read only constant
+     * @param mixed  $testValue Value to change metadata
      *
      * @return void
      * @dataProvider metadataKeysDataProvider
      */
-    public function testMetadataCanChange($phpName, $key, $isReadOnly)
+    public function testMetadataCanChange($phpName, $key, $isReadOnly, $testValue)
     {
         $this->bag->addSocket(
             $this->socket,
@@ -254,7 +256,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
         );
         $originalMeta = $this->bag->getSocketMetaData($this->socket);
 
-        $this->bag->setSocketMetaData($this->socket, $key, mt_rand(1, PHP_INT_MAX));
+        $this->bag->setSocketMetaData($this->socket, $key, $testValue);
         $newMeta = $this->bag->getSocketMetaData($this->socket);
         if ($isReadOnly) {
             self::assertSame(
@@ -320,7 +322,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
      */
     public function testCantResetNonAddedSocket()
     {
-        $this->bag->resetSpeedRateCounters($this->socket);
+        $this->bag->resetTransferRateCounters($this->socket);
     }
 
     /**
@@ -352,7 +354,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
         $descriptor->registerCounter(RequestDescriptor::COUNTER_RECV_MIN_RATE, $counter);
         $counter->expects(self::once())->method('reset');
 
-        $this->bag->resetSpeedRateCounters($this->socket);
+        $this->bag->resetTransferRateCounters($this->socket);
     }
 
     /**
@@ -382,7 +384,11 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
                     continue;
                 }
 
-                $metadata[] = [ $name, $value, isset($readOnlyKeys[ $value ]) ];
+                $testValue = $value !== RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT ?
+                    mt_rand(0, PHP_INT_MAX) :
+                    [];
+
+                $metadata[] = [ $name, $value, isset($readOnlyKeys[ $value ]), $testValue ];
             }
         }
 
@@ -409,6 +415,14 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
 
         $this->connectTimeout = (double) mt_rand(1, PHP_INT_MAX);
         $this->ioTimeout      = (double) mt_rand(1, PHP_INT_MAX);
-        $this->bag            = new SocketBag($this->executor, $this->connectTimeout, $this->ioTimeout);
+        $this->bag = new SocketBag(
+            $this->executor,
+            new Configuration(
+                [
+                    'connectTimeout' => $this->connectTimeout,
+                    'ioTimeout'      => $this->ioTimeout,
+                ]
+            )
+        );
     }
 }

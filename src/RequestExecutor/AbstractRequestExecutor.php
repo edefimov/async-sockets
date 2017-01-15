@@ -71,7 +71,7 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
      */
     public function __construct(Configuration $configuration)
     {
-        $this->socketBag = new SocketBag($this, $configuration->getConnectTimeout(), $configuration->getIoTimeout());
+        $this->socketBag = new SocketBag($this, $configuration);
     }
 
     /** {@inheritdoc} */

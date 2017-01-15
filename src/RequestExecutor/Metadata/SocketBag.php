@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Metadata;
 
+use AsyncSockets\Configuration\Configuration;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -35,32 +36,23 @@ class SocketBag implements SocketBagInterface
     private $items;
 
     /**
-     * Default connection timeout
+     * Configuration
      *
-     * @var double
+     * @var Configuration
      */
-    private $connectTimeout;
-
-    /**
-     * Default I/O timeout
-     *
-     * @var double
-     */
-    private $ioTimeout;
+    private $configuration;
 
     /**
      * SocketBag constructor.
      *
      * @param RequestExecutorInterface $executor Owner RequestExecutor
-     * @param double                   $connectTimeout Default connection timeout
-     * @param double                   $ioTimeout Default I/O timeout
+     * @param Configuration            $configuration Configuration with default values
      */
-    public function __construct(RequestExecutorInterface $executor, $connectTimeout, $ioTimeout)
+    public function __construct(RequestExecutorInterface $executor, Configuration $configuration)
     {
-        $this->executor       = $executor;
-        $this->items          = [ ];
-        $this->connectTimeout = $connectTimeout;
-        $this->ioTimeout      = $ioTimeout;
+        $this->executor      = $executor;
+        $this->items         = [];
+        $this->configuration = $configuration;
     }
 
     /** {@inheritdoc} */
@@ -86,13 +78,15 @@ class SocketBag implements SocketBagInterface
             [
                 RequestExecutorInterface::META_ADDRESS                    => null,
                 RequestExecutorInterface::META_USER_CONTEXT               => null,
-                RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT      => null,
-                RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => null,
-                RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => null,
-                RequestExecutorInterface::META_MIN_SEND_SPEED             => null,
-                RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION    => null,
-                RequestExecutorInterface::META_CONNECTION_TIMEOUT         => $this->connectTimeout,
-                RequestExecutorInterface::META_IO_TIMEOUT                 => $this->ioTimeout,
+                RequestExecutorInterface::META_SOCKET_STREAM_CONTEXT      => $this->configuration->getStreamContext(),
+                RequestExecutorInterface::META_MIN_RECEIVE_SPEED          => $this->configuration->getMinReceiveSpeed(),
+                RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION =>
+                                                                    $this->configuration->getMinReceiveSpeedDuration(),
+                RequestExecutorInterface::META_MIN_SEND_SPEED             => $this->configuration->getMinSendSpeed(),
+                RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION    =>
+                                                                    $this->configuration->getMinSendSpeedDuration(),
+                RequestExecutorInterface::META_CONNECTION_TIMEOUT         => $this->configuration->getConnectTimeout(),
+                RequestExecutorInterface::META_IO_TIMEOUT                 => $this->configuration->getIoTimeout(),
             ],
             $metadata ?: [],
             [
@@ -157,9 +151,11 @@ class SocketBag implements SocketBagInterface
     }
 
     /** {@inheritdoc} */
-    public function resetSpeedRateCounters(SocketInterface $socket)
+    public function resetTransferRateCounters(SocketInterface $socket)
     {
-        $this->requireDescriptor($socket)->resetCounter(RequestDescriptor::COUNTER_RECV_MIN_RATE);
+        $descriptor = $this->requireDescriptor($socket);
+        $descriptor->resetCounter(RequestDescriptor::COUNTER_RECV_MIN_RATE);
+        $descriptor->resetCounter(RequestDescriptor::COUNTER_SEND_MIN_RATE);
     }
 
     /** {@inheritdoc} */
