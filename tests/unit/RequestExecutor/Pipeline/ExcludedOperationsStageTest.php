@@ -40,7 +40,9 @@ class ExcludedOperationsStageTest extends AbstractStageTest
     {
         $input = [];
         for ($i = 0; $i < 10; $i++) {
-            $input[] = $this->getMock('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor', [], [], '', false);
+            $input[] = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor')
+                            ->disableOriginalConstructor()
+                            ->getMockForAbstractClass();
         }
 
         $processedByInternal = [$input[0], $input[3], $input[6]];

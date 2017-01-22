@@ -30,13 +30,15 @@ class EventHandlerFromSymfonyEventDispatcherTest extends \PHPUnit_Framework_Test
 
         $type = md5(microtime());
 
-        $event = $this->getMock('AsyncSockets\Event\Event', ['getType'], [], '', false);
+        $event = $this->getMockBuilder('AsyncSockets\Event\Event')->setMethods(['getType'])
+                            ->disableOriginalConstructor()
+                            ->getMock();
         $event->expects(self::once())->method('getType')->willReturn($type);
 
-        $dispatcher = $this->getMock(
-            'Symfony\Component\EventDispatcher\EventDispatcher',
-            ['dispatch']
-        );
+        $dispatcher = $this->getMockBuilder('Symfony\Component\EventDispatcher\EventDispatcher')
+                        ->setMethods(['dispatch'])
+                        ->getMockForAbstractClass();
+
         $dispatcher->expects(self::once())
             ->method('dispatch')
             ->with($type, $event);

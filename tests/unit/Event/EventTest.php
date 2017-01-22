@@ -101,8 +101,11 @@ class EventTest extends AbstractTestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->executor = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface');
-        $this->socket   = $this->getMock('AsyncSockets\Socket\SocketInterface');
-        $this->context  = $this->getMock('Countable');
+        $this->executor = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                                ->getMockForAbstractClass();
+        $this->socket   = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                                ->getMockForAbstractClass();
+        $this->context  = $this->getMockBuilder('Countable')
+                                ->getMockForAbstractClass();
     }
 }

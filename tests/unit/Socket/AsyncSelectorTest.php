@@ -259,7 +259,7 @@ class AsyncSelectorTest extends \PHPUnit_Framework_TestCase
      */
     public function testThatIfSelectFailedIncompleteSleepWillBeCalled()
     {
-        $usleep = $this->getMock('Countable', [ 'count' ]);
+        $usleep = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMockForAbstractClass();
         $usleep->expects(self::exactly(AsyncSelector::ATTEMPT_COUNT_FOR_INFINITE_TIMEOUT - 1))
             ->method('count')
             ->with(AsyncSelector::ATTEMPT_DELAY);

@@ -114,12 +114,8 @@ class EventMultiHandlerTest extends EventHandlerInterfaceTest
      */
     private function createEventStub()
     {
-        return $this->getMock(
-            'AsyncSockets\Event\Event',
-            [],
-            [],
-            '',
-            false
-        );
+        return $this->getMockBuilder('AsyncSockets\Event\Event')
+                     ->disableOriginalConstructor()
+                     ->getMockForAbstractClass();
     }
 }

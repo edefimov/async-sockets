@@ -80,7 +80,7 @@ class ReadEventTest extends IoEventTest
             $this->executor,
             $this->socket,
             $this->context,
-            $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface'),
+            $this->getMockBuilder('AsyncSockets\Frame\FrameInterface')->getMockForAbstractClass(),
             $isOutOfBand
         );
         $events = [

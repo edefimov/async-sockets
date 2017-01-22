@@ -72,11 +72,11 @@ abstract class AbstractStageTest extends AbstractTestCase
         $bag->expects(self::any())->method('getSocketMetaData')->willReturn($this->metadata);
         $this->executor->expects(self::any())->method('socketBag')->willReturn($bag);
 
-        $this->eventCaller = $this->getMock(
-            'AsyncSockets\RequestExecutor\Pipeline\EventCaller',
-            [ 'callExceptionSubscribers', 'callSocketSubscribers' ],
-            [ $this->executor ]
-        );
+        $this->eventCaller = $this->getMockBuilder('AsyncSockets\RequestExecutor\Pipeline\EventCaller')
+                                ->setMethods([ 'callExceptionSubscribers', 'callSocketSubscribers' ])
+                                ->setConstructorArgs([ $this->executor ])
+                                ->getMock();
+
         $this->stage       = $this->createStage();
     }
 

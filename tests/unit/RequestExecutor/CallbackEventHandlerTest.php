@@ -190,7 +190,7 @@ class CallbackEventHandlerTest extends \PHPUnit_Framework_TestCase
      */
     private function getMockedHandlers($callables, $amountOfCalls = null)
     {
-        $mock   = $this->getMock('Countable', ['count']);
+        $mock   = $this->getMockBuilder('Countable')->setMethods(['count'])->getMockForAbstractClass();
         $result = null;
 
         if (is_callable($callables)) {
@@ -224,8 +224,10 @@ class CallbackEventHandlerTest extends \PHPUnit_Framework_TestCase
     private function createEventMock($eventType)
     {
         $event = new Event(
-            $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface'),
-            $this->getMock('AsyncSockets\Socket\SocketInterface'),
+            $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                    ->getMockForAbstractClass(),
+            $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                    ->getMockForAbstractClass(),
             null,
             $eventType
         );

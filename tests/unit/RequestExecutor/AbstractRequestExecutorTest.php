@@ -82,7 +82,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface')
         );
         $mock->expects(self::any())->method('createIoInterface')->willReturn(
-            $this->getMockForAbstractClass('AsyncSockets\Socket\Io\IoInterface')
+            $this->getMockBuilder('AsyncSockets\Socket\Io\IoInterface')->getMockForAbstractClass()
         );
         if ($method !== 'close') {
             $mock
@@ -194,7 +194,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
      */
     public function testStopRequest(OperationInterface $operation, $eventType)
     {
-        $mock = $this->getMock('Countable', [ 'count' ]);
+        $mock = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMockForAbstractClass();
         $mock->expects(self::exactly(2))->method('count');
 
         $failHandler = function (Event $event) {
@@ -234,7 +234,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
      */
     public function testCancelSocketRequest(OperationInterface $operation, $eventType)
     {
-        $mock = $this->getMock('Countable', [ 'count' ]);
+        $mock = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMockForAbstractClass();
         $mock->expects(self::exactly(6))->method('count');
 
         $failHandler = function (Event $event) {
@@ -376,15 +376,9 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
         $streamContextHandle  = stream_context_create([ ]);
         $socketStreamResource = fopen('php://temp', 'rw');
 
-        $mock = $this->getMockForAbstractClass(
-            'AsyncSockets\Socket\AbstractSocket',
-            [ ],
-            '',
-            true,
-            true,
-            true,
-            [ 'open' ]
-        );
+        $mock = $this->getMockBuilder('AsyncSockets\Socket\AbstractSocket')
+                    ->setMethods([ 'open' ])
+                    ->getMockForAbstractClass();
 
         $mock
             ->expects(self::any())
@@ -430,7 +424,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             ]
         );
 
-        $mock = $this->getMock('Countable', [ 'count' ]);
+        $mock = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMockForAbstractClass();
 
         /** @var \Countable|\PHPUnit_Framework_MockObject_MockObject $mock */
         $handlers = [
@@ -531,7 +525,9 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             );
         }
 
-        $decider = $this->getMock('AsyncSockets\RequestExecutor\NoLimitationSolver', [ 'decide' ]);
+        $decider = $this->getMockBuilder('AsyncSockets\RequestExecutor\NoLimitationSolver')
+                        ->setMethods([ 'decide' ])
+                        ->getMock();
         $decider->expects(self::any())
             ->method('decide')
             ->willReturnOnConsecutiveCalls(
@@ -584,7 +580,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             ]
         );
 
-        $mock = $this->getMock('Countable', [ 'count' ]);
+        $mock = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMockForAbstractClass();
         $mock->expects(self::exactly(3))
             ->method('count');
 
@@ -637,7 +633,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             ]
         );
 
-        $mock = $this->getMock('Countable', [ 'count' ]);
+        $mock = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMockForAbstractClass();
         $mock->expects(self::exactly(5))
             ->method('count');
 
@@ -735,10 +731,9 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
     {
         switch ($eventType) {
             case EventType::ACCEPT:
-                $mock = $this->getMock(
-                    'AsyncSockets\Socket\ServerSocket',
-                    ['read', 'createSocketResource' , 'write', 'createIoInterface']
-                );
+                $mock = $this->getMockBuilder('AsyncSockets\Socket\ServerSocket')
+                        ->setMethods(['read', 'createSocketResource' , 'write', 'createIoInterface'])
+                        ->getMockForAbstractClass();
 
                 $mock->expects(self::any())->method('createSocketResource')->willReturnCallback(
                     function () {
@@ -747,23 +742,24 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
                 );
                 $mock->expects(self::any())->method('createIoInterface')->willReturnCallback(
                     function () {
-                        return $this->getMockForAbstractClass('AsyncSockets\Socket\Io\IoInterface');
+                        return $this->getMockBuilder('AsyncSockets\Socket\Io\IoInterface')
+                                    ->getMockForAbstractClass();
                     }
                 );
                 $mock->expects(self::any())->method('read')->willReturnCallback(
                     function () {
-                        $mock = $this->getMock(
-                            'AsyncSockets\Frame\AcceptedFrame',
-                            [ 'getClientSocket', 'getClientAddress' ],
-                            [ ],
-                            '',
-                            false
-                        );
+                        $mock = $this->getMockBuilder('AsyncSockets\Frame\AcceptedFrame')
+                                ->setMethods([ 'getClientSocket', 'getClientAddress' ])
+                                ->disableOriginalConstructor()
+                                ->getMockForAbstractClass();
 
                         $mock->expects(self::any())->method('getClientAddress')->willReturn('127.0.0.1:11111');
                         $mock->expects(self::any())
                              ->method('getClientSocket')
-                             ->willReturn($this->getMock('AsyncSockets\Socket\ClientSocket'));
+                             ->willReturn(
+                                 $this->getMockBuilder('AsyncSockets\Socket\ClientSocket')
+                                    ->getMock()
+                             );
 
                         return $mock;
                     }
@@ -865,11 +861,10 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
      */
     public function testLimitationDeciderEventsAreInvoked(OperationInterface $operation)
     {
-        $mock = $this->getMock(
-            'AsyncSockets\RequestExecutor\ConstantLimitationSolver',
-            [ 'decide', 'invokeEvent'],
-            [ mt_rand(1, PHP_INT_MAX) ]
-        );
+        $mock = $this->getMockBuilder('AsyncSockets\RequestExecutor\ConstantLimitationSolver')
+                ->setMethods([ 'decide', 'invokeEvent'])
+                ->setConstructorArgs([ mt_rand(1, PHP_INT_MAX) ])
+                ->getMock();
 
 
         $mock->expects(self::exactly(5)) // init, connected, operation, disconnect, finalize
@@ -1013,15 +1008,9 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
         );
 
         $this->socket->expects(self::any())->method('read')->willReturnCallback(function () {
-            $mock = $this->getMockForAbstractClass(
-                'AsyncSockets\Frame\FrameInterface',
-                [ ],
-                '',
-                false,
-                true,
-                true,
-                [ 'getData', '__toString' ]
-            );
+            $mock = $this->getMockBuilder('AsyncSockets\Frame\FrameInterface')
+                ->setMethods([ 'getData', '__toString' ])
+                ->getMockForAbstractClass();
 
             $mock->expects(self::any())->method('getData')->willReturn('');
             $mock->expects(self::any())->method('__toString')->willReturn('');

@@ -272,7 +272,10 @@ class DisconnectStageTest extends AbstractStageTest
     /** {@inheritdoc} */
     protected function setUp()
     {
-        $this->selector = $this->getMock('AsyncSockets\Socket\AsyncSelector', ['removeAllSocketOperations']);
+        $this->selector = $this->getMockBuilder('AsyncSockets\Socket\AsyncSelector')
+                                ->setMethods(['removeAllSocketOperations'])
+                                ->getMock();
+
         parent::setUp();
     }
 

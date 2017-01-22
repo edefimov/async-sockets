@@ -172,8 +172,10 @@ class StreamedClientIoTest extends AbstractClientIoTest
      */
     public function testThatIfDataInSocketNotReadyForReadThenTheyWillBeReadLater()
     {
-        $mockFread                = $this->getMock('Countable', ['count']);
-        $mockStreamSocketRecvFrom = $this->getMock('Countable', ['count']);
+        $mockFread                = $this->getMockBuilder('Countable')->setMethods(['count'])
+                                            ->getMockForAbstractClass();
+        $mockStreamSocketRecvFrom = $this->getMockBuilder('Countable')->setMethods(['count'])
+                                            ->getMockForAbstractClass();
 
         $mockFread->expects(self::any())->method('count')
             ->willReturnOnConsecutiveCalls('1', '', '', '2', '', '');
@@ -206,10 +208,9 @@ class StreamedClientIoTest extends AbstractClientIoTest
     public function testExceptionWillBeThrownIfFrameNotCollected()
     {
         /** @var FramePickerInterface|\PHPUnit_Framework_MockObject_MockObject $picker */
-        $picker = $this->getMock(
-            'AsyncSockets\Frame\FramePickerInterface',
-            ['isEof', 'pickUpData', 'createFrame']
-        );
+        $picker = $this->getMockBuilder('AsyncSockets\Frame\FramePickerInterface')
+                        ->setMethods(['isEof', 'pickUpData', 'createFrame'])
+                        ->getMockForAbstractClass();
 
         $picker->expects(self::any())->method('isEof')->willReturn(false);
         $picker->expects(self::any())->method('pickUpData')->willReturnCallback(function ($data) {
@@ -247,10 +248,9 @@ class StreamedClientIoTest extends AbstractClientIoTest
     public function testExceptionWillBeThrownIfConnectionLost()
     {
         /** @var FramePickerInterface|\PHPUnit_Framework_MockObject_MockObject $picker */
-        $picker = $this->getMock(
-            'AsyncSockets\Frame\FramePickerInterface',
-            ['isEof', 'pickUpData', 'createFrame']
-        );
+        $picker = $this->getMockBuilder('AsyncSockets\Frame\FramePickerInterface')
+                        ->setMethods(['isEof', 'pickUpData', 'createFrame'])
+                        ->getMockForAbstractClass();
 
         $picker->expects(self::any())->method('isEof')->willReturn(false);
         $picker->expects(self::any())->method('pickUpData')->willReturnCallback(function ($data) {

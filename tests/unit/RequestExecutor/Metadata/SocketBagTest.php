@@ -76,7 +76,8 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
             $this->socket,
             $this->operation,
             [ ],
-            $this->getMock('AsyncSockets\RequestExecutor\EventHandlerInterface')
+            $this->getMockBuilder('AsyncSockets\RequestExecutor\EventHandlerInterface')
+                    ->getMockForAbstractClass()
         );
         self::assertCount(1, $this->bag, 'Count haven\'t changed');
 
@@ -399,19 +400,21 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->executor = $this->getMock(
-            'AsyncSockets\RequestExecutor\RequestExecutorInterface',
-            [
-                'isExecuting',
-                'socketBag',
-                'withEventHandler',
-                'withLimitationSolver',
-                'executeRequest',
-                'stopRequest',
-            ]
-        );
-        $this->operation = $this->getMock('AsyncSockets\Operation\OperationInterface');
-        $this->socket    = $this->getMock('AsyncSockets\Socket\SocketInterface');
+        $this->executor = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                               ->setMethods(
+                                   [
+                                       'isExecuting',
+                                       'socketBag',
+                                       'withEventHandler',
+                                       'withLimitationSolver',
+                                       'executeRequest',
+                                       'stopRequest',
+                                   ]
+                               )->getMockForAbstractClass();
+        $this->operation = $this->getMockBuilder('AsyncSockets\Operation\OperationInterface')
+                                    ->getMockForAbstractClass();
+        $this->socket    = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                                    ->getMockForAbstractClass();
 
         $this->connectTimeout = (double) mt_rand(1, PHP_INT_MAX);
         $this->ioTimeout      = (double) mt_rand(1, PHP_INT_MAX);

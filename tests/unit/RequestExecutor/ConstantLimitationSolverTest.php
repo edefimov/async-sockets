@@ -46,8 +46,10 @@ class ConstantLimitationSolverTest extends \PHPUnit_Framework_TestCase
      */
     public function testExcessCount()
     {
-        $mock   = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface');
-        $socket = $this->getMock('AsyncSockets\Socket\SocketInterface');
+        $mock   = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                        ->getMockForAbstractClass();
+        $socket = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                        ->getMockForAbstractClass();
         /** @var \AsyncSockets\RequestExecutor\RequestExecutorInterface $mock */
         /** @var \AsyncSockets\Socket\SocketInterface $socket */
         $this->decider->initialize($mock);
@@ -81,8 +83,10 @@ class ConstantLimitationSolverTest extends \PHPUnit_Framework_TestCase
      */
     public function testWithRequestComplete()
     {
-        $mock    = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface');
-        $socket  = $this->getMock('AsyncSockets\Socket\SocketInterface');
+        $mock    = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                            ->getMockForAbstractClass();
+        $socket  = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                            ->getMockForAbstractClass();
         $decider = new ConstantLimitationSolver(2);
 
         $decider->initialize($mock);

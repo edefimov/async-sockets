@@ -62,7 +62,7 @@ class IoStageTest extends AbstractStageTest
             ->method('setMetadata')
             ->with(RequestExecutorInterface::META_CONNECTION_FINISH_TIME, $testTime);
 
-        $microTimeMock = $this->getMock('Countable', ['count']);
+        $microTimeMock = $this->getMockBuilder('Countable')->setMethods(['count'])->getMockForAbstractClass();
         $microTimeMock->expects(self::any())->method('count')->willReturn($testTime);
         /** @var \Countable $microTimeMock */
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable([$microTimeMock, 'count']);
@@ -148,18 +148,15 @@ class IoStageTest extends AbstractStageTest
      */
     public function testThatIfSupportsThenHandleRequest()
     {
-        $eventCaller = $this->getMock(
-            'AsyncSockets\RequestExecutor\Pipeline\EventCaller',
-            [ 'setCurrentOperation', 'clearCurrentOperation' ],
-            [ $this->executor ]
-        );
+        $eventCaller = $this->getMockBuilder('AsyncSockets\RequestExecutor\Pipeline\EventCaller')
+                            ->setMethods([ 'setCurrentOperation', 'clearCurrentOperation' ])
+                            ->setConstructorArgs([ $this->executor ])
+                            ->getMock();
 
         $operation = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
 
         $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
-
-        $socket = $this->setupSocketForRequest($request);
 
         $this->mockHandler
             ->expects(self::any())
@@ -216,7 +213,7 @@ class IoStageTest extends AbstractStageTest
     public function testExceptionInConnectedEventHandler()
     {
         $testTime = mt_rand(1, PHP_INT_MAX);
-        $socket   = $this->getMock('AsyncSockets\Socket\SocketInterface');
+        $socket   = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')->getMockForAbstractClass();
         $request  = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
         $request->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
@@ -225,7 +222,7 @@ class IoStageTest extends AbstractStageTest
                 ->method('setMetadata')
                 ->with(RequestExecutorInterface::META_CONNECTION_FINISH_TIME, $testTime);
 
-        $microTimeMock = $this->getMock('Countable', ['count']);
+        $microTimeMock = $this->getMockBuilder('Countable')->setMethods(['count'])->getMockForAbstractClass();
         $microTimeMock->expects(self::any())->method('count')->willReturn($testTime);
         /** @var \Countable $microTimeMock */
         PhpFunctionMocker::getPhpFunctionMocker('microtime')->setCallable([$microTimeMock, 'count']);
@@ -438,7 +435,7 @@ class IoStageTest extends AbstractStageTest
 
         $this->mockHandler->expects(self::any())->method('supports')->willReturn(true);
         $this->mockHandler->expects(self::any())->method('handle')->willReturn(
-            $this->getMock($map[$nextOperation])
+            $this->getMockBuilder($map[$nextOperation])->getMock()
         );
 
         $result = $this->stage->processStage([$request]);

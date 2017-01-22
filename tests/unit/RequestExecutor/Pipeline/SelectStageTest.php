@@ -42,7 +42,9 @@ class SelectStageTest extends AbstractStageTest
     {
         $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getSocket')->willReturn(
-            $this->getMock('AsyncSockets\Socket\UdpClientSocket', [ ], [ ], '', false)
+            $this->getMockBuilder('AsyncSockets\Socket\UdpClientSocket')
+                    ->disableOriginalConstructor()
+                    ->getMockForAbstractClass()
         );
         $request->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
 
@@ -62,13 +64,17 @@ class SelectStageTest extends AbstractStageTest
     {
         $first = $this->createRequestDescriptor();
         $first->expects(self::any())->method('getSocket')->willReturn(
-            $this->getMock('AsyncSockets\Socket\SocketInterface', [ ], [ ], '', false)
+            $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                    ->disableOriginalConstructor()
+                    ->getMockForAbstractClass()
         );
         $first->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
 
         $second = $this->createRequestDescriptor();
         $second->expects(self::any())->method('getSocket')->willReturn(
-            $this->getMock('AsyncSockets\Socket\SocketInterface', [ ], [ ], '', false)
+            $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                 ->disableOriginalConstructor()
+                 ->getMockForAbstractClass()
         );
         $second->expects(self::any())->method('getOperation')->willReturn(new WriteOperation());
 
@@ -95,7 +101,9 @@ class SelectStageTest extends AbstractStageTest
     {
         $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getSocket')->willReturn(
-            $this->getMock('AsyncSockets\Socket\SocketInterface', [ ], [ ], '', false)
+            $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                 ->disableOriginalConstructor()
+                 ->getMockForAbstractClass()
         );
         $request->expects(self::any())->method('getOperation')->willReturn(new ReadOperation());
 
@@ -255,7 +263,9 @@ class SelectStageTest extends AbstractStageTest
     /** {@inheritdoc} */
     protected function setUp()
     {
-        $this->selector = $this->getMock('AsyncSockets\Socket\AsyncSelector', ['select', 'addSocketOperation']);
+        $this->selector = $this->getMockBuilder('AsyncSockets\Socket\AsyncSelector')
+                                ->setMethods(['select', 'addSocketOperation'])
+                                ->getMock();
         parent::setUp();
     }
 }

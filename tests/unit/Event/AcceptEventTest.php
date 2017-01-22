@@ -64,7 +64,8 @@ class AcceptEventTest extends EventTest
     protected function setUp()
     {
         parent::setUp();
-        $this->clientSocket  = $this->getMock('AsyncSockets\Socket\SocketInterface');
+        $this->clientSocket  = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                                    ->getMockForAbstractClass();
         $this->remoteAddress = md5(microtime()) . ':' . mt_rand(1, PHP_INT_MAX);
     }
 }
