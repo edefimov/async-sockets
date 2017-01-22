@@ -16,6 +16,7 @@ use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\Io\IoInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -81,22 +82,23 @@ class WriteIoHandler extends AbstractOobHandler
         $extractNextOperation = true;
         $bytesWritten         = 0;
 
-        if ($operation->hasData()) {
-            $data    = $operation->getData();
-            $length  = strlen($data);
-            $written = $socket->write($data, $operation->isOutOfBand());
+        $iterator = $this->resolveDataIterator($operation);
+        if ($iterator->valid()) {
+            $data     = $iterator->current();
+            $length   = strlen($data);
+            $written  = $socket->write($data, $operation->isOutOfBand());
             if ($length !== $written) {
-                $extractNextOperation = false;
-
-                $operation = $this->makeInProgressWriteOperation($operation, $nextOperation);
-                $operation->setData(
-                    substr($operation->getData(), $written)
-                );
-
-                $result = $operation;
+                $iterator->unread($length - $written);
             }
 
             $bytesWritten = $written;
+            $iterator->next();
+
+            if ($iterator->valid()) {
+                $extractNextOperation = false;
+                $operation = $this->makeInProgressWriteOperation($operation, $nextOperation);
+                $result    = $operation;
+            }
         }
 
         if ($extractNextOperation && ($operation instanceof InProgressWriteOperation)) {
@@ -120,6 +122,44 @@ class WriteIoHandler extends AbstractOobHandler
         $result = $operation;
         if (!($result instanceof InProgressWriteOperation)) {
             $result = new InProgressWriteOperation($nextOperation, $operation->getData());
+        }
+
+        return $result;
+    }
+
+    /**
+     * Return iterator for writing operation
+     *
+     * @param WriteOperation $operation The operation
+     *
+     * @return PushbackIterator
+     */
+    private function resolveDataIterator(WriteOperation $operation)
+    {
+        $result = $operation->getData();
+        if (!($result instanceof PushbackIterator)) {
+            $nested = $result;
+            if ($nested === null || is_scalar($nested)) {
+                $nested = (array) $nested;
+            }
+
+            if (is_array($nested)) {
+                $nested = new \ArrayIterator($nested);
+            }
+
+            if (!($nested instanceof \Traversable)) {
+                throw new \LogicException(
+                    sprintf(
+                        'Trying to send unexpected data type %s',
+                        is_object($nested) ? get_class($nested) : gettype($nested)
+                    )
+                );
+            }
+
+            $result = new PushbackIterator($nested, IoInterface::SOCKET_BUFFER_SIZE);
+            $result->rewind();
+
+            $operation->setData($result);
         }
 
         return $result;

@@ -12,8 +12,6 @@ use AsyncSockets\Event\EventType;
 use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Event\WriteEvent;
-use AsyncSockets\Frame\MarkerFramePicker;
-use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -54,7 +52,7 @@ class SlowUploadTestCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Min send speed duration in seconds',
-                5
+                500000
             );
     }
 
@@ -107,11 +105,22 @@ class SlowUploadTestCommand extends Command
                             $progress               = new ProgressBar($output, $dataSize);
                             $progress->setFormat('%current%/%max% [%bar%] %percent:3s%% %speed%');
                             $progress->setRedrawFrequency(100000);
-                            $event->nextIs(new WriteOperation());
+                            $event->nextIs(
+                                new WriteOperation(
+                                    new LimitIterator(
+                                        new InfiniteIterator(
+                                            new ArrayIterator(str_split('ABCDEFGHIJKLMNOPQRSTUVWXYZ'))
+                                        ),
+                                        0,
+                                        $dataSize
+                                    )
+                                )
+                            );
                             return;
                         }
 
                         /** @var ProgressBar $progress */
+                        /*
                         $transferLength = 8192;
                         if ($this->transferedLength + $transferLength >= $dataSize) {
                             $transferLength = $dataSize - $this->transferedLength;
@@ -136,6 +145,7 @@ class SlowUploadTestCommand extends Command
                         } else {
                             $event->nextIs(new ReadOperation(new MarkerFramePicker(null, "\r\n\r\n")));
                         }
+                        */
                     },
                     EventType::EXCEPTION => $this->getExceptionHandler($output)
                 ]

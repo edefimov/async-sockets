@@ -17,7 +17,7 @@ class WriteOperation implements OperationInterface
     /**
      * Data to write
      *
-     * @var string
+     * @var string|array|\Traversable
      */
     private $data;
 
@@ -31,12 +31,12 @@ class WriteOperation implements OperationInterface
     /**
      * WriteOperation constructor.
      *
-     * @param string $data Data to send
-     * @param bool   $isOutOfBand Flag if this is an out-of-band writing
+     * @param string|array|\Traversable $data        Data to send
+     * @param bool                      $isOutOfBand Flag if this is an out-of-band writing
      */
     public function __construct($data = null, $isOutOfBand = false)
     {
-        $this->data         = $data !== null ? (string) $data : null;
+        $this->data        = $data !== null ? $data : null;
         $this->isOutOfBand = $isOutOfBand;
     }
 
@@ -71,7 +71,7 @@ class WriteOperation implements OperationInterface
     /**
      * Return Data
      *
-     * @return string
+     * @return string|array|\Traversable
      */
     public function getData()
     {
@@ -81,7 +81,7 @@ class WriteOperation implements OperationInterface
     /**
      * Sets Data
      *
-     * @param string $data Data to send
+     * @param string|array|\Traversable $data Data to send
      *
      * @return void
      */

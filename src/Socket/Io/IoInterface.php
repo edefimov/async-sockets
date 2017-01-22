@@ -18,6 +18,11 @@ use AsyncSockets\Frame\FramePickerInterface;
 interface IoInterface
 {
     /**
+     * Socket buffer size
+     */
+    const SOCKET_BUFFER_SIZE = 8192;
+
+    /**
      * Perform reading data from socket and fill picker object
      *
      * @param FramePickerInterface $picker Frame object to read

@@ -353,7 +353,7 @@ class IoStageTest extends AbstractStageTest
                 /** @var InProgressWriteOperation $operation */
                 self::assertSame(
                     implode('', array_slice($chunks, 1)),
-                    $operation->getData(),
+                    (string) $operation->getData(),
                     'Incorrect data'
                 );
             }
