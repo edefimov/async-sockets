@@ -238,7 +238,7 @@ class ConnectStageTest extends AbstractStageTest
     /** {@inheritdoc} */
     protected function createStage()
     {
-        return new ConnectStage($this->executor, $this->eventCaller, $this->solver);
+        return new ConnectStage($this->executor, $this->eventCaller, $this->solver, $this->executionContext);
     }
 
     /** {@inheritdoc} */

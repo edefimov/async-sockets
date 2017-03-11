@@ -55,22 +55,60 @@ class StreamContext
             $settings = iterator_to_array($settings);
         }
 
-        if (is_resource($settings)) {
-            return $settings;
-        } elseif (is_array($settings)) {
-            return stream_context_create(
-                isset($settings[ 'options' ]) ? $settings[ 'options' ] : [ ],
-                isset($settings[ 'params' ]) ? $settings[ 'params' ] : [ ]
-            );
-        } elseif ($settings === null) {
-            return stream_context_get_default();
-        } else {
+        $map = [
+            'null'     => [ $this, 'createFromNull' ],
+            'resource' => [ $this, 'createFromResource' ],
+            'array'    => [ $this, 'createFromArray' ],
+        ];
+
+        $type = strtolower(gettype($settings));
+        if (!isset($map[$type])) {
             throw new \InvalidArgumentException(
                 sprintf(
                     'Can not create stream context for variable type %s',
-                    is_object($settings) ? get_class($settings) : gettype($settings)
+                    is_object($settings) ? get_class($settings) : $type
                 )
             );
         }
+
+
+        return $map[$type]($settings);
+    }
+
+    /**
+     * Create context from resource
+     *
+     * @param resource $resource Context resource
+     *
+     * @return resource
+     */
+    private function createFromResource($resource)
+    {
+        return $resource;
+    }
+
+    /**
+     * Create context from resource
+     *
+     * @return resource
+     */
+    private function createFromNull()
+    {
+        return stream_context_get_default();
+    }
+
+    /**
+     * Create context from array
+     *
+     * @param array $settings Context settings
+     *
+     * @return resource
+     */
+    private function createFromArray(array $settings)
+    {
+        return stream_context_create(
+            isset($settings[ 'options' ]) ? $settings[ 'options' ] : [],
+            isset($settings[ 'params' ]) ? $settings[ 'params' ] : []
+        );
     }
 }

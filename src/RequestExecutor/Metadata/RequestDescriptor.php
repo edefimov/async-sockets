@@ -13,6 +13,7 @@ use AsyncSockets\Configuration\StreamContext;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\PersistentClientSocket;
 use AsyncSockets\Socket\SocketInterface;
@@ -235,10 +236,14 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     }
 
     /** {@inheritdoc} */
-    public function invokeEvent(Event $event)
-    {
+    public function invokeEvent(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
         if ($this->handlers) {
-            $this->handlers->invokeEvent($event);
+            $this->handlers->invokeEvent($event, $executor, $socket, $context);
         }
     }
 

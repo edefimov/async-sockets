@@ -58,7 +58,7 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
             );
         }
 
-        $mock = $this->getMock('Countable', ['count']);
+        $mock = $this->getMockBuilder('Countable')->setMethods(['count'])->getMockForAbstractClass();
         $mock->expects(self::exactly(count($urls)))->method('count');
 
         echo 'Processing with ' . get_class($executor) . " engine\n";

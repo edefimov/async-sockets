@@ -79,7 +79,8 @@ class AbstractOobHandlerTest extends AbstractIoHandlerTest
         $result = $this->handler->handle(
             $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_OOB),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::assertNull($result, 'By default handler must return null.');
@@ -116,7 +117,8 @@ class AbstractOobHandlerTest extends AbstractIoHandlerTest
                 RequestDescriptor::RDS_OOB | RequestDescriptor::RDS_READ | RequestDescriptor::RDS_WRITE
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::assertSame($operation, $result, 'I/O handler must return new operation after changing.');

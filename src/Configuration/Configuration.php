@@ -33,7 +33,7 @@ class Configuration
      *
      * @var string[]
      */
-    private $preferredEngines = [];
+    private $preferredEngines;
 
     /**
      * Default stream context for sockets

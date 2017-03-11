@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Pipeline\ExcludedOperationsStage;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
 
@@ -28,7 +29,7 @@ class ExcludedOperationsStageTest extends AbstractStageTest
     /** {@inheritdoc} */
     protected function createStage()
     {
-        return new ExcludedOperationsStage($this->executor, $this->eventCaller, [$this->mockStage]);
+        return new ExcludedOperationsStage($this->executor, $this->eventCaller, new ExecutionContext(), [$this->mockStage]);
     }
 
     /**
@@ -40,7 +41,9 @@ class ExcludedOperationsStageTest extends AbstractStageTest
     {
         $input = [];
         for ($i = 0; $i < 10; $i++) {
-            $input[] = $this->getMock('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor', [], [], '', false);
+            $input[] = $this->getMockBuilder('AsyncSockets\RequestExecutor\Metadata\RequestDescriptor')
+                            ->disableOriginalConstructor()
+                            ->getMockForAbstractClass();
         }
 
         $processedByInternal = [$input[0], $input[3], $input[6]];

@@ -13,6 +13,7 @@ use AsyncSockets\Exception\SslHandshakeException;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\SslHandshakeOperation;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -31,7 +32,8 @@ class SslHandshakeIoHandler extends AbstractOobHandler
     protected function handleOperation(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     ) {
         $operation = $descriptor->getOperation();
         $socket    = $descriptor->getSocket();

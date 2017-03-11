@@ -17,11 +17,6 @@ use AsyncSockets\Socket\SocketInterface;
 abstract class AbstractIo implements IoInterface
 {
     /**
-     * Socket buffer size
-     */
-    const SOCKET_BUFFER_SIZE = 8192;
-
-    /**
      * Amount of attempts to set data
      */
     const IO_ATTEMPTS = 10;

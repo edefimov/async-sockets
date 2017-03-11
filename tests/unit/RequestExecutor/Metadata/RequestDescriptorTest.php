@@ -11,6 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
@@ -132,22 +133,24 @@ class RequestDescriptorTest extends AbstractTestCase
      */
     public function testInvokeEvent()
     {
-        $event   = $this->getMock('AsyncSockets\Event\Event', [], [], '', false);
-        $handler = $this->getMockForAbstractClass(
-            'AsyncSockets\RequestExecutor\EventHandlerInterface',
-            [],
-            '',
-            true,
-            true,
-            true,
-            ['invokeEvent']
-        );
+        $event   = $this->getMockBuilder('AsyncSockets\Event\Event')
+                            ->disableOriginalConstructor()
+                            ->getMockForAbstractClass();
+        $handler = $this->getMockBuilder('AsyncSockets\RequestExecutor\EventHandlerInterface')
+                        ->setMethods(['invokeEvent'])
+                        ->getMockForAbstractClass();
 
         $handler->expects(self::once())->method('invokeEvent')->with($event);
         $operation = new RequestDescriptor($this->socket, $this->operation, [ ], $handler);
 
         /** @var \AsyncSockets\Event\Event $event */
-        $operation->invokeEvent($event);
+        $operation->invokeEvent(
+            $event,
+            $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                 ->getMockForAbstractClass(),
+            $this->socket,
+            new ExecutionContext()
+        );
     }
 
     /**
@@ -258,7 +261,8 @@ class RequestDescriptorTest extends AbstractTestCase
     {
         parent::setUp();
         $this->socket            = $this->getMockForAbstractClass('AsyncSockets\Socket\AbstractSocket');
-        $this->operation         = $this->getMock('AsyncSockets\Operation\OperationInterface');
+        $this->operation         = $this->getMockBuilder('AsyncSockets\Operation\OperationInterface')
+                                        ->getMockForAbstractClass();
         $this->requestDescriptor = new RequestDescriptor($this->socket, $this->operation, [ ]);
     }
 }

@@ -46,6 +46,7 @@ class FrameExceptionTest extends NetworkSocketExceptionTest
     protected function setUp()
     {
         parent::setUp();
-        $this->framePicker = $this->getMockForAbstractClass('AsyncSockets\Frame\FramePickerInterface');
+        $this->framePicker = $this->getMockBuilder('AsyncSockets\Frame\FramePickerInterface')
+                                    ->getMockForAbstractClass();
     }
 }

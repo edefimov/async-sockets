@@ -18,6 +18,7 @@ use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -50,7 +51,8 @@ class ReadIoHandler extends AbstractOobHandler implements FramePickerInterface
     protected function handleOperation(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     ) {
         /** @var ReadOperation $operation */
         $operation = $descriptor->getOperation();
@@ -78,7 +80,7 @@ class ReadIoHandler extends AbstractOobHandler implements FramePickerInterface
                         $response->getRemoteAddress()
                     );
 
-                    $eventHandler->invokeEvent($event);
+                    $eventHandler->invokeEvent($event, $executor, $socket, $executionContext);
                     $result = new ReadOperation();
                     break;
                 default:
@@ -90,7 +92,7 @@ class ReadIoHandler extends AbstractOobHandler implements FramePickerInterface
                         false
                     );
 
-                    $eventHandler->invokeEvent($event);
+                    $eventHandler->invokeEvent($event, $executor, $socket, $executionContext);
                     $result = $event->getNextOperation();
                     break;
             }

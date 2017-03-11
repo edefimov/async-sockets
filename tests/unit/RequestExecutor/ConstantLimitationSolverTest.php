@@ -13,6 +13,7 @@ namespace Tests\AsyncSockets\RequestExecutor;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\RequestExecutor\ConstantLimitationSolver;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 
 /**
@@ -46,16 +47,22 @@ class ConstantLimitationSolverTest extends \PHPUnit_Framework_TestCase
      */
     public function testExcessCount()
     {
-        $mock   = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface');
-        $socket = $this->getMock('AsyncSockets\Socket\SocketInterface');
+        $mock   = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                        ->getMockForAbstractClass();
+        $socket = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                        ->getMockForAbstractClass();
         /** @var \AsyncSockets\RequestExecutor\RequestExecutorInterface $mock */
         /** @var \AsyncSockets\Socket\SocketInterface $socket */
-        $this->decider->initialize($mock);
+        $context = new ExecutionContext();
+        $this->decider->initialize($mock, $context);
 
         for ($i = 0; $i <= self::TEST_LIMIT; $i++) {
-            $decision = $this->decider->decide($mock, $socket, self::TEST_LIMIT + 1);
+            $decision = $this->decider->decide($mock, $socket, $context, self::TEST_LIMIT + 1);
             $this->decider->invokeEvent(
-                new Event($mock, $socket, null, EventType::INITIALIZE)
+                new Event($mock, $socket, null, EventType::INITIALIZE),
+                $mock,
+                $socket,
+                $context
             );
             if ($i < self::TEST_LIMIT) {
                 self::assertEquals(
@@ -71,7 +78,7 @@ class ConstantLimitationSolverTest extends \PHPUnit_Framework_TestCase
                 );
             }
         }
-        $this->decider->finalize($mock);
+        $this->decider->finalize($mock, $context);
     }
 
     /**
@@ -81,15 +88,21 @@ class ConstantLimitationSolverTest extends \PHPUnit_Framework_TestCase
      */
     public function testWithRequestComplete()
     {
-        $mock    = $this->getMock('AsyncSockets\RequestExecutor\RequestExecutorInterface');
-        $socket  = $this->getMock('AsyncSockets\Socket\SocketInterface');
+        $mock    = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                            ->getMockForAbstractClass();
+        $socket  = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                            ->getMockForAbstractClass();
         $decider = new ConstantLimitationSolver(2);
+        $context = new ExecutionContext();
 
-        $decider->initialize($mock);
+        $decider->initialize($mock, $context);
         for ($i = 0; $i < self::TEST_LIMIT; $i++) {
-            $decision = $decider->decide($mock, $socket, self::TEST_LIMIT);
+            $decision = $decider->decide($mock, $socket, $context, self::TEST_LIMIT);
             $this->decider->invokeEvent(
-                new Event($mock, $socket, null, EventType::INITIALIZE)
+                new Event($mock, $socket, null, EventType::INITIALIZE),
+                $mock,
+                $socket,
+                $context
             );
             self::assertEquals(
                 LimitationSolverInterface::DECISION_OK,
@@ -97,10 +110,13 @@ class ConstantLimitationSolverTest extends \PHPUnit_Framework_TestCase
                 'Invalid decision in normal case'
             );
             $this->decider->invokeEvent(
-                new Event($mock, $socket, null, EventType::FINALIZE)
+                new Event($mock, $socket, null, EventType::FINALIZE),
+                $mock,
+                $socket,
+                $context
             );
         }
 
-        $decider->finalize($mock);
+        $decider->finalize($mock, $context);
     }
 }

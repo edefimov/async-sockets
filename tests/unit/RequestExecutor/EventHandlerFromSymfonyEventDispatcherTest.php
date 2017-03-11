@@ -11,6 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\RequestExecutor\EventHandlerFromSymfonyEventDispatcher;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 
 /**
  * Class EventHandlerFromSymfonyEventDispatcherTest
@@ -30,13 +31,15 @@ class EventHandlerFromSymfonyEventDispatcherTest extends \PHPUnit_Framework_Test
 
         $type = md5(microtime());
 
-        $event = $this->getMock('AsyncSockets\Event\Event', ['getType'], [], '', false);
+        $event = $this->getMockBuilder('AsyncSockets\Event\Event')->setMethods(['getType'])
+                            ->disableOriginalConstructor()
+                            ->getMock();
         $event->expects(self::once())->method('getType')->willReturn($type);
 
-        $dispatcher = $this->getMock(
-            'Symfony\Component\EventDispatcher\EventDispatcher',
-            ['dispatch']
-        );
+        $dispatcher = $this->getMockBuilder('Symfony\Component\EventDispatcher\EventDispatcher')
+                        ->setMethods(['dispatch'])
+                        ->getMockForAbstractClass();
+
         $dispatcher->expects(self::once())
             ->method('dispatch')
             ->with($type, $event);
@@ -44,6 +47,11 @@ class EventHandlerFromSymfonyEventDispatcherTest extends \PHPUnit_Framework_Test
         /** @var \Symfony\Component\EventDispatcher\EventDispatcher $dispatcher */
         /** @var \AsyncSockets\Event\Event $event */
         $object = new EventHandlerFromSymfonyEventDispatcher($dispatcher);
-        $object->invokeEvent($event);
+        $object->invokeEvent(
+            $event,
+            $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')->getMockForAbstractClass(),
+            $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')->getMockForAbstractClass(),
+            new ExecutionContext()
+        );
     }
 }

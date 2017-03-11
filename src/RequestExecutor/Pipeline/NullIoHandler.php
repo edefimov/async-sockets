@@ -12,6 +12,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -34,7 +35,8 @@ class NullIoHandler extends AbstractOobHandler
     protected function handleOperation(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     ) {
         // empty body
     }

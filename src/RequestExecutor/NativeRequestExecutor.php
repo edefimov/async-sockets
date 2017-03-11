@@ -47,21 +47,21 @@ class NativeRequestExecutor extends AbstractRequestExecutor
     }
 
     /** {@inheritdoc} */
-    protected function initializeRequest(EventCaller $eventCaller)
+    protected function initializeRequest(EventCaller $eventCaller, ExecutionContext $executionContext)
     {
-        parent::initializeRequest($eventCaller);
-        $this->pipeline = $this->pipelineFactory->createPipeline($this, $eventCaller, $this->solver);
+        parent::initializeRequest($eventCaller, $executionContext);
+        $this->pipeline = $this->pipelineFactory->createPipeline($this, $executionContext, $eventCaller, $this->solver);
     }
 
     /** {@inheritdoc} */
-    protected function terminateRequest()
+    protected function terminateRequest(ExecutionContext $executionContext)
     {
-        parent::terminateRequest();
+        parent::terminateRequest($executionContext);
         $this->pipeline = null;
     }
 
     /** {@inheritdoc} */
-    protected function doExecuteRequest(EventCaller $eventCaller)
+    protected function doExecuteRequest(EventCaller $eventCaller, ExecutionContext $executionContext)
     {
         $this->pipeline->process($this->socketBag);
     }

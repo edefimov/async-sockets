@@ -50,6 +50,7 @@ class NetworkSocketExceptionTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->socket = $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface');
+        $this->socket = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                            ->getMockForAbstractClass();
     }
 }

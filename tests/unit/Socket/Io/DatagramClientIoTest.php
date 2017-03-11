@@ -197,7 +197,7 @@ class DatagramClientIoTest extends AbstractClientIoTest
         $this->setUpIoObject($remoteAddress);
 
         $data = md5(microtime(true));
-        $mock = $this->getMock('Countable', ['count']);
+        $mock = $this->getMockBuilder('Countable')->setMethods(['count'])->getMockForAbstractClass();
         $mock->expects(self::once())->method('count');
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto')->setCallable(
             function ($handle, $actualData, $flags, $address) use (&$data, $mock) {

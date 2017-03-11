@@ -10,6 +10,7 @@
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Exception\TimeoutException;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\Specification\ConnectionLessSocketSpecification;
@@ -30,13 +31,18 @@ class SelectStage extends AbstractTimeAwareStage
     /**
      * SelectStage constructor.
      *
-     * @param RequestExecutorInterface $executor Request executor
+     * @param RequestExecutorInterface $executor    Request executor
      * @param EventCaller              $eventCaller Event caller
-     * @param AsyncSelector            $selector Async selector
+     * @param ExecutionContext         $executionContext Execution context
+     * @param AsyncSelector            $selector    Async selector
      */
-    public function __construct(RequestExecutorInterface $executor, EventCaller $eventCaller, AsyncSelector $selector)
-    {
-        parent::__construct($executor, $eventCaller);
+    public function __construct(
+        RequestExecutorInterface $executor,
+        EventCaller $eventCaller,
+        ExecutionContext $executionContext,
+        AsyncSelector $selector
+    ) {
+        parent::__construct($executor, $eventCaller, $executionContext);
         $this->selector = $selector;
     }
 

@@ -11,6 +11,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -34,15 +35,27 @@ abstract class AbstractStage implements PipelineStageInterface
     protected $executor;
 
     /**
+     * Execution context
+     *
+     * @var ExecutionContext
+     */
+    protected $executionContext;
+
+    /**
      * AbstractStage constructor.
      *
-     * @param RequestExecutorInterface $executor Request executor
-     * @param EventCaller              $eventCaller Event caller
+     * @param RequestExecutorInterface $executor         Request executor
+     * @param EventCaller              $eventCaller      Event caller
+     * @param ExecutionContext         $executionContext Execution context
      */
-    public function __construct(RequestExecutorInterface $executor, EventCaller $eventCaller)
-    {
-        $this->executor    = $executor;
-        $this->eventCaller = $eventCaller;
+    public function __construct(
+        RequestExecutorInterface $executor,
+        EventCaller $eventCaller,
+        ExecutionContext $executionContext
+    ) {
+        $this->executor         = $executor;
+        $this->eventCaller      = $eventCaller;
+        $this->executionContext = $executionContext;
     }
 
     /**
@@ -58,7 +71,12 @@ abstract class AbstractStage implements PipelineStageInterface
     {
         try {
             $this->eventCaller->setCurrentOperation($requestDescriptor);
-            $this->eventCaller->callSocketSubscribers($requestDescriptor, $event);
+            $this->eventCaller->callSocketSubscribers(
+                $requestDescriptor,
+                $event,
+                $this->executor,
+                $this->executionContext
+            );
             $this->eventCaller->clearCurrentOperation();
         } catch (\Exception $e) {
             $this->eventCaller->clearCurrentOperation();
@@ -81,7 +99,12 @@ abstract class AbstractStage implements PipelineStageInterface
     ) {
         try {
             $this->eventCaller->setCurrentOperation($requestDescriptor);
-            $this->eventCaller->callExceptionSubscribers($requestDescriptor, $exception);
+            $this->eventCaller->callExceptionSubscribers(
+                $requestDescriptor,
+                $exception,
+                $this->executor,
+                $this->executionContext
+            );
             $this->eventCaller->clearCurrentOperation();
         } catch (\Exception $e) {
             $this->eventCaller->clearCurrentOperation();

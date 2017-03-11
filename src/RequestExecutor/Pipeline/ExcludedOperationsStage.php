@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
 /**
@@ -21,18 +22,23 @@ class ExcludedOperationsStage extends AbstractStage
      *
      * @var PipelineStageInterface[]
      */
-    private $stages = [];
+    private $stages;
 
     /**
      * AbstractStage constructor.
      *
-     * @param RequestExecutorInterface $executor Request executor
-     * @param EventCaller              $eventCaller Event caller
-     * @param PipelineStageInterface[] $stages Stages for success way
+     * @param RequestExecutorInterface $executor         Request executor
+     * @param EventCaller              $eventCaller      Event caller
+     * @param ExecutionContext         $executionContext Execution context
+     * @param PipelineStageInterface[] $stages           Stages for success way
      */
-    public function __construct(RequestExecutorInterface $executor, EventCaller $eventCaller, array $stages)
-    {
-        parent::__construct($executor, $eventCaller);
+    public function __construct(
+        RequestExecutorInterface $executor,
+        EventCaller $eventCaller,
+        ExecutionContext $executionContext,
+        array $stages
+    ) {
+        parent::__construct($executor, $eventCaller, $executionContext);
         $this->stages = $stages;
     }
 

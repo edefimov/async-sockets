@@ -9,6 +9,7 @@
  */
 namespace Tests\AsyncSockets\RequestExecutor\LibEvent;
 
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\Pipeline\DelayStage;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
@@ -46,6 +47,7 @@ class LibEventTestStageFactory implements StageFactoryInterface
     /** {@inheritdoc} */
     public function createConnectStage(
         RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
         EventCaller $caller,
         LimitationSolverInterface $limitationSolver
     ) {
@@ -53,14 +55,18 @@ class LibEventTestStageFactory implements StageFactoryInterface
     }
 
     /** {@inheritdoc} */
-    public function createIoStage(RequestExecutorInterface $executor, EventCaller $caller)
-    {
+    public function createIoStage(
+        RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
+        EventCaller $caller
+    ) {
         return $this->ioStage;
     }
 
     /** {@inheritdoc} */
     public function createDisconnectStage(
         RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
         EventCaller $caller,
         AsyncSelector $selector = null
     ) {
@@ -106,8 +112,9 @@ class LibEventTestStageFactory implements StageFactoryInterface
     /** {@inheritdoc} */
     public function createDelayStage(
         RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
         EventCaller $caller
     ) {
-        return new DelayStage($executor, $caller);
+        return new DelayStage($executor, $caller, $executionContext);
     }
 }

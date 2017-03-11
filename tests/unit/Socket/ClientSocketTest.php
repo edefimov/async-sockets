@@ -150,7 +150,7 @@ class ClientSocketTest extends AbstractSocketTest
         $isFinished = false;
         $data       = 'I will pass this test';
         $splitData  = array_merge(str_split($data, 1), array_fill(0, 20, ''));
-        $freadMock  = $this->getMock('Countable', [ 'count' ]);
+        $freadMock  = $this->getMockBuilder('Countable')->setMethods([ 'count' ])->getMockForAbstractClass();
         $freadMock->expects(self::any())
             ->method('count')
             ->will(new \PHPUnit_Framework_MockObject_Stub_ConsecutiveCalls($splitData));
@@ -195,7 +195,7 @@ class ClientSocketTest extends AbstractSocketTest
         array $expectedFrames
     ) {
         $index = 0;
-        $freadMock = $this->getMock('\Countable', ['count']);
+        $freadMock = $this->getMockBuilder('\Countable')->setMethods(['count'])->getMockForAbstractClass();
         $freadMock->expects(self::any())->method('count')->willReturnCallback(
             function () use (&$index, $chunks) {
                 return isset($chunks[$index]) ? $chunks[$index++] : '';

@@ -32,13 +32,13 @@ class StreamContextTest extends \PHPUnit_Framework_TestCase
     /**
      * testPassStreamContextAsArray
      *
-     * @param array $context Arguments for stream context
+     * @param array|\Traversable $context Arguments for stream context
      * @param array $expected Excpected values in php function call
      *
      * @return void
      * @dataProvider streamContextDataProvider
      */
-    public function testPassStreamContextAsArray(array $context, array $expected)
+    public function testPassStreamContextAsArray($context, array $expected)
     {
         $resource = stream_context_create();
         PhpFunctionMocker::getPhpFunctionMocker('stream_context_create')->setCallable(
@@ -122,6 +122,22 @@ class StreamContextTest extends \PHPUnit_Framework_TestCase
                 [
                     'options' => [ ],
                     'params' => [ ]
+                ],
+            ],
+
+            [
+                new \ArrayObject(
+                    [
+                        'params' => [
+                            'value' => 'test'
+                        ]
+                    ]
+                ),
+                [
+                    'options' => [ ],
+                    'params' => [
+                        'value' => 'test'
+                    ]
                 ],
             ],
         ];

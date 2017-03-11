@@ -40,7 +40,8 @@ class NullIoHandlerTest extends AbstractOobHandlerTest
         $result = $this->handler->handle(
             $this->getMockedDescriptor(new NullOperation(), $this->socket, RequestDescriptor::RDS_READ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::assertNull($result, 'NullIoHandler must not return anything from handler');

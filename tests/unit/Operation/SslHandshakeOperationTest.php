@@ -42,7 +42,8 @@ class SslHandshakeOperationTest extends \PHPUnit_Framework_TestCase
      */
     public function testConstructorParams()
     {
-        $mock       = $this->getMockForAbstractClass('AsyncSockets\Operation\OperationInterface');
+        $mock      = $this->getMockBuilder('AsyncSockets\Operation\OperationInterface')
+                            ->getMockForAbstractClass();
         $cipher    = mt_rand(0, PHP_INT_MAX);
         $operation = new SslHandshakeOperation($mock, $cipher);
         self::assertSame($cipher, $operation->getCipher(), 'Incorrect cipher');

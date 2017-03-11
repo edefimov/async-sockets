@@ -10,6 +10,7 @@
 namespace AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class CallbackEventHandler
@@ -30,7 +31,6 @@ class CallbackEventHandler implements \Countable, EventHandlerInterface
      */
     public function __construct(array $events = [])
     {
-        $this->handlers = [];
         $this->addHandler($events);
     }
 
@@ -101,12 +101,16 @@ class CallbackEventHandler implements \Countable, EventHandlerInterface
     }
 
     /** {@inheritdoc} */
-    public function invokeEvent(Event $event)
-    {
+    public function invokeEvent(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
         $eventName   = $event->getType();
         $subscribers = isset($this->handlers[$eventName]) ? $this->handlers[$eventName] : [];
         foreach ($subscribers as $subscriber) {
-            call_user_func($subscriber, $event);
+            call_user_func($subscriber, $event, $executor, $socket, $context);
         }
     }
 

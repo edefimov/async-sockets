@@ -34,29 +34,37 @@ interface LimitationSolverInterface
     /**
      * Process initialization of request
      *
-     * @param RequestExecutorInterface $executor Request executor
+     * @param RequestExecutorInterface $executor         Request executor
+     * @param ExecutionContext         $executionContext Execution context
      *
      * @return void
      */
-    public function initialize(RequestExecutorInterface $executor);
+    public function initialize(RequestExecutorInterface $executor, ExecutionContext $executionContext);
 
     /**
      * Process finalization of request
      *
      * @param RequestExecutorInterface $executor Request executor
+     * @param ExecutionContext         $executionContext Execution context
      *
      * @return void
      */
-    public function finalize(RequestExecutorInterface $executor);
+    public function finalize(RequestExecutorInterface $executor, ExecutionContext $executionContext);
 
     /**
      * Decide what to do with current request
      *
      * @param RequestExecutorInterface $executor Request executor
      * @param SocketInterface          $socket Socket for operation
+     * @param ExecutionContext         $executionContext Execution context
      * @param int                      $totalSockets Total amount of scheduled sockets at moment of method call
      *
      * @return int One of DECISION_* consts
      */
-    public function decide(RequestExecutorInterface $executor, SocketInterface $socket, $totalSockets);
+    public function decide(
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $executionContext,
+        $totalSockets
+    );
 }

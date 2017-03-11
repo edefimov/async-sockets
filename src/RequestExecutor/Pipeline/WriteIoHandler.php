@@ -14,8 +14,10 @@ use AsyncSockets\Operation\InProgressWriteOperation;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\Io\IoInterface;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -33,7 +35,8 @@ class WriteIoHandler extends AbstractOobHandler
     protected function handleOperation(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     ) {
         $operation = $descriptor->getOperation();
         $socket    = $descriptor->getSocket();
@@ -49,7 +52,7 @@ class WriteIoHandler extends AbstractOobHandler
                 $socket,
                 $meta[ RequestExecutorInterface::META_USER_CONTEXT ]
             );
-            $eventHandler->invokeEvent($event);
+            $eventHandler->invokeEvent($event, $executor, $descriptor->getSocket(), $executionContext);
             $nextOperation = $event->getNextOperation();
         } else {
             $nextOperation = $operation;
@@ -81,22 +84,23 @@ class WriteIoHandler extends AbstractOobHandler
         $extractNextOperation = true;
         $bytesWritten         = 0;
 
-        if ($operation->hasData()) {
-            $data    = $operation->getData();
-            $length  = strlen($data);
-            $written = $socket->write($data, $operation->isOutOfBand());
+        $iterator = $this->resolveDataIterator($operation);
+        if ($iterator->valid()) {
+            $data     = $iterator->current();
+            $length   = strlen($data);
+            $written  = $socket->write($data, $operation->isOutOfBand());
             if ($length !== $written) {
-                $extractNextOperation = false;
-
-                $operation = $this->makeInProgressWriteOperation($operation, $nextOperation);
-                $operation->setData(
-                    substr($operation->getData(), $written)
-                );
-
-                $result = $operation;
+                $iterator->unread($length - $written);
             }
 
             $bytesWritten = $written;
+            $iterator->next();
+
+            if ($iterator->valid()) {
+                $extractNextOperation = false;
+                $operation = $this->makeInProgressWriteOperation($operation, $nextOperation);
+                $result    = $operation;
+            }
         }
 
         if ($extractNextOperation && ($operation instanceof InProgressWriteOperation)) {
@@ -123,5 +127,56 @@ class WriteIoHandler extends AbstractOobHandler
         }
 
         return $result;
+    }
+
+    /**
+     * Return iterator for writing operation
+     *
+     * @param WriteOperation $operation The operation
+     *
+     * @return PushbackIterator
+     */
+    private function resolveDataIterator(WriteOperation $operation)
+    {
+        $result = $operation->getData();
+        if (!($result instanceof PushbackIterator)) {
+            $result = new PushbackIterator(
+                $this->dataToIterator($result),
+                IoInterface::SOCKET_BUFFER_SIZE
+            );
+
+            $result->rewind();
+
+            $operation->setData($result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Converts data to Traversable object
+     *
+     * @param mixed $data Data to convert into object
+     *
+     * @return \Iterator
+     * @throws \LogicException If data can not be converted to \Traversable
+     */
+    private function dataToIterator($data)
+    {
+        switch (true) {
+            case !is_object($data):
+                return new \ArrayIterator((array) $data);
+            case $data instanceof \Iterator:
+                return $data;
+            case $data instanceof \Traversable:
+                return new \IteratorIterator($data);
+            default:
+                throw new \LogicException(
+                    sprintf(
+                        'Trying to send unexpected data type %s',
+                        is_object($data) ? get_class($data) : gettype($data)
+                    )
+                );
+        }
     }
 }

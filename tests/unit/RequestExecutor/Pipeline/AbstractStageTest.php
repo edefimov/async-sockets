@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
@@ -52,6 +53,13 @@ abstract class AbstractStageTest extends AbstractTestCase
     protected $metadata;
 
     /**
+     * Execution context
+     *
+     * @var ExecutionContext
+     */
+    protected $executionContext;
+
+    /**
      * Create test object
      *
      * @return PipelineStageInterface
@@ -62,6 +70,8 @@ abstract class AbstractStageTest extends AbstractTestCase
     protected function setUp()
     {
         parent::setUp();
+        $this->executionContext = new ExecutionContext();
+
         $this->metadata = $this->getMetadataStructure();
         $bag            = $this->getMockBuilder('AsyncSockets\RequestExecutor\SocketBagInterface')
                                ->setMethods([ 'getSocketMetaData' ])
@@ -72,11 +82,11 @@ abstract class AbstractStageTest extends AbstractTestCase
         $bag->expects(self::any())->method('getSocketMetaData')->willReturn($this->metadata);
         $this->executor->expects(self::any())->method('socketBag')->willReturn($bag);
 
-        $this->eventCaller = $this->getMock(
-            'AsyncSockets\RequestExecutor\Pipeline\EventCaller',
-            [ 'callExceptionSubscribers', 'callSocketSubscribers' ],
-            [ $this->executor ]
-        );
+        $this->eventCaller = $this->getMockBuilder('AsyncSockets\RequestExecutor\Pipeline\EventCaller')
+                                ->setMethods([ 'callExceptionSubscribers', 'callSocketSubscribers' ])
+                                ->setConstructorArgs([ $this->executor ])
+                                ->getMock();
+
         $this->stage       = $this->createStage();
     }
 

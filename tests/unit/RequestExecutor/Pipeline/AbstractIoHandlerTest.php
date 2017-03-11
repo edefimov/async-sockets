@@ -13,6 +13,7 @@ namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -62,6 +63,13 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
     protected $metadata;
 
     /**
+     * Execution context
+     *
+     * @var ExecutionContext
+     */
+    protected $executionContext;
+
+    /**
      * Create test object
      *
      * @return IoHandlerInterface
@@ -88,6 +96,8 @@ abstract class AbstractIoHandlerTest extends AbstractTestCase
     protected function setUp()
     {
         parent::setUp();
+        $this->executionContext = new ExecutionContext();
+
         $this->metadata = $this->getMetadataStructure();
         $bag            = $this->getMockBuilder('AsyncSockets\RequestExecutor\SocketBagInterface')
                                ->setMethods([ 'getSocketMetaData' ])

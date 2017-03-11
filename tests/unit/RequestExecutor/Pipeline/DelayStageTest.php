@@ -98,6 +98,6 @@ class DelayStageTest extends AbstractStageTest
      */
     protected function createStage()
     {
-        return new DelayStage($this->executor, $this->eventCaller);
+        return new DelayStage($this->executor, $this->eventCaller, $this->executionContext);
     }
 }

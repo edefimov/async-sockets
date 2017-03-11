@@ -102,7 +102,7 @@ class DatagramServerIoTest extends AbstractServerIoTest
      */
     public function testIfRemoteAddressIsUnknownExceptionWillBeThrown()
     {
-        $mock = $this->getMock('Countable', ['count']);
+        $mock = $this->getMockBuilder('Countable')->setMethods(['count'])->getMockForAbstractClass();
         $mock->expects(self::once())->method('count');
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_recvfrom')->setCallable(
             function ($resource, $size, $flags, &$address) use ($mock) {

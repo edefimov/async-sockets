@@ -29,9 +29,10 @@ interface IoHandlerInterface
     /**
      * Process given operation
      *
-     * @param RequestDescriptor        $descriptor Request descriptor
-     * @param RequestExecutorInterface $executor Executor, processing operation
-     * @param EventHandlerInterface    $eventHandler Event handler for this operation
+     * @param RequestDescriptor        $descriptor       Request descriptor
+     * @param RequestExecutorInterface $executor         Executor, processing operation
+     * @param EventHandlerInterface    $eventHandler     Event handler for this operation
+     * @param ExecutionContext         $executionContext Execution context
      *
      * @return OperationInterface|null Next operation to pass in socket. Return null,
      *      if next operation is not required. Return $operation parameter, if operation is not completed yet
@@ -39,6 +40,7 @@ interface IoHandlerInterface
     public function handle(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     );
 }

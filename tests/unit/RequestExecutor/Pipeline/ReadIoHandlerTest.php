@@ -111,7 +111,8 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
         $result = $this->handler->handle(
             $descriptor,
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         if ($mustBeReturned) {
@@ -148,7 +149,8 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_READ
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::assertSame($operation, $result, 'PartialFrame must return exact same object after handle method');
@@ -179,7 +181,8 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_READ
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::fail('Exception must not be handled');
@@ -206,7 +209,8 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_READ
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::fail('Exception must not be handled');
@@ -231,7 +235,8 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_READ
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::assertInstanceOf(
@@ -272,7 +277,8 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
         $this->handler->handle(
             $descriptor,
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
     }
 

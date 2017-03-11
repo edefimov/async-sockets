@@ -53,6 +53,7 @@ class WriteEventTest extends IoEventTest
     protected function setUp()
     {
         parent::setUp();
-        $this->operation = $this->getMock('AsyncSockets\Operation\WriteOperation');
+        $this->operation = $this->getMockBuilder('AsyncSockets\Operation\WriteOperation')
+                                ->getMockForAbstractClass();
     }
 }

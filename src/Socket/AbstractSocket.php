@@ -12,7 +12,6 @@ namespace AsyncSockets\Socket;
 
 use AsyncSockets\Exception\ConnectionException;
 use AsyncSockets\Frame\FramePickerInterface;
-use AsyncSockets\Socket\Io\AbstractIo;
 use AsyncSockets\Socket\Io\Context;
 use AsyncSockets\Socket\Io\DisconnectedIo;
 use AsyncSockets\Socket\Io\IoInterface;
@@ -116,7 +115,7 @@ abstract class AbstractSocket implements SocketInterface
 
         // https://bugs.php.net/bug.php?id=52602
         stream_set_timeout($this->resource, 0, 0);
-        stream_set_chunk_size($this->resource, AbstractIo::SOCKET_BUFFER_SIZE);
+        stream_set_chunk_size($this->resource, IoInterface::SOCKET_BUFFER_SIZE);
 
         $this->ioInterface = $this->createIoInterface(
             $this->resolveSocketType(),

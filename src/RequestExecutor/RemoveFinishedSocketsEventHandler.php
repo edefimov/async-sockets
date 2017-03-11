@@ -11,6 +11,7 @@ namespace AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class RemoveFinishedSocketsEventHandler
@@ -35,10 +36,14 @@ class RemoveFinishedSocketsEventHandler implements EventHandlerInterface
     }
 
     /** {@inheritdoc} */
-    public function invokeEvent(Event $event)
-    {
+    public function invokeEvent(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
         if ($this->handler) {
-            $this->handler->invokeEvent($event);
+            $this->handler->invokeEvent($event, $executor, $socket, $context);
         }
 
         if ($event->getType() === EventType::FINALIZE) {

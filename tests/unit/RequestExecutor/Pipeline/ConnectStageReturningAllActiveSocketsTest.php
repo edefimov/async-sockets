@@ -21,7 +21,12 @@ class ConnectStageReturningAllActiveSocketsTest extends ConnectStageTest
     /** {@inheritdoc} */
     protected function createStage()
     {
-        return new ConnectStageReturningAllActiveSockets($this->executor, $this->eventCaller, $this->solver);
+        return new ConnectStageReturningAllActiveSockets(
+            $this->executor,
+            $this->eventCaller,
+            $this->solver,
+            $this->executionContext
+        );
     }
 
     /**

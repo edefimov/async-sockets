@@ -28,7 +28,7 @@ class TimeoutStageTest extends AbstractStageTest
     /** {@inheritdoc} */
     protected function createStage()
     {
-        return new TimeoutStage($this->executor, $this->eventCaller);
+        return new TimeoutStage($this->executor, $this->eventCaller, $this->executionContext);
     }
 
     /**

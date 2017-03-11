@@ -10,6 +10,7 @@
 namespace AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class EventMultiHandler
@@ -30,17 +31,20 @@ class EventMultiHandler implements EventHandlerInterface
      */
     public function __construct(array $handlers = [])
     {
-        $this->handlers = [];
         foreach ($handlers as $handler) {
             $this->addHandler($handler);
         }
     }
 
     /** {@inheritdoc} */
-    public function invokeEvent(Event $event)
-    {
+    public function invokeEvent(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
         foreach ($this->handlers as $handler) {
-            $handler->invokeEvent($event);
+            $handler->invokeEvent($event, $executor, $socket, $context);
         }
     }
 
