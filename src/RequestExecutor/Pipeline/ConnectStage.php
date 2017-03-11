@@ -11,6 +11,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -30,16 +31,18 @@ class ConnectStage extends AbstractTimeAwareStage
     /**
      * ConnectStageAbstract constructor.
      *
-     * @param RequestExecutorInterface  $executor Request executor
-     * @param EventCaller               $eventCaller Event caller
-     * @param LimitationSolverInterface $decider Limitation solver for running requests
+     * @param RequestExecutorInterface  $executor         Request executor
+     * @param EventCaller               $eventCaller      Event caller
+     * @param LimitationSolverInterface $decider          Limitation solver for running requests
+     * @param ExecutionContext          $executionContext Execution context
      */
     public function __construct(
         RequestExecutorInterface $executor,
         EventCaller $eventCaller,
-        LimitationSolverInterface $decider
+        LimitationSolverInterface $decider,
+        ExecutionContext $executionContext
     ) {
-        parent::__construct($executor, $eventCaller);
+        parent::__construct($executor, $eventCaller, $executionContext);
         $this->decider = $decider;
     }
 
@@ -88,7 +91,12 @@ class ConnectStage extends AbstractTimeAwareStage
             return LimitationSolverInterface::DECISION_SKIP_CURRENT;
         }
 
-        $decision = $this->decider->decide($this->executor, $requestDescriptor->getSocket(), $totalItems);
+        $decision = $this->decider->decide(
+            $this->executor,
+            $requestDescriptor->getSocket(),
+            $this->executionContext,
+            $totalItems
+        );
         if ($decision !== LimitationSolverInterface::DECISION_OK) {
             return $decision;
         }

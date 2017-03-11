@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
@@ -38,34 +39,37 @@ class PipelineFactory
     /**
      * Create Pipeline
      *
-     * @param RequestExecutorInterface  $executor Request executor
-     * @param EventCaller               $eventCaller Event caller
+     * @param RequestExecutorInterface  $executor          Request executor
+     * @param ExecutionContext          $executionContext  Execution context
+     * @param EventCaller               $eventCaller       Event caller
      * @param LimitationSolverInterface $limitationDecider Limitation solver
      *
      * @return Pipeline
      */
     public function createPipeline(
         RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
         EventCaller $eventCaller,
         LimitationSolverInterface $limitationDecider
     ) {
         $selector        = $this->createSelector();
-        $disconnectStage = $this->stageFactory->createDisconnectStage($executor, $eventCaller, $selector);
+        $disconnectStage = $this->stageFactory->createDisconnectStage($executor, $executionContext, $eventCaller, $selector);
 
         return new Pipeline(
-            $this->stageFactory->createConnectStage($executor, $eventCaller, $limitationDecider),
+            $this->stageFactory->createConnectStage($executor, $executionContext, $eventCaller, $limitationDecider),
             [
                 new ExcludedOperationsStage(
                     $executor,
                     $eventCaller,
+                    $executionContext,
                     [
-                        $this->stageFactory->createDelayStage($executor, $eventCaller),
-                        new SelectStage($executor, $eventCaller, $selector),
-                        $this->stageFactory->createIoStage($executor, $eventCaller),
+                        $this->stageFactory->createDelayStage($executor, $executionContext, $eventCaller),
+                        new SelectStage($executor, $eventCaller, $executionContext, $selector),
+                        $this->stageFactory->createIoStage($executor, $executionContext, $eventCaller),
                         $disconnectStage
                     ]
                 ),
-                new TimeoutStage($executor, $eventCaller),
+                new TimeoutStage($executor, $eventCaller, $executionContext),
                 $disconnectStage
             ],
             $disconnectStage

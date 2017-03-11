@@ -48,7 +48,7 @@ class SslDataFlushEventHandlerTest extends EventHandlerInterfaceTest
 
         $event->expects(self::any())->method('getType')->willReturnOnConsecutiveCalls($events);
         for ($i = 0; $i < $eventCount; $i++) {
-            $object->invokeEvent($event);
+            $object->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
         }
     }
 
@@ -100,7 +100,7 @@ class SslDataFlushEventHandlerTest extends EventHandlerInterfaceTest
                 );
             });
 
-        $object->invokeEvent($event);
+        $object->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
 
         $event = $this->getMockBuilder('AsyncSockets\Event\ReadEvent')
                       ->setMethods(['getType', 'getSocket', 'getFrame'])
@@ -116,7 +116,7 @@ class SslDataFlushEventHandlerTest extends EventHandlerInterfaceTest
             ->method('getFrame')
             ->willReturn(new EmptyFrame(sha1(microtime())));
 
-        $object->invokeEvent($event);
+        $object->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
     }
 
     /**
@@ -145,7 +145,7 @@ class SslDataFlushEventHandlerTest extends EventHandlerInterfaceTest
              ->method('invokeEvent')
             ->with($event);
 
-        $object->invokeEvent($event);
+        $object->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
     }
 
     /**
@@ -185,7 +185,7 @@ class SslDataFlushEventHandlerTest extends EventHandlerInterfaceTest
              ->with($event);
 
         $object = new SslDataFlushEventHandler($next);
-        $object->invokeEvent($event);
+        $object->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
     }
 
     /**

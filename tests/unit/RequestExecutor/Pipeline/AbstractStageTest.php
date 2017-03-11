@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
@@ -52,6 +53,13 @@ abstract class AbstractStageTest extends AbstractTestCase
     protected $metadata;
 
     /**
+     * Execution context
+     *
+     * @var ExecutionContext
+     */
+    protected $executionContext;
+
+    /**
      * Create test object
      *
      * @return PipelineStageInterface
@@ -62,6 +70,8 @@ abstract class AbstractStageTest extends AbstractTestCase
     protected function setUp()
     {
         parent::setUp();
+        $this->executionContext = new ExecutionContext();
+
         $this->metadata = $this->getMetadataStructure();
         $bag            = $this->getMockBuilder('AsyncSockets\RequestExecutor\SocketBagInterface')
                                ->setMethods([ 'getSocketMetaData' ])

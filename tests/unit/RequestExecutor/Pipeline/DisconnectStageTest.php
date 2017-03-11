@@ -266,7 +266,7 @@ class DisconnectStageTest extends AbstractStageTest
     /** {@inheritdoc} */
     protected function createStage()
     {
-        return new DisconnectStage($this->executor, $this->eventCaller, $this->selector);
+        return new DisconnectStage($this->executor, $this->eventCaller, $this->executionContext, $this->selector);
     }
 
     /** {@inheritdoc} */

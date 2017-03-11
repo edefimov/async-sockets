@@ -101,7 +101,8 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
         $result = $this->handler->handle(
             $descriptor,
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
         self::assertNull($result, 'Incorrect return result');
     }
@@ -129,7 +130,8 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_WRITE
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::fail('Exception must not be handled');
@@ -154,7 +156,8 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_WRITE
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::fail('Exception must not be handled');
@@ -177,7 +180,8 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_WRITE
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
         self::assertNull($result, 'Incorrect return result');
     }
@@ -207,7 +211,8 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_WRITE
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
         self::assertNull($result, 'Incorrect return result');
     }
@@ -234,7 +239,8 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                 RequestDescriptor::RDS_WRITE
             ),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
         self::assertNull($result, 'Incorrect return result');
     }
@@ -266,13 +272,30 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
         $result = $this->handler->handle(
             $this->getMockedDescriptor(new WriteOperation($testData), $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
 
         self::assertInstanceOf(
             'AsyncSockets\Operation\InProgressWriteOperation',
             $result,
             'Incorrect return result'
+        );
+    }
+
+    /**
+     * testThatIncorrectObjectThrowsException
+     *
+     * @return void
+     * @expectedException \LogicException
+     */
+    public function testThatIncorrectObjectThrowsException()
+    {
+        $this->handler->handle(
+            $this->getMockedDescriptor(new WriteOperation(new \stdClass()), $this->socket, RequestDescriptor::RDS_WRITE),
+            $this->executor,
+            $this->mockEventHandler,
+            $this->executionContext
         );
     }
 

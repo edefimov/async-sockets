@@ -9,6 +9,7 @@
  */
 namespace AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
@@ -21,26 +22,32 @@ class BaseStageFactory implements StageFactoryInterface
     /** {@inheritdoc} */
     public function createConnectStage(
         RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
         EventCaller $caller,
         LimitationSolverInterface $limitationSolver
     ) {
-        return new ConnectStageReturningAllActiveSockets($executor, $caller, $limitationSolver);
+        return new ConnectStageReturningAllActiveSockets($executor, $caller, $limitationSolver, $executionContext);
     }
 
     /** {@inheritdoc} */
     public function createDelayStage(
         RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
         EventCaller $caller
     ) {
-        return new DelayStage($executor, $caller);
+        return new DelayStage($executor, $caller, $executionContext);
     }
 
     /** {@inheritdoc} */
-    public function createIoStage(RequestExecutorInterface $executor, EventCaller $caller)
-    {
+    public function createIoStage(
+        RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
+        EventCaller $caller
+    ) {
         return new IoStage(
             $executor,
             $caller,
+            $executionContext,
             [
                 new ReadIoHandler(),
                 new WriteIoHandler(),
@@ -53,11 +60,12 @@ class BaseStageFactory implements StageFactoryInterface
     /** {@inheritdoc} */
     public function createDisconnectStage(
         RequestExecutorInterface $executor,
+        ExecutionContext $executionContext,
         EventCaller $caller,
         AsyncSelector $selector = null
     ) {
-        $disconnectStage = new DisconnectStage($executor, $caller, $selector);
-        $guardianStage   = new GuardianStage($executor, $caller, $disconnectStage);
+        $disconnectStage = new DisconnectStage($executor, $caller, $executionContext, $selector);
+        $guardianStage   = new GuardianStage($executor, $caller, $executionContext, $disconnectStage);
 
         return new CompositeStage(
             [

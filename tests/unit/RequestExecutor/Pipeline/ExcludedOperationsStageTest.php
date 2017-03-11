@@ -10,6 +10,7 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Pipeline\ExcludedOperationsStage;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
 
@@ -28,7 +29,7 @@ class ExcludedOperationsStageTest extends AbstractStageTest
     /** {@inheritdoc} */
     protected function createStage()
     {
-        return new ExcludedOperationsStage($this->executor, $this->eventCaller, [$this->mockStage]);
+        return new ExcludedOperationsStage($this->executor, $this->eventCaller, new ExecutionContext(), [$this->mockStage]);
     }
 
     /**

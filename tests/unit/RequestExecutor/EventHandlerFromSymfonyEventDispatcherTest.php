@@ -11,6 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\RequestExecutor\EventHandlerFromSymfonyEventDispatcher;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 
 /**
  * Class EventHandlerFromSymfonyEventDispatcherTest
@@ -46,6 +47,11 @@ class EventHandlerFromSymfonyEventDispatcherTest extends \PHPUnit_Framework_Test
         /** @var \Symfony\Component\EventDispatcher\EventDispatcher $dispatcher */
         /** @var \AsyncSockets\Event\Event $event */
         $object = new EventHandlerFromSymfonyEventDispatcher($dispatcher);
-        $object->invokeEvent($event);
+        $object->invokeEvent(
+            $event,
+            $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')->getMockForAbstractClass(),
+            $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')->getMockForAbstractClass(),
+            new ExecutionContext()
+        );
     }
 }

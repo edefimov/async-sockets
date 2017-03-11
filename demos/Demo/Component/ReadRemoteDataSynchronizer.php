@@ -17,7 +17,9 @@ use AsyncSockets\Event\WriteEvent;
 use AsyncSockets\Operation\SslHandshakeOperation;
 use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\SocketInterface;
 use Demo\Frame\SimpleHttpFramePicker;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -123,11 +125,15 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
     }
 
     /** {@inheritdoc} */
-    public function invokeEvent(Event $event)
-    {
+    public function invokeEvent(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
         switch ($event->getType()) {
             case EventType::INITIALIZE:
-                $this->onInitialize($event);
+                $this->onInitialize($event, $executor, $socket, $context);
                 break;
             case EventType::DATA_ALERT:
                 $this->output->writeln('<error>Some new data arrived while we don\'t have handler</error>');
@@ -141,7 +147,7 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
                 $this->onWrite($event);
                 break;
             case EventType::FINALIZE:
-                $this->onFinalize($event);
+                $this->onFinalize($event, $executor, $socket, $context);
                 break;
             case EventType::TIMEOUT:
                 $this->output->writeln('<comment>Timeout on persistent socket</comment>');
@@ -168,22 +174,29 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
     /**
      * Initialize event
      *
-     * @param Event $event Event object
+     * @param Event                    $event    Event object
+     * @param RequestExecutorInterface $executor Request executor fired an event
+     * @param SocketInterface          $socket   Socket connected with event
+     * @param ExecutionContext         $context  Global data context
      *
      * @return void
      */
-    private function onInitialize(Event $event)
-    {
+    private function onInitialize(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
         $this->output->writeln('<info>Initialized persistent socket</info>');
         $writeOperation = new SslHandshakeOperation(
             $this->writeOperation,
             STREAM_CRYPTO_METHOD_TLS_CLIENT
         );
 
-        $socketBag = $event->getExecutor()->socketBag();
-        $socketBag->setSocketOperation($event->getSocket(), $writeOperation);
+        $socketBag = $executor->socketBag();
+        $socketBag->setSocketOperation($socket, $writeOperation);
         $socketBag->setSocketMetaData(
-            $event->getSocket(),
+            $socket,
             [
                 RequestExecutorInterface::META_ADDRESS            => $this->destinationHost,
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT => 60,
@@ -195,14 +208,21 @@ class ReadRemoteDataSynchronizer implements EventHandlerInterface
     /**
      * Finalize event handler
      *
-     * @param Event $event Event object
+     * @param Event                    $event    Event object
+     * @param RequestExecutorInterface $executor Request executor fired an event
+     * @param SocketInterface          $socket   Socket connected with event
+     * @param ExecutionContext         $context  Global data context
      *
      * @return void
      */
-    private function onFinalize(Event $event)
-    {
+    private function onFinalize(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
         $this->output->writeln('<info>Persistent socket finalized</info>');
-        $event->getExecutor()->socketBag()->removeSocket($event->getSocket());
+        $executor->socketBag()->removeSocket($socket);
     }
 
     /**

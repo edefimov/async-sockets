@@ -11,6 +11,7 @@
 namespace Tests\AsyncSockets\RequestExecutor\Metadata;
 
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\SocketInterface;
@@ -143,7 +144,13 @@ class RequestDescriptorTest extends AbstractTestCase
         $operation = new RequestDescriptor($this->socket, $this->operation, [ ], $handler);
 
         /** @var \AsyncSockets\Event\Event $event */
-        $operation->invokeEvent($event);
+        $operation->invokeEvent(
+            $event,
+            $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                 ->getMockForAbstractClass(),
+            $this->socket,
+            new ExecutionContext()
+        );
     }
 
     /**

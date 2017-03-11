@@ -16,6 +16,7 @@ use AsyncSockets\Exception\StopRequestExecuteException;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class AbstractRequestExecutor
@@ -104,10 +105,14 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
     }
 
     /** {@inheritdoc} */
-    public function executeRequest()
+    public function executeRequest(ExecutionContext $context = null)
     {
         if ($this->isExecuting()) {
             throw new \BadMethodCallException('Request is already in progress');
+        }
+
+        if (!$context) {
+            $context = new ExecutionContext();
         }
 
         $this->isRequestStopped = false;
@@ -125,35 +130,35 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
                 $eventCaller->addHandler($this->solver);
             }
 
-            $this->initializeRequest($eventCaller);
+            $this->initializeRequest($eventCaller, $context);
 
             $eventCaller->addHandler($this);
 
-            $this->solver->initialize($this);
-            $this->doExecuteRequest($eventCaller);
-            $this->solver->finalize($this);
+            $this->solver->initialize($this, $context);
+            $this->doExecuteRequest($eventCaller, $context);
+            $this->solver->finalize($this, $context);
 
-            $this->terminateRequest();
+            $this->terminateRequest($context);
         } catch (StopRequestExecuteException $e) {
             $this->isRequestStopInProgress = true;
             $this->disconnectItems($this->socketBag->getItems());
         } catch (SocketException $e) {
             foreach ($this->socketBag->getItems() as $item) {
                 $eventCaller->setCurrentOperation($item);
-                $eventCaller->callExceptionSubscribers($item, $e);
+                $eventCaller->callExceptionSubscribers($item, $e, $this, $context);
             }
 
             $this->disconnectItems($this->socketBag->getItems());
         } catch (\Exception $e) {
             $this->isExecuting = false;
             $this->emergencyShutdown();
-            $this->solver->finalize($this);
-            $this->terminateRequest();
+            $this->solver->finalize($this, $context);
+            $this->terminateRequest($context);
             throw $e;
         }
 
-        $this->solver->finalize($this);
-        $this->terminateRequest();
+        $this->solver->finalize($this, $context);
+        $this->terminateRequest($context);
         $this->isExecuting = false;
     }
 
@@ -170,11 +175,12 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
     /**
      * Prepare executor for request
      *
-     * @param EventCaller $eventCaller Event caller
+     * @param EventCaller      $eventCaller      Event caller
+     * @param ExecutionContext $executionContext Execution context
      *
      * @return void
      */
-    protected function initializeRequest(EventCaller $eventCaller)
+    protected function initializeRequest(EventCaller $eventCaller, ExecutionContext $executionContext)
     {
         // empty body
     }
@@ -182,18 +188,21 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
     /**
      * Execute network request
      *
-     * @param EventCaller $eventCaller Event caller object
+     * @param EventCaller      $eventCaller      Event caller object
+     * @param ExecutionContext $executionContext Execution context
      *
      * @return void
      */
-    abstract protected function doExecuteRequest(EventCaller $eventCaller);
+    abstract protected function doExecuteRequest(EventCaller $eventCaller, ExecutionContext $executionContext);
 
     /**
      * Terminate request in executor
      *
+     * @param ExecutionContext $executionContext Execution context
+     *
      * @return void
      */
-    protected function terminateRequest()
+    protected function terminateRequest(ExecutionContext $executionContext)
     {
         // empty body
     }
@@ -226,8 +235,12 @@ abstract class AbstractRequestExecutor implements RequestExecutorInterface, Even
     }
 
     /** {@inheritdoc} */
-    public function invokeEvent(Event $event)
-    {
+    public function invokeEvent(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
         if ($this->isRequestStopped && !$this->isRequestStopInProgress) {
             $this->isRequestStopInProgress = true;
             throw new StopRequestExecuteException();

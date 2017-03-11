@@ -61,7 +61,10 @@ class RemoveFinishedSocketsEventHandlerTest extends EventHandlerInterfaceTest
         $object = new RemoveFinishedSocketsEventHandler(null);
         foreach ($this->getEventTypes() as $eventType) {
             $object->invokeEvent(
-                new Event($executor, $socket, null, $eventType)
+                new Event($executor, $socket, null, $eventType),
+                $this->executor,
+                $this->socket,
+                $this->executionContext
             );
         }
     }
@@ -82,7 +85,7 @@ class RemoveFinishedSocketsEventHandlerTest extends EventHandlerInterfaceTest
         /** @var SocketInterface $socket */
         foreach ($eventTypes as $eventType) {
             $event = new Event($executor, $socket, null, $eventType);
-            $this->object->invokeEvent($event);
+            $this->object->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
         }
     }
 
@@ -102,7 +105,10 @@ class RemoveFinishedSocketsEventHandlerTest extends EventHandlerInterfaceTest
 
         /** @var SocketInterface $socket */
         $this->object->invokeEvent(
-            new Event($executor, $socket, null, EventType::FINALIZE)
+            new Event($executor, $socket, null, EventType::FINALIZE),
+            $this->executor,
+            $this->socket,
+            $this->executionContext
         );
     }
 
@@ -127,7 +133,7 @@ class RemoveFinishedSocketsEventHandlerTest extends EventHandlerInterfaceTest
             }
 
             $event = new Event($executor, $socket, null, $eventType);
-            $this->object->invokeEvent($event);
+            $this->object->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
         }
     }
 
@@ -147,7 +153,10 @@ class RemoveFinishedSocketsEventHandlerTest extends EventHandlerInterfaceTest
 
         /** @var SocketInterface $socket */
         $this->object->invokeEvent(
-            new Event($executor, $socket, null, EventType::FINALIZE)
+            new Event($executor, $socket, null, EventType::FINALIZE),
+            $this->executor,
+            $this->socket,
+            $this->executionContext
         );
     }
 

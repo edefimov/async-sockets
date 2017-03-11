@@ -73,7 +73,8 @@ class SslHandshakeIoHandlerTest extends AbstractOobHandlerTest
         $this->handler->handle(
             $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
         self::fail('Exception wasn\'t thrown');
     }
@@ -101,7 +102,8 @@ class SslHandshakeIoHandlerTest extends AbstractOobHandlerTest
         $result = $this->handler->handle(
             $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
         self::assertSame($operation, $result, 'Incorrect operation returned');
     }
@@ -134,7 +136,8 @@ class SslHandshakeIoHandlerTest extends AbstractOobHandlerTest
         $result = $this->handler->handle(
             $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
-            $this->mockEventHandler
+            $this->mockEventHandler,
+            $this->executionContext
         );
         self::assertSame($nextOperation, $result, 'Incorrect operation returned');
     }

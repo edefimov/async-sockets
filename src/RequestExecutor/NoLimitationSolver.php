@@ -17,20 +17,24 @@ use AsyncSockets\Socket\SocketInterface;
 class NoLimitationSolver implements LimitationSolverInterface
 {
     /** {@inheritdoc} */
-    public function initialize(RequestExecutorInterface $executor)
+    public function initialize(RequestExecutorInterface $executor, ExecutionContext $executionContext)
     {
         // empty body
     }
 
     /** {@inheritdoc} */
-    public function finalize(RequestExecutorInterface $executor)
+    public function finalize(RequestExecutorInterface $executor, ExecutionContext $executionContext)
     {
         // empty body
     }
 
     /** {@inheritdoc} */
-    public function decide(RequestExecutorInterface $executor, SocketInterface $socket, $totalSockets)
-    {
+    public function decide(
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $executionContext,
+        $totalSockets
+    ) {
         return self::DECISION_OK;
     }
 }

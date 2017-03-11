@@ -14,6 +14,7 @@ use AsyncSockets\Operation\InProgressWriteOperation;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\Io\IoInterface;
@@ -34,7 +35,8 @@ class WriteIoHandler extends AbstractOobHandler
     protected function handleOperation(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     ) {
         $operation = $descriptor->getOperation();
         $socket    = $descriptor->getSocket();
@@ -50,7 +52,7 @@ class WriteIoHandler extends AbstractOobHandler
                 $socket,
                 $meta[ RequestExecutorInterface::META_USER_CONTEXT ]
             );
-            $eventHandler->invokeEvent($event);
+            $eventHandler->invokeEvent($event, $executor, $descriptor->getSocket(), $executionContext);
             $nextOperation = $event->getNextOperation();
         } else {
             $nextOperation = $operation;
@@ -138,30 +140,43 @@ class WriteIoHandler extends AbstractOobHandler
     {
         $result = $operation->getData();
         if (!($result instanceof PushbackIterator)) {
-            $nested = $result;
-            if ($nested === null || is_scalar($nested)) {
-                $nested = (array) $nested;
-            }
+            $result = new PushbackIterator(
+                $this->dataToIterator($result),
+                IoInterface::SOCKET_BUFFER_SIZE
+            );
 
-            if (is_array($nested)) {
-                $nested = new \ArrayIterator($nested);
-            }
-
-            if (!($nested instanceof \Traversable)) {
-                throw new \LogicException(
-                    sprintf(
-                        'Trying to send unexpected data type %s',
-                        is_object($nested) ? get_class($nested) : gettype($nested)
-                    )
-                );
-            }
-
-            $result = new PushbackIterator($nested, IoInterface::SOCKET_BUFFER_SIZE);
             $result->rewind();
 
             $operation->setData($result);
         }
 
         return $result;
+    }
+
+    /**
+     * Converts data to Traversable object
+     *
+     * @param mixed $data Data to convert into object
+     *
+     * @return \Iterator
+     * @throws \LogicException If data can not be converted to \Traversable
+     */
+    private function dataToIterator($data)
+    {
+        switch (true) {
+            case !is_object($data):
+                return new \ArrayIterator((array) $data);
+            case $data instanceof \Iterator:
+                return $data;
+            case $data instanceof \Traversable:
+                return new \IteratorIterator($data);
+            default:
+                throw new \LogicException(
+                    sprintf(
+                        'Trying to send unexpected data type %s',
+                        is_object($data) ? get_class($data) : gettype($data)
+                    )
+                );
+        }
     }
 }

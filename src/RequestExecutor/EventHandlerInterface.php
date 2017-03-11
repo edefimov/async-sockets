@@ -10,6 +10,7 @@
 namespace AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Interface EventHandlerInterface
@@ -19,9 +20,17 @@ interface EventHandlerInterface
     /**
      * Invokes on each event in RequestExecutor
      *
-     * @param Event $event Event object
+     * @param Event                    $event    Event object
+     * @param RequestExecutorInterface $executor Request executor fired an event
+     * @param SocketInterface          $socket   Socket connected with event
+     * @param ExecutionContext         $context  Global data context
      *
      * @return void
      */
-    public function invokeEvent(Event $event);
+    public function invokeEvent(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    );
 }

@@ -189,7 +189,7 @@ class PushbackIterator implements \Iterator
      */
     public function __toString()
     {
-        return $this->valid() ? $this->current() : '';
+        return $this->valid() ? (string) $this->current() : '';
     }
 
     /**

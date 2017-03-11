@@ -94,30 +94,35 @@ class LibEventRequestExecutor extends AbstractRequestExecutor implements LeCallb
     }
 
     /** {@inheritdoc} */
-    protected function doExecuteRequest(EventCaller $eventCaller)
+    protected function doExecuteRequest(EventCaller $eventCaller, ExecutionContext $executionContext)
     {
         $this->connectSockets();
         $this->base->startLoop();
     }
 
     /** {@inheritdoc} */
-    protected function initializeRequest(EventCaller $eventCaller)
+    protected function initializeRequest(EventCaller $eventCaller, ExecutionContext $executionContext)
     {
-        parent::initializeRequest($eventCaller);
+        parent::initializeRequest($eventCaller, $executionContext);
         $this->base = new LeBase();
 
-        $this->connectStage    = $this->stageFactory->createConnectStage($this, $eventCaller, $this->solver);
-        $this->ioStage         = $this->stageFactory->createIoStage($this, $eventCaller);
-        $this->disconnectStage = $this->stageFactory->createDisconnectStage($this, $eventCaller);
-        $this->delayStage      = $this->stageFactory->createDelayStage($this, $eventCaller);
-        $this->timeoutStage    = new TimeoutStage($this, $eventCaller);
+        $this->connectStage    = $this->stageFactory->createConnectStage(
+            $this,
+            $executionContext,
+            $eventCaller,
+            $this->solver
+        );
+        $this->ioStage         = $this->stageFactory->createIoStage($this, $executionContext, $eventCaller);
+        $this->disconnectStage = $this->stageFactory->createDisconnectStage($this, $executionContext, $eventCaller);
+        $this->delayStage      = $this->stageFactory->createDelayStage($this, $executionContext, $eventCaller);
+        $this->timeoutStage    = new TimeoutStage($this, $eventCaller, $executionContext);
     }
 
     /** {@inheritdoc} */
-    protected function terminateRequest()
+    protected function terminateRequest(ExecutionContext $executionContext)
     {
-        parent::terminateRequest();
-        $this->base        = null;
+        parent::terminateRequest($executionContext);
+        $this->base = null;
 
         $this->connectStage    = null;
         $this->ioStage         = null;

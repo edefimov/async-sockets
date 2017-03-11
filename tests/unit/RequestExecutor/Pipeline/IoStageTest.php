@@ -172,7 +172,7 @@ class IoStageTest extends AbstractStageTest
         $eventCaller->expects(self::once())->method('setCurrentOperation')->with($request);
         $eventCaller->expects(self::once())->method('clearCurrentOperation');
 
-        $stage = new IoStage($this->executor, $eventCaller, [$this->mockHandler]);
+        $stage = new IoStage($this->executor, $eventCaller, $this->executionContext, [$this->mockHandler]);
         $stage->processStage([$request]);
     }
 
@@ -198,7 +198,7 @@ class IoStageTest extends AbstractStageTest
         $this->mockHandler->expects(self::never())->method('handle');
 
         try {
-            $stage = new IoStage($this->executor, $this->eventCaller, [$this->mockHandler]);
+            $stage = new IoStage($this->executor, $this->eventCaller, $this->executionContext, [$this->mockHandler]);
             $stage->processStage([$request]);
         } catch (\LogicException $e) {
             // it's ok
@@ -464,6 +464,7 @@ class IoStageTest extends AbstractStageTest
         return new IoStage(
             $this->executor,
             $this->eventCaller,
+            $this->executionContext,
             [
                 $this->mockHandler,
                 new WriteIoHandler()

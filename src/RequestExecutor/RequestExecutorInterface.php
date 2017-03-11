@@ -158,12 +158,12 @@ interface RequestExecutorInterface
     /**
      * Execute this request
      *
-     * @return void
-     * @throws \BadMethodCallException If you try to call this method when request is active
+     * @param ExecutionContext|null $context Context with custom data for processing request
      *
+     * @return void
      * @api
      */
-    public function executeRequest();
+    public function executeRequest(ExecutionContext $context = null);
 
     /**
      * Stop execution for all registered sockets. Applicable only during request execution

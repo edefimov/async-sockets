@@ -40,7 +40,7 @@ class EventMultiHandlerTest extends EventHandlerInterfaceTest
             ->with($event);
 
         $this->multiHandler->addHandler($handler);
-        $this->multiHandler->invokeEvent($event);
+        $this->multiHandler->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
     }
 
     /**
@@ -58,7 +58,7 @@ class EventMultiHandlerTest extends EventHandlerInterfaceTest
             ->with($event);
 
         $multiHandler = new EventMultiHandler([$handler]);
-        $multiHandler->invokeEvent($event);
+        $multiHandler->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
     }
 
     /**
@@ -79,7 +79,7 @@ class EventMultiHandlerTest extends EventHandlerInterfaceTest
             $this->multiHandler->addHandler($handler);
         }
 
-        $this->multiHandler->invokeEvent($event);
+        $this->multiHandler->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
     }
 
     /**
@@ -97,7 +97,7 @@ class EventMultiHandlerTest extends EventHandlerInterfaceTest
 
         $this->multiHandler->addHandler($handler);
         $this->multiHandler->removeHandler($handler);
-        $this->multiHandler->invokeEvent($event);
+        $this->multiHandler->invokeEvent($event, $this->executor, $this->socket, $this->executionContext);
     }
 
     /** {@inheritdoc} */

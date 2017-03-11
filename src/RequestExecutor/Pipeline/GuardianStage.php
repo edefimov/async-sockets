@@ -14,6 +14,7 @@ use AsyncSockets\Exception\UnmanagedSocketException;
 use AsyncSockets\Frame\EmptyFramePicker;
 use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\Operation\ReadOperation;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 
@@ -44,16 +45,18 @@ class GuardianStage extends AbstractStage
     /**
      * GuardianStage constructor.
      *
-     * @param RequestExecutorInterface $executor Request executor
-     * @param EventCaller              $eventCaller Event caller
-     * @param DisconnectStage          $disconnectStage Disconnect stage
+     * @param RequestExecutorInterface $executor         Request executor
+     * @param EventCaller              $eventCaller      Event caller
+     * @param ExecutionContext         $executionContext Execution context
+     * @param DisconnectStage          $disconnectStage  Disconnect stage
      */
     public function __construct(
         RequestExecutorInterface $executor,
         EventCaller $eventCaller,
+        ExecutionContext $executionContext,
         DisconnectStage $disconnectStage
     ) {
-        parent::__construct($executor, $eventCaller);
+        parent::__construct($executor, $eventCaller, $executionContext);
         $this->disconnectStage = $disconnectStage;
     }
 
@@ -139,7 +142,9 @@ class GuardianStage extends AbstractStage
     {
         $this->eventCaller->callExceptionSubscribers(
             $descriptor,
-            UnmanagedSocketException::zombieSocketDetected($descriptor->getSocket())
+            UnmanagedSocketException::zombieSocketDetected($descriptor->getSocket()),
+            $this->executor,
+            $this->executionContext
         );
 
         $this->disconnectStage->disconnect($descriptor);

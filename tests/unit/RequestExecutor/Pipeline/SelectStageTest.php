@@ -15,6 +15,7 @@ use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\Operation\WriteOperation;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Pipeline\SelectStage;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
@@ -257,7 +258,7 @@ class SelectStageTest extends AbstractStageTest
     /** {@inheritdoc} */
     protected function createStage()
     {
-        return new SelectStage($this->executor, $this->eventCaller, $this->selector);
+        return new SelectStage($this->executor, $this->eventCaller, new ExecutionContext(), $this->selector);
     }
 
     /** {@inheritdoc} */

@@ -14,8 +14,10 @@ use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\StopSocketOperationException;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class EventCaller
@@ -88,26 +90,35 @@ class EventCaller implements EventHandlerInterface
     }
 
     /** {@inheritdoc} */
-    public function invokeEvent(Event $event)
-    {
-        $this->callSocketSubscribers($this->currentOperation, $event);
+    public function invokeEvent(
+        Event $event,
+        RequestExecutorInterface $executor,
+        SocketInterface $socket,
+        ExecutionContext $context
+    ) {
+        $this->callSocketSubscribers($this->currentOperation, $event, $executor, $context);
     }
 
     /**
      * Notify handlers about given event
      *
-     * @param RequestDescriptor $requestDescriptor Request descriptor
-     * @param Event             $event Event object
+     * @param RequestDescriptor        $requestDescriptor Request descriptor
+     * @param Event                    $event             Event object
+     * @param RequestExecutorInterface $executor          Request executor
+     * @param ExecutionContext         $context           Execution context
      *
      * @return void
-     * @throws StopSocketOperationException
      */
-    public function callSocketSubscribers(RequestDescriptor $requestDescriptor, Event $event)
-    {
-        $requestDescriptor->invokeEvent($event);
+    public function callSocketSubscribers(
+        RequestDescriptor $requestDescriptor,
+        Event $event,
+        RequestExecutorInterface $executor,
+        ExecutionContext $context
+    ) {
+        $requestDescriptor->invokeEvent($event, $executor, $requestDescriptor->getSocket(), $context);
 
         foreach ($this->handlers as $handler) {
-            $handler->invokeEvent($event);
+            $handler->invokeEvent($event, $executor, $requestDescriptor->getSocket(), $context);
         }
 
         if ($event->isOperationCancelled()) {
@@ -118,14 +129,18 @@ class EventCaller implements EventHandlerInterface
     /**
      * Notify handlers about exception
      *
-     * @param RequestDescriptor $requestDescriptor Socket operation object
-     * @param SocketException   $exception Thrown exception
+     * @param RequestDescriptor        $requestDescriptor Socket operation object
+     * @param SocketException          $exception         Thrown exception
+     * @param RequestExecutorInterface $executor          Request executor
+     * @param ExecutionContext         $context           Execution context
      *
      * @return void
      */
     public function callExceptionSubscribers(
         RequestDescriptor $requestDescriptor,
-        SocketException $exception
+        SocketException $exception,
+        RequestExecutorInterface $executor,
+        ExecutionContext $context
     ) {
         if ($exception instanceof StopSocketOperationException) {
             return;
@@ -138,6 +153,6 @@ class EventCaller implements EventHandlerInterface
             $requestDescriptor->getSocket(),
             $meta[RequestExecutorInterface::META_USER_CONTEXT]
         );
-        $this->callSocketSubscribers($requestDescriptor, $exceptionEvent);
+        $this->callSocketSubscribers($requestDescriptor, $exceptionEvent, $executor, $context);
     }
 }

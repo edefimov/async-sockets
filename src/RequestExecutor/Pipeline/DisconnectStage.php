@@ -11,6 +11,7 @@ namespace AsyncSockets\RequestExecutor\Pipeline;
 
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\SocketException;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
@@ -32,16 +33,18 @@ class DisconnectStage extends AbstractStage
     /**
      * DisconnectStage constructor.
      *
-     * @param RequestExecutorInterface $executor Request executor
-     * @param EventCaller              $eventCaller Event caller
-     * @param AsyncSelector            $selector Async selector
+     * @param RequestExecutorInterface $executor         Request executor
+     * @param EventCaller              $eventCaller      Event caller
+     * @param ExecutionContext         $executionContext Execution context
+     * @param AsyncSelector            $selector         Async selector
      */
     public function __construct(
         RequestExecutorInterface $executor,
         EventCaller $eventCaller,
+        ExecutionContext $executionContext,
         AsyncSelector $selector = null
     ) {
-        parent::__construct($executor, $eventCaller);
+        parent::__construct($executor, $eventCaller, $executionContext);
         $this->selector = $selector;
     }
 

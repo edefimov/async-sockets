@@ -100,6 +100,21 @@ class PushbackIteratorTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * testNothingHappenWhenBufferEmpty
+     *
+     * @return void
+     */
+    public function testNothingHappenWhenBufferEmpty()
+    {
+        $iter = new PushbackIterator(new \ArrayIterator([]), 1);
+
+        $iter->rewind();
+        $iter->unread(1);
+        $iter->next();
+        self::assertEmpty($iter->current(), 'Unexpected unread result');
+    }
+
+    /**
      * chunkTestDataProvider
      *
      * @return array
@@ -131,6 +146,7 @@ class PushbackIteratorTest extends \PHPUnit_Framework_TestCase
                 40,
                 '123456789012345678901234567890abcdefghij',
             ],
+            [['1234567890'], [1], 2, '23'],
         ];
     }
 }

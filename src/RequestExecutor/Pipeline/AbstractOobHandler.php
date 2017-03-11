@@ -13,6 +13,7 @@ use AsyncSockets\Event\ReadEvent;
 use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Metadata\SpeedRateCounter;
@@ -39,9 +40,10 @@ abstract class AbstractOobHandler implements IoHandlerInterface
     final public function handle(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     ) {
-        $result = $this->handleOobData($descriptor, $executor, $eventHandler);
+        $result = $this->handleOobData($descriptor, $executor, $eventHandler, $executionContext);
         if ($result) {
             return $result;
         }
@@ -50,7 +52,7 @@ abstract class AbstractOobHandler implements IoHandlerInterface
         if ($descriptor->hasState($state)) {
             $descriptor->clearState($state);
 
-            $result = $this->handleOperation($descriptor, $executor, $eventHandler);
+            $result = $this->handleOperation($descriptor, $executor, $eventHandler, $executionContext);
         }
 
         return $result;
@@ -59,9 +61,10 @@ abstract class AbstractOobHandler implements IoHandlerInterface
     /**
      * Process given operation
      *
-     * @param RequestDescriptor        $descriptor Request descriptor
-     * @param RequestExecutorInterface $executor Executor, processing operation
-     * @param EventHandlerInterface    $eventHandler Event handler for this operation
+     * @param RequestDescriptor        $descriptor       Request descriptor
+     * @param RequestExecutorInterface $executor         Executor, processing operation
+     * @param EventHandlerInterface    $eventHandler     Event handler for this operation
+     * @param ExecutionContext         $executionContext Execution context
      *
      * @return OperationInterface|null Next operation to pass in socket. Return null,
      *      if next operation is not required. Return $operation parameter, if operation is not completed yet
@@ -69,7 +72,8 @@ abstract class AbstractOobHandler implements IoHandlerInterface
     abstract protected function handleOperation(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     );
 
     /**
@@ -89,16 +93,18 @@ abstract class AbstractOobHandler implements IoHandlerInterface
     /**
      * Handle OOB data
      *
-     * @param RequestDescriptor        $descriptor Request descriptor
-     * @param RequestExecutorInterface $executor Executor, processing operation
-     * @param EventHandlerInterface    $eventHandler Event handler for this operation
+     * @param RequestDescriptor        $descriptor       Request descriptor
+     * @param RequestExecutorInterface $executor         Executor, processing operation
+     * @param EventHandlerInterface    $eventHandler     Event handler for this operation
+     * @param ExecutionContext         $executionContext Execution context
      *
      * @return OperationInterface|null Operation to return to user or null to continue normal processing
      */
     private function handleOobData(
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
-        EventHandlerInterface $eventHandler
+        EventHandlerInterface $eventHandler,
+        ExecutionContext $executionContext
     ) {
         if (!$descriptor->hasState(RequestDescriptor::RDS_OOB)) {
             return null;
@@ -118,7 +124,7 @@ abstract class AbstractOobHandler implements IoHandlerInterface
             true
         );
 
-        $eventHandler->invokeEvent($event);
+        $eventHandler->invokeEvent($event, $executor, $socket, $executionContext);
 
         return $event->getNextOperation();
     }

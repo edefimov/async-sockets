@@ -14,6 +14,7 @@ use AsyncSockets\Exception\NetworkSocketException;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -33,16 +34,18 @@ class IoStage extends AbstractTimeAwareStage
     /**
      * IoStage constructor.
      *
-     * @param RequestExecutorInterface $executor Request executor
-     * @param EventCaller              $eventCaller Event caller
-     * @param IoHandlerInterface[]     $ioHandlers Array of operation handlers
+     * @param RequestExecutorInterface $executor         Request executor
+     * @param EventCaller              $eventCaller      Event caller
+     * @param ExecutionContext         $executionContext Execution context
+     * @param IoHandlerInterface[]     $ioHandlers       Array of operation handlers
      */
     public function __construct(
         RequestExecutorInterface $executor,
         EventCaller $eventCaller,
+        ExecutionContext $executionContext,
         array $ioHandlers
     ) {
-        parent::__construct($executor, $eventCaller);
+        parent::__construct($executor, $eventCaller, $executionContext);
         $this->ioHandlers = $ioHandlers;
     }
 
@@ -104,7 +107,8 @@ class IoStage extends AbstractTimeAwareStage
             $result = $ioHandler->handle(
                 $requestDescriptor,
                 $this->executor,
-                $this->eventCaller
+                $this->eventCaller,
+                $this->executionContext
             );
             $this->eventCaller->clearCurrentOperation();
 

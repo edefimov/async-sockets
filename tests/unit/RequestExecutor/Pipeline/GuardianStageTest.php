@@ -183,7 +183,7 @@ class GuardianStageTest extends AbstractStageTest
      */
     protected function createStage()
     {
-        return new GuardianStage($this->executor, $this->eventCaller, $this->disconnectStage);
+        return new GuardianStage($this->executor, $this->eventCaller, $this->executionContext, $this->disconnectStage);
     }
 
     /**

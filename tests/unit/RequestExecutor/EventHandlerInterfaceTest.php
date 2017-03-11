@@ -11,12 +11,36 @@
 namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
+use AsyncSockets\RequestExecutor\ExecutionContext;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class EventHandlerInterfaceTest
  */
 abstract class EventHandlerInterfaceTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * Xxecutor
+     *
+     * @var RequestExecutorInterface
+     */
+    protected $executor;
+
+    /**
+     * Socket
+     *
+     * @var SocketInterface
+     */
+    protected $socket;
+
+    /**
+     * Execution context
+     *
+     * @var ExecutionContext
+     */
+    protected $executionContext;
+
     /**
      * Create mocked handler
      *
@@ -33,5 +57,20 @@ abstract class EventHandlerInterfaceTest extends \PHPUnit_Framework_TestCase
             true,
             ['invokeEvent']
         );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function setUp()
+    {
+        parent::setUp();
+        $this->executionContext = new ExecutionContext();
+
+        $this->executor = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                               ->getMockForAbstractClass();
+
+        $this->socket = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                             ->getMockForAbstractClass();
     }
 }

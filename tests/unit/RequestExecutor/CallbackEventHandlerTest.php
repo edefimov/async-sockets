@@ -12,6 +12,9 @@ namespace Tests\AsyncSockets\RequestExecutor;
 
 use AsyncSockets\Event\Event;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
+use AsyncSockets\RequestExecutor\ExecutionContext;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class CallbackEventHandlerTest
@@ -25,11 +28,37 @@ class CallbackEventHandlerTest extends \PHPUnit_Framework_TestCase
      */
     private $bag;
 
+    /**
+     * Request executor
+     *
+     * @var RequestExecutorInterface
+     */
+    private $executor;
+
+    /**
+     * Socket
+     *
+     * @var SocketInterface
+     */
+    private $socket;
+
+    /**
+     * Execution context
+     *
+     * @var ExecutionContext
+     */
+    private $context;
+
     /** {@inheritdoc} */
     protected function setUp()
     {
         parent::setUp();
-        $this->bag = new CallbackEventHandler();
+        $this->bag      = new CallbackEventHandler();
+        $this->executor = $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')
+                               ->getMockForAbstractClass();
+        $this->socket   = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                               ->getMockForAbstractClass();
+        $this->context  = new ExecutionContext();
     }
 
     /**
@@ -60,7 +89,7 @@ class CallbackEventHandlerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $this->bag->invokeEvent($event);
+        $this->bag->invokeEvent($event, $this->executor, $this->socket, $this->context);
     }
 
     /**
@@ -84,10 +113,16 @@ class CallbackEventHandlerTest extends \PHPUnit_Framework_TestCase
 
         $this->bag->removeHandler(['test' => $testCallables]);
         $this->bag->invokeEvent(
-            $this->createEventMock('test')
+            $this->createEventMock('test'),
+            $this->executor,
+            $this->socket,
+            $this->context
         );
         $this->bag->invokeEvent(
-            $this->createEventMock('keep')
+            $this->createEventMock('keep'),
+            $this->executor,
+            $this->socket,
+            $this->context
         );
     }
 
@@ -112,10 +147,16 @@ class CallbackEventHandlerTest extends \PHPUnit_Framework_TestCase
         $this->bag->removeAll();
 
         $this->bag->invokeEvent(
-            $this->createEventMock('test')
+            $this->createEventMock('test'),
+            $this->executor,
+            $this->socket,
+            $this->context
         );
         $this->bag->invokeEvent(
-            $this->createEventMock('keep')
+            $this->createEventMock('keep'),
+            $this->executor,
+            $this->socket,
+            $this->context
         );
     }
 
@@ -139,10 +180,16 @@ class CallbackEventHandlerTest extends \PHPUnit_Framework_TestCase
 
         $this->bag->removeForEvent('test');
         $this->bag->invokeEvent(
-            $this->createEventMock('test')
+            $this->createEventMock('test'),
+            $this->executor,
+            $this->socket,
+            $this->context
         );
         $this->bag->invokeEvent(
-            $this->createEventMock('keep')
+            $this->createEventMock('keep'),
+            $this->executor,
+            $this->socket,
+            $this->context
         );
     }
 
