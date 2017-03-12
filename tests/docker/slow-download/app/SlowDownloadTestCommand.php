@@ -93,7 +93,11 @@ class SlowDownloadTestCommand extends Command
                     EventType::WRITE => function (WriteEvent $event) {
                         $event->nextIs(new ReadOperation(new MarkerFramePicker('HTTP', "\r\n\r\n", true)));
                     },
-                    EventType::READ => function (ReadEvent $event) use (&$progress, $output) {
+                    EventType::READ => function (
+                        ReadEvent $event,
+                        RequestExecutorInterface $executor,
+                        SocketInterface $socket
+                    ) use (&$progress, $output) {
                         if (!$this->contentLength) {
                             $this->contentLength  = $this->getContentLength($event->getFrame()->getData());
                             $this->receivedLength = 0;
@@ -108,9 +112,9 @@ class SlowDownloadTestCommand extends Command
                         $received              = strlen($event->getFrame()->getData());
                         $this->receivedLength += $received;
                         $progress->setMessage(
-                            $event->getExecutor()
+                            $executor
                                   ->socketBag()
-                                  ->getSocketMetaData($event->getSocket())[RequestExecutorInterface::META_RECEIVE_SPEED],
+                                  ->getSocketMetaData($socket)[RequestExecutorInterface::META_RECEIVE_SPEED],
                             'speed'
                         );
                         $progress->advance($received);

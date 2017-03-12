@@ -43,4 +43,11 @@ interface IoInterface
      * @return int Number of written bytes
      */
     public function write($data, Context $context, $isOutOfBand);
+
+    /**
+     * Check whether given socket resource is connected
+     *
+     * @return bool
+     */
+    public function isConnected();
 }

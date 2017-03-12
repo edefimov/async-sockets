@@ -75,7 +75,7 @@ class RequestExecutorClient extends Command
         $executor->withEventHandler(
             new CallbackEventHandler(
                 [
-                    EventType::CONNECTED => function () {
+                    EventType::CONNECTED => function (Event $event, RequestExecutorInterface $executor, SocketInterface $socket) {
                         echo "Some socket connected\n";
                     },
                     EventType::DISCONNECTED => function () {

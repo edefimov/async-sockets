@@ -23,6 +23,7 @@ use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\SslDataFlushEventHandler;
 use AsyncSockets\Socket\AsyncSocketFactory;
+use AsyncSockets\Socket\SocketInterface;
 
 $factory = new AsyncSocketFactory();
 
@@ -50,17 +51,23 @@ $executor->socketBag()->addSocket(
     new SslDataFlushEventHandler(
         new CallbackEventHandler(
             [
-                EventType::WRITE => function (WriteEvent $event) {
-                    echo '<pre>' . $event->getSocket()->getStreamResource() . "\n</pre>";
+                EventType::WRITE => function (
+                    WriteEvent $event,
+                    RequestExecutorInterface $executor,
+                    SocketInterface $socket
+                ) {
+                    echo '<pre>' . $socket->getStreamResource() . "\n</pre>";
                     $event->nextIs(new ReadOperation(new MarkerFramePicker('HTTP', "\r\n\r\n")));
                 },
-                EventType::READ => function (ReadEvent $event) use (&$result) {
+                EventType::READ => function (
+                    ReadEvent $event,
+                    RequestExecutorInterface $executor,
+                    SocketInterface $socket
+                ) use (&$result) {
                     $result = $event->getFrame()->getData();
 
-                    $event->getExecutor()->socketBag()->postponeSocket(
-                        $event->getSocket()
-                    );
-                    echo '<pre>ftell: ' . ftell($event->getSocket()->getStreamResource()) . "\n</pre>";
+                    $executor->socketBag()->forgetSocket($socket);
+                    echo '<pre>ftell: ' . ftell($socket->getStreamResource()) . "\n</pre>";
                 },
                 EventType::EXCEPTION => function (SocketExceptionEvent $event) use (&$result) {
                     $result = $event->getException()->getMessage();

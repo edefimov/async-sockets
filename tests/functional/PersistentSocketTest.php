@@ -19,6 +19,7 @@ use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\CallbackEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
+use AsyncSockets\Socket\SocketInterface;
 use Demo\Frame\SimpleHttpFramePicker;
 
 /**
@@ -88,15 +89,15 @@ class PersistentSocketTest extends \PHPUnit_Framework_TestCase
     /**
      * readEventHandler
      *
-     * @param ReadEvent $event Event
+     * @param ReadEvent                $event    Event
+     * @param RequestExecutorInterface $executor Request executor
+     * @param SocketInterface          $socket   Socket object
      *
      * @return void
      */
-    public function readEventHandler(ReadEvent $event)
+    public function readEventHandler(ReadEvent $event, RequestExecutorInterface $executor, SocketInterface $socket)
     {
-        $event->getExecutor()->socketBag()->postponeSocket(
-            $event->getSocket()
-        );
+        $executor->socketBag()->forgetSocket($socket);
     }
 
     /**

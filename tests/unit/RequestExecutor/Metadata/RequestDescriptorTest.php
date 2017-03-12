@@ -53,7 +53,7 @@ class RequestDescriptorTest extends AbstractTestCase
         self::assertSame($this->socket, $this->requestDescriptor->getSocket(), 'Unknown socket returned');
         self::assertSame($this->operation, $this->requestDescriptor->getOperation(), 'Unknown operation returned');
         self::assertFalse($this->requestDescriptor->isRunning(), 'Invalid initial running flag');
-        self::assertFalse($this->requestDescriptor->isPostponed(), 'Invalid initial postpone flag');
+        self::assertFalse($this->requestDescriptor->isForgotten(), 'Invalid initial forget flag');
     }
 
     /**
@@ -101,15 +101,16 @@ class RequestDescriptorTest extends AbstractTestCase
     }
 
     /**
-     * testPostpone
+     * testForget
      *
-     * @param string $class Socket class
-     * @param bool   $isPostponed Expected result
+     * @param string $class       Socket class
+     * @param bool   $isForgotten Expected result
+     * @param bool   $keepAlive   Flag whether to keep this connection alive
      *
      * @return void
      * @dataProvider socketClassDataProvider
      */
-    public function testPostpone($class, $isPostponed)
+    public function testForget($class, $isForgotten, $keepAlive)
     {
         $socket = $this->getMockBuilder($class)
                     ->disableOriginalConstructor()
@@ -118,12 +119,14 @@ class RequestDescriptorTest extends AbstractTestCase
         $object = new RequestDescriptor(
             $socket,
             $this->operation,
-            [],
+            [
+                RequestExecutorInterface::META_KEEP_ALIVE => $keepAlive,
+            ],
             null
         );
 
-        $object->postpone();
-        self::assertSame($isPostponed, $object->isPostponed(), 'Incorrect postpone behaviour for ' . $class);
+        $object->forget();
+        self::assertSame($isForgotten, $object->isForgotten(), 'Incorrect forget behaviour for ' . $class);
     }
 
     /**
@@ -247,12 +250,18 @@ class RequestDescriptorTest extends AbstractTestCase
     public function socketClassDataProvider()
     {
         return [
-            ['AsyncSockets\Socket\AbstractSocket', false],
-            ['AsyncSockets\Socket\AcceptedSocket', false],
-            ['AsyncSockets\Socket\ClientSocket', false],
-            ['AsyncSockets\Socket\PersistentClientSocket', true],
-            ['AsyncSockets\Socket\ServerSocket', false],
-            ['AsyncSockets\Socket\UdpClientSocket', false],
+            ['AsyncSockets\Socket\AbstractSocket', true, true],
+            ['AsyncSockets\Socket\AbstractSocket', false, false],
+            ['AsyncSockets\Socket\AcceptedSocket', true, true],
+            ['AsyncSockets\Socket\AcceptedSocket', false, false],
+            ['AsyncSockets\Socket\ClientSocket', true, true],
+            ['AsyncSockets\Socket\ClientSocket', false, false],
+            ['AsyncSockets\Socket\PersistentClientSocket', true, true],
+            ['AsyncSockets\Socket\PersistentClientSocket', false, false],
+            ['AsyncSockets\Socket\ServerSocket', false, false],
+            ['AsyncSockets\Socket\ServerSocket', false, true],
+            ['AsyncSockets\Socket\UdpClientSocket', true, true],
+            ['AsyncSockets\Socket\UdpClientSocket', false, false],
         ];
     }
 

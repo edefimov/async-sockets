@@ -21,4 +21,12 @@ abstract class AbstractServerIo extends AbstractIo
     {
         throw new NetworkSocketException($this->socket, 'Can not write data to tcp/udp server socket.');
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function isConnected()
+    {
+        return true;
+    }
 }

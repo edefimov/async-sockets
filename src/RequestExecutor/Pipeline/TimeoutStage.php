@@ -13,7 +13,6 @@ use AsyncSockets\Event\TimeoutEvent;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\ServerSocket;
 
 /**
  * Class TimeoutStage
@@ -52,7 +51,7 @@ class TimeoutStage extends AbstractTimeAwareStage
             $descriptor->getSocket(),
             $meta[RequestExecutorInterface::META_USER_CONTEXT],
             $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] !== null &&
-            !($descriptor->getSocket() instanceof ServerSocket) ?
+            !$descriptor->getSocket()->isServer() ?
                 TimeoutEvent::DURING_IO :
                 TimeoutEvent::DURING_CONNECTION
         );

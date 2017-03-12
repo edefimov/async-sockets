@@ -139,6 +139,17 @@ class DisconnectStageTest extends AbstractStageTest
      */
     public function testExceptionOnDisconnectConnectedSocket()
     {
+        PhpFunctionMocker::getPhpFunctionMocker('feof')->setCallable(
+            function () {
+                return false;
+            }
+        );
+
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(
+            function () {
+                return '127.0.0.1:1234';
+            }
+        );
         $request = $this->createRequestDescriptor();
         $socket  = $this->getMockForAbstractClass(
             'AsyncSockets\Socket\SocketInterface',
@@ -186,15 +197,15 @@ class DisconnectStageTest extends AbstractStageTest
     }
 
     /**
-     * testConnectedPersistentSocketWillNotBeDisconnectedIfStillConnected
+     * testConnectedSocketWillNotBeDisconnectedIfStillConnected
      *
      * @return void
      */
-    public function testConnectedPersistentSocketWillNotBeDisconnectedIfStillConnected()
+    public function testConnectedSocketWillNotBeDisconnectedIfStillConnected()
     {
         $request = $this->createRequestDescriptor();
         $socket  = $this->getMockForAbstractClass(
-            'AsyncSockets\Socket\PersistentClientSocket',
+            'AsyncSockets\Socket\ClientSocket',
             [],
             '',
             false,
@@ -205,10 +216,11 @@ class DisconnectStageTest extends AbstractStageTest
 
         $request->expects(self::any())->method('getSocket')->willReturn($socket);
 
-        $metadata = $this->getMetadataStructure();
+        $metadata                                                        = $this->getMetadataStructure();
         $metadata[RequestExecutorInterface::META_REQUEST_COMPLETE]       = false;
         $metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 10;
         $metadata[RequestExecutorInterface::META_CONNECTION_START_TIME]  = 0;
+        $metadata[RequestExecutorInterface::META_KEEP_ALIVE]             = true;
         $request->expects(self::any())->method('getMetadata')->willReturn($metadata);
 
         $request->expects(self::never())->method('setMetadata');
@@ -230,6 +242,51 @@ class DisconnectStageTest extends AbstractStageTest
     }
 
     /**
+     * testThatForgottenSocketsMarkedAsCompleted
+     *
+     * @return void
+     */
+    public function testThatForgottenSocketsMarkedAsCompleted()
+    {
+        $request = $this->createRequestDescriptor();
+        $socket  = $this->getMockForAbstractClass(
+            'AsyncSockets\Socket\ClientSocket',
+            [],
+            '',
+            false,
+            false,
+            true,
+            ['close']
+        );
+
+        $request->expects(self::any())->method('getSocket')->willReturn($socket);
+
+        $metadata                                                        = $this->getMetadataStructure();
+        $metadata[RequestExecutorInterface::META_REQUEST_COMPLETE]       = false;
+        $metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 10;
+        $metadata[RequestExecutorInterface::META_CONNECTION_START_TIME]  = 0;
+        $metadata[RequestExecutorInterface::META_KEEP_ALIVE]             = true;
+        $request->expects(self::any())->method('getMetadata')->willReturn($metadata);
+        $request->expects(self::any())->method('isForgotten')->willReturn(true);
+
+        $socket->expects(self::never())->method('close');
+
+        $this->eventCaller->expects(self::once())->method('callSocketSubscribers');
+
+        $this->selector->expects(self::once())->method('removeAllSocketOperations')->with($request);
+
+        PhpFunctionMocker::getPhpFunctionMocker('feof')->setCallable(function () {
+            return false;
+        });
+        PhpFunctionMocker::getPhpFunctionMocker('stream_socket_get_name')->setCallable(function () {
+            return '127.0.0.1:59678';
+        });
+
+        $result = $this->stage->processStage([$request]);
+        self::assertNotEmpty($result, 'Operation must not be returned as result');
+    }
+
+    /**
      * socketClassDataProvider
      *
      * @return array
@@ -237,7 +294,17 @@ class DisconnectStageTest extends AbstractStageTest
     public function socketClassDataProvider()
     {
         return [
-            ['AsyncSockets\Socket\SocketInterface', []],
+            [
+                'AsyncSockets\Socket\SocketInterface',
+                [
+                    'feof' => function () {
+                        return false;
+                    },
+                    'stream_socket_get_name' => function () {
+                        return '127.0.0.1:5436';
+                    },
+                ],
+            ],
             [
                 'AsyncSockets\Socket\PersistentClientSocket',
                 [

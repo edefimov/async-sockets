@@ -142,13 +142,6 @@ abstract class AbstractClientIo extends AbstractIo
     }
 
     /**
-     * Check whether given socket resource is connected
-     *
-     * @return bool
-     */
-    abstract protected function isConnected();
-
-    /**
      * Verifies given data according to OOB rules
      *
      * @param bool   $isOutOfBand Flag if data are out of band

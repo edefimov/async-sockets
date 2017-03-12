@@ -172,6 +172,17 @@ class UdpClientSocketTest extends \PHPUnit_Framework_TestCase
         self::assertSame($this->data, (string) $frame, 'Incorrect frame');
     }
 
+    /**
+     * testClient
+     *
+     * @return void
+     */
+    public function testClient()
+    {
+        self::assertTrue($this->object->isClient(), 'Incorrect client flag');
+        self::assertFalse($this->object->isServer(), 'Incorrect server flag');
+        self::assertTrue($this->object->isConnected(), 'Incorrect connected flag');
+    }
 
     /** {@inheritdoc} */
     protected function setUp()

@@ -229,36 +229,15 @@ class ClientSocketTest extends AbstractSocketTest
     }
 
     /**
-     * testWritePartialContent
+     * testFlags
      *
      * @return void
-     *//*
-    public function testWritePartialContent()
+     */
+    public function testFlags()
     {
-        $testString = "GET / HTTP/1.1\nHost: github.com\n\n";
-        $counter    = 0;
-        $retString  = '';
-
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('fwrite');
-        $mocker->setCallable(function ($handle, $data) use ($testString, &$counter, &$retString) {
-            if ($data && $counter < strlen($testString)) {
-                ++$counter;
-                $retString .= $data[0];
-                return 1;
-            }
-
-            return 0;
-        });
-
-        $mocker = PhpFunctionMocker::getPhpFunctionMocker('stream_socket_sendto');
-        $mocker->setCallable(function ($handle, $data) {
-            return strlen($data);
-        });
-
-        $this->socket->open('it has no meaning here');
-        $this->socket->write($testString);
-        self::assertEquals($testString, $retString, 'Unexpected result was read');
-    }*/
+        self::assertFalse($this->socket->isServer(), 'Incorrect server flag');
+        self::assertTrue($this->socket->isClient(), 'Incorrect client flag');
+    }
 
     /**
      * sequentialDataProvider

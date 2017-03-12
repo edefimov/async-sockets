@@ -28,4 +28,12 @@ class DisconnectedIo extends AbstractIo
     {
         throw new NetworkSocketException($this->socket, 'Can not start io operation on uninitialized socket.');
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function isConnected()
+    {
+        return false;
+    }
 }

@@ -96,7 +96,7 @@ class SslDataFlushEventHandler implements EventHandlerInterface
             )
         );
 
-        $key = spl_object_hash($event->getSocket());
+        $key = spl_object_hash($socket);
         $this->inFlushingOperations[$key] = true;
     }
 
@@ -116,7 +116,7 @@ class SslDataFlushEventHandler implements EventHandlerInterface
         SocketInterface $socket,
         ExecutionContext $context
     ) {
-        $key   = spl_object_hash($event->getSocket());
+        $key   = spl_object_hash($socket);
         $frame = $event->getFrame();
         if (!($frame instanceof EmptyFrame) || !isset($this->inFlushingOperations[$key])) {
             $this->callNextHandler($event, $executor, $socket, $context);

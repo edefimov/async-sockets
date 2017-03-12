@@ -116,21 +116,22 @@ class Client
     /**
      * Read event
      *
-     * @param ReadEvent $event Event object
+     * @param ReadEvent                $event    Event object
+     * @param RequestExecutorInterface $executor Request executor
+     * @param SocketInterface          $socket   Socket object
      *
      * @return void
      */
-    public function onRead(ReadEvent $event)
+    public function onRead(ReadEvent $event, RequestExecutorInterface $executor, SocketInterface $socket)
     {
         $context       = $event->getContext();
-        $socket        = $event->getSocket();
         $remoteAddress = $event->getFrame()->getRemoteAddress();
 
         $this->output->writeln(
             "<info>Received headers from {$remoteAddress}</info>: \n\n" . $event->getFrame()->getData()
         );
 
-        $event->getExecutor()->socketBag()->setSocketMetaData(
+        $executor->socketBag()->setSocketMetaData(
             $socket,
             RequestExecutorInterface::META_USER_CONTEXT,
             $context

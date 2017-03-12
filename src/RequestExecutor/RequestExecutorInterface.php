@@ -125,6 +125,11 @@ interface RequestExecutorInterface
     const META_MIN_SEND_SPEED_DURATION = 'minSendSpeedDuration';
 
     /**
+     * Keeps connection opened after processing request
+     */
+    const META_KEEP_ALIVE = 'keepAlive';
+
+    /**
      * Return socket bag, associated with this executor
      *
      * @return SocketBagInterface
