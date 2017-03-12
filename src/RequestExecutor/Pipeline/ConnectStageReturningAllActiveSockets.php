@@ -55,6 +55,6 @@ class ConnectStageReturningAllActiveSockets extends ConnectStage
         $meta = $descriptor->getMetadata();
         return !$meta[ RequestExecutorInterface::META_REQUEST_COMPLETE ] &&
                     $descriptor->isRunning() &&
-                    !$descriptor->isPostponed();
+                    !$descriptor->isForgotten();
     }
 }

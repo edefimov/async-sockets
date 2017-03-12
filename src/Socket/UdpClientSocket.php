@@ -91,4 +91,28 @@ class UdpClientSocket implements SocketInterface, WithoutConnectionInterface
     {
         return (string) $this->origin;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function isServer()
+    {
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isClient()
+    {
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isConnected()
+    {
+        return $this->ioInterface->isConnected();
+    }
 }

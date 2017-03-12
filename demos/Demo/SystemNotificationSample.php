@@ -11,6 +11,8 @@
 namespace Demo;
 
 use AsyncSockets\Event\Event;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\SocketInterface;
 use Demo\SystemNotificationSample\Client;
 use Demo\SystemNotificationSample\Logger;
 use Symfony\Component\Console\Command\Command;
@@ -69,9 +71,9 @@ HELP
      */
     private function getEventHandler(Logger $logger)
     {
-        return function (Event $event) use ($logger) {
+        return function (Event $event, RequestExecutorInterface $executor, SocketInterface $socket) use ($logger) {
             $logger->log(
-                'Notified about event: ' . $event->getType() . ' on socket ' . md5(spl_object_hash($event->getSocket()))
+                'Notified about event: ' . $event->getType() . ' on socket ' . md5(spl_object_hash($socket))
             );
         };
     }

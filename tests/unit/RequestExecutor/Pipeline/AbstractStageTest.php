@@ -10,11 +10,15 @@
 
 namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 
+use AsyncSockets\Configuration\Configuration;
+use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
+use AsyncSockets\RequestExecutor\Metadata\SocketBag;
 use AsyncSockets\RequestExecutor\Pipeline\EventCaller;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineStageInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
+use AsyncSockets\Socket\ClientSocket;
 use Tests\AsyncSockets\PhpUnit\AbstractTestCase;
 
 /**
@@ -58,6 +62,13 @@ abstract class AbstractStageTest extends AbstractTestCase
      * @var ExecutionContext
      */
     protected $executionContext;
+
+    /**
+     * Array with default metadata values
+     *
+     * @var array
+     */
+    private $defaultMetadata;
 
     /**
      * Create test object
@@ -120,7 +131,8 @@ abstract class AbstractStageTest extends AbstractTestCase
                                      'isRunning',
                                      'getOperation',
                                      'setOperation',
-                                     'invokeEvent'
+                                     'invokeEvent',
+                                     'isForgotten'
                                  ]
                              )
                              ->disableOriginalConstructor()
@@ -128,5 +140,26 @@ abstract class AbstractStageTest extends AbstractTestCase
                              ->getMockForAbstractClass();
 
         return $requestDescriptor;
+    }
+
+    /**
+     * Return array with default metadata values
+     *
+     * @return array
+     */
+    protected function getDefaultMetadata()
+    {
+        if ($this->defaultMetadata === null) {
+            $bag = new SocketBag(
+                $this->getMockBuilder('AsyncSockets\RequestExecutor\RequestExecutorInterface')->getMockForAbstractClass(
+                ), new Configuration()
+            );
+
+            $s = new ClientSocket();
+            $bag->addSocket($s, new NullOperation());
+            $this->defaultMetadata = $bag->getSocketMetaData($s);
+        }
+
+        return $this->defaultMetadata;
     }
 }

@@ -22,6 +22,7 @@ use AsyncSockets\RequestExecutor\ConstantLimitationSolver;
 use AsyncSockets\RequestExecutor\RemoveFinishedSocketsEventHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSocketFactory;
+use AsyncSockets\Socket\SocketInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -179,17 +180,19 @@ class SocketPool extends Command
     /**
      * Timeout event
      *
-     * @param Event $event Event object
+     * @param Event                    $event    Event object
+     * @param RequestExecutorInterface $executor Request executor
+     * @param SocketInterface          $socket   Socket object
      *
      * @return void
      */
-    public function onTimeout(Event $event)
+    public function onTimeout(Event $event, RequestExecutorInterface $executor, SocketInterface $socket)
     {
         $context = $event->getContext();
         $output  = $context['output'];
         /** @var OutputInterface $output */
 
-        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
+        $meta = $executor->socketBag()->getSocketMetaData($socket);
         $output->writeln(
             "<comment>Timeout happened on some socket {$meta[RequestExecutorInterface::META_ADDRESS]}</comment>"
         );

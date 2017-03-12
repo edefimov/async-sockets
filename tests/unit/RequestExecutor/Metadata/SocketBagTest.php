@@ -195,7 +195,7 @@ class SocketBagTest extends \PHPUnit_Framework_TestCase
     public function testNonAddedSocketRemove()
     {
         $this->bag->removeSocket($this->socket);
-        $this->bag->postponeSocket($this->socket);
+        $this->bag->forgetSocket($this->socket);
         self::assertFalse(
             $this->bag->hasSocket($this->socket),
             'hasSocket returned true for removed socket'

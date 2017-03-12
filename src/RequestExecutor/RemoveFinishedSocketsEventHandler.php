@@ -47,8 +47,7 @@ class RemoveFinishedSocketsEventHandler implements EventHandlerInterface
         }
 
         if ($event->getType() === EventType::FINALIZE) {
-            $bag    = $event->getExecutor()->socketBag();
-            $socket = $event->getSocket();
+            $bag = $event->getExecutor()->socketBag();
             if ($bag->hasSocket($socket)) {
                 $bag->removeSocket($socket);
             }

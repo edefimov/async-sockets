@@ -14,6 +14,7 @@ use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\RequestExecutor\SocketBagInterface;
+use AsyncSockets\Socket\PersistentClientSocket;
 use AsyncSockets\Socket\SocketInterface;
 
 /**
@@ -87,6 +88,7 @@ class SocketBag implements SocketBagInterface
                                                                     $this->configuration->getMinSendSpeedDuration(),
                 RequestExecutorInterface::META_CONNECTION_TIMEOUT         => $this->configuration->getConnectTimeout(),
                 RequestExecutorInterface::META_IO_TIMEOUT                 => $this->configuration->getIoTimeout(),
+                RequestExecutorInterface::META_KEEP_ALIVE                 => $socket instanceof PersistentClientSocket,
             ],
             $metadata ?: [],
             [
@@ -140,14 +142,14 @@ class SocketBag implements SocketBagInterface
     }
 
     /** {@inheritdoc} */
-    public function postponeSocket(SocketInterface $socket)
+    public function forgetSocket(SocketInterface $socket)
     {
         $key = $this->getOperationStorageKey($socket);
         if (!isset($this->items[$key])) {
             return;
         }
 
-        $this->items[$key]->postpone();
+        $this->items[$key]->forget();
     }
 
     /** {@inheritdoc} */
@@ -177,6 +179,7 @@ class SocketBag implements SocketBagInterface
             RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION => 1,
             RequestExecutorInterface::META_MIN_SEND_SPEED             => 1,
             RequestExecutorInterface::META_MIN_SEND_SPEED_DURATION    => 1,
+            RequestExecutorInterface::META_KEEP_ALIVE                 => 1,
         ];
 
         if (!is_array($key)) {

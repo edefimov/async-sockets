@@ -89,4 +89,20 @@ class ServerSocket extends AbstractSocket
             STREAM_SERVER_BIND :
             STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function isServer()
+    {
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isClient()
+    {
+        return false;
+    }
 }

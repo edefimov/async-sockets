@@ -35,7 +35,8 @@ final class EventType
 
     /**
      * Socket has connected to server. Event object will be given as an argument.
-     * No special action required here. Do NOT try to read or write data at this point
+     * No special action required here. Do NOT try to read or write data at this point.
+     * This event is not dispatched if socket is connected.
      *
      * @see Event
      */
@@ -83,6 +84,7 @@ final class EventType
 
     /**
      * Socket has disconnected. Event object will be given as an argument.
+     * This event is not dispatched if socket is marked as forgotten.
      *
      * @see Event
      */

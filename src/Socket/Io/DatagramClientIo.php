@@ -77,7 +77,7 @@ class DatagramClientIo extends AbstractClientIo
     }
 
     /** {@inheritdoc} */
-    protected function isConnected()
+    public function isConnected()
     {
         return true;
     }

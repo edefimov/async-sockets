@@ -73,4 +73,25 @@ interface SocketInterface extends StreamResourceInterface
      * @return string
      */
     public function __toString();
+
+    /**
+     * Return true if it is server socket
+     *
+     * @return bool
+     */
+    public function isServer();
+
+    /**
+     * Return true if it is client socket
+     *
+     * @return bool
+     */
+    public function isClient();
+
+    /**
+     * Return true if this socket is in connected state, false otherwise
+     *
+     * @return bool
+     */
+    public function isConnected();
 }

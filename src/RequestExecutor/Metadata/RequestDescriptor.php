@@ -15,7 +15,6 @@ use AsyncSockets\Operation\OperationInterface;
 use AsyncSockets\RequestExecutor\EventHandlerInterface;
 use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
-use AsyncSockets\Socket\PersistentClientSocket;
 use AsyncSockets\Socket\SocketInterface;
 use AsyncSockets\Socket\StreamResourceInterface;
 
@@ -89,7 +88,7 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
      *
      * @var bool
      */
-    private $isPostponed = false;
+    private $isForgotten = false;
 
     /**
      * Set of state flags: RDS_* consts
@@ -248,18 +247,17 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
     }
 
     /**
-     * Completes processing this socket in event loop, but keep this socket connection opened. Applicable
-     * only to persistent sockets, all other socket types are ignored by this method.
+     * Completes processing this socket in event loop, but keep this socket connection opened.
      *
      * @return void
      */
-    public function postpone()
+    public function forget()
     {
-        if (!($this->socket instanceof PersistentClientSocket)) {
+        if ($this->socket->isServer() || !$this->metadata[RequestExecutorInterface::META_KEEP_ALIVE]) {
             return;
         }
 
-        $this->isPostponed = true;
+        $this->isForgotten = true;
     }
 
     /**
@@ -267,9 +265,9 @@ class RequestDescriptor implements StreamResourceInterface, EventHandlerInterfac
      *
      * @return bool
      */
-    public function isPostponed()
+    public function isForgotten()
     {
-        return $this->isPostponed;
+        return $this->isForgotten;
     }
 
     /**

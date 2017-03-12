@@ -34,4 +34,20 @@ abstract class AbstractClientSocket extends AbstractSocket
                 throw new \LogicException("Unsupported socket resource type {$type}");
         }
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function isServer()
+    {
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isClient()
+    {
+        return true;
+    }
 }

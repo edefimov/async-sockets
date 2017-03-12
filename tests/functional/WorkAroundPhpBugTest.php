@@ -25,6 +25,7 @@ use AsyncSockets\RequestExecutor\Pipeline\BaseStageFactory;
 use AsyncSockets\RequestExecutor\Pipeline\PipelineFactory;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\ClientSocket;
+use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class WorkAroundPhpBugTest
@@ -68,20 +69,28 @@ class WorkAroundPhpBugTest extends \PHPUnit_Framework_TestCase
                     EventType::WRITE => function (WriteEvent $event) {
                         $event->nextIsRead(new MarkerFramePicker(null, '</html>', false));
                     },
-                    EventType::READ => function (ReadEvent $event) use ($mock) {
+                    EventType::READ => function (
+                        ReadEvent $event,
+                        RequestExecutorInterface $executor,
+                        SocketInterface $socket
+                    ) use ($mock) {
                         /** @var \Countable $mock */
                         $mock->count();
-                        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
+                        $meta = $executor->socketBag()->getSocketMetaData($socket);
                         echo 'Processed ' . $meta[RequestExecutorInterface::META_ADDRESS] . "\n";
                         $output = strtolower($event->getFrame()->getData());
-                        $meta   = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
+                        $meta   = $executor->socketBag()->getSocketMetaData($socket);
                         self::assertTrue(
                             strpos($output, '</html>') !== false,
                             'Incomplete data were received for ' . $meta[RequestExecutorInterface::META_ADDRESS]
                         );
                     },
-                    EventType::TIMEOUT => function (Event $event) {
-                        $meta = $event->getExecutor()->socketBag()->getSocketMetaData($event->getSocket());
+                    EventType::TIMEOUT => function (
+                        Event $event,
+                        RequestExecutorInterface $executor,
+                        SocketInterface $socket
+                    ) {
+                        $meta = $executor->socketBag()->getSocketMetaData($socket);
                         self::fail('Timeout on socket ' . $meta[RequestExecutorInterface::META_ADDRESS]);
                     },
                     EventType::EXCEPTION => function (SocketExceptionEvent $event) {

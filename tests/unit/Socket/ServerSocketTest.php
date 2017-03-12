@@ -56,6 +56,17 @@ class ServerSocketTest extends AbstractSocketTest
         $this->socket->open('php://temp');
     }
 
+    /**
+     * testFlags
+     *
+     * @return void
+     */
+    public function testFlags()
+    {
+        self::assertFalse($this->socket->isClient(), 'Incorrect client flag');
+        self::assertTrue($this->socket->isServer(), 'Incorrect server flag');
+    }
+
     /** {@inheritdoc} */
     protected function createSocketInterface()
     {

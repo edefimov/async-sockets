@@ -13,6 +13,7 @@ namespace Tests\AsyncSockets\RequestExecutor\Pipeline;
 use AsyncSockets\Event\Event;
 use AsyncSockets\Event\EventType;
 use AsyncSockets\Exception\NetworkSocketException;
+use AsyncSockets\Operation\NullOperation;
 use AsyncSockets\RequestExecutor\LimitationSolverInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\Pipeline\ConnectStage;
@@ -152,14 +153,63 @@ class ConnectStageTest extends AbstractStageTest
         $first = $this->createRequestDescriptor();
 
         $first->expects(self::any())->method('isRunning')->willReturn(true);
-        $first->expects(self::any())->method('getSocket')->willReturn(
-            $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface')
-        );
+        $socket = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                       ->setMethods(['open', 'isConnected'])
+                       ->getMockForAbstractClass();
+
+        $socket->expects(self::never())->method('isConnected');
+        $socket->expects(self::never())->method('open');
+        $first->expects(self::any())->method('getSocket')->willReturn($socket);
         $first->expects(self::never())->method('initialize');
         $first->expects(self::never())->method('setRunning');
 
 
         $this->stage->processStage([ $first, ]);
+    }
+
+    /**
+     * testThatAlreadyConnectedObjectWillNotBeConnectedAgain
+     *
+     * @return void
+     */
+    public function testThatAlreadyConnectedObjectWillNotBeConnectedAgain()
+    {
+        $this->solver->expects(self::any())
+                     ->method('decide')
+                     ->willReturn(LimitationSolverInterface::DECISION_OK);
+
+        $socket = $this->getMockBuilder('AsyncSockets\Socket\SocketInterface')
+                    ->setMethods(['open', 'isConnected'])
+                    ->getMockForAbstractClass();
+        $descriptor = new RequestDescriptor(
+            $socket,
+            new NullOperation(),
+            $this->getDefaultMetadata()
+        );
+
+        $socket->expects(self::once())->method('isConnected')->willReturn(true);
+        $socket->expects(self::never())->method('open');
+        $this->stage->processStage([ $descriptor, ]);
+
+        self::assertTrue($descriptor->isRunning(), 'Running flag is not set');
+        $meta = $descriptor->getMetadata();
+        self::assertArrayHasKey(
+            RequestExecutorInterface::META_CONNECTION_START_TIME,
+            $meta,
+            'Connection start time is not set'
+        );
+        self::assertArrayHasKey(
+            RequestExecutorInterface::META_CONNECTION_FINISH_TIME,
+            $meta,
+            'Conection finish time is not set'
+        );
+        self::assertTrue(
+            abs(
+                $meta[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] -
+                $meta[RequestExecutorInterface::META_CONNECTION_START_TIME]
+            ) < 0.01,
+            'Too much time passed between starting and finishing connection process'
+        );
     }
 
     /**

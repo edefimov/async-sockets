@@ -15,8 +15,6 @@ use AsyncSockets\RequestExecutor\ExecutionContext;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
-use AsyncSockets\Socket\PersistentClientSocket;
-use AsyncSockets\Socket\SocketInterface;
 
 /**
  * Class DisconnectStage
@@ -53,6 +51,7 @@ class DisconnectStage extends AbstractStage
     {
         foreach ($requestDescriptors as $descriptor) {
             $this->disconnectSingleSocket($descriptor);
+            $this->processForgottenDescriptor($descriptor);
         }
 
         return $requestDescriptors;
@@ -73,9 +72,7 @@ class DisconnectStage extends AbstractStage
             return;
         }
 
-        $socket = $descriptor->getSocket();
-
-        if (!$this->isDisconnectRequired($socket)) {
+        if (!$this->isDisconnectRequired($descriptor)) {
             return;
         }
 
@@ -107,12 +104,7 @@ class DisconnectStage extends AbstractStage
             $this->callExceptionSubscribers($descriptor, $e);
         }
 
-        $this->callSocketSubscribers(
-            $descriptor,
-            $this->createEvent($descriptor, EventType::FINALIZE)
-        );
-
-        $this->removeOperationsFromSelector($descriptor);
+        $this->dispatchFinalizeEvent($descriptor);
     }
 
     /**
@@ -132,20 +124,53 @@ class DisconnectStage extends AbstractStage
     /**
      * Check whether given socket should be disconnected
      *
-     * @param SocketInterface $socket Socket object
+     * @param RequestDescriptor $descriptor Socket descriptor
      *
      * @return bool
      */
-    private function isDisconnectRequired(SocketInterface $socket)
+    private function isDisconnectRequired(RequestDescriptor $descriptor)
     {
-        return (
-                   ($socket instanceof PersistentClientSocket) &&
-                   (
-                       feof($socket->getStreamResource()) !== false ||
-                       !stream_socket_get_name($socket->getStreamResource(), true)
-                   )
-               ) || (
-                   !($socket instanceof PersistentClientSocket)
-               );
+        $socket = $descriptor->getSocket();
+        $meta   = $descriptor->getMetadata();
+
+        return !$meta[RequestExecutorInterface::META_KEEP_ALIVE] || (
+                feof($socket->getStreamResource()) !== false ||
+                !stream_socket_get_name($socket->getStreamResource(), true)
+            );
+    }
+
+    /**
+     * Marks forgotten socket as complete
+     *
+     * @param RequestDescriptor $descriptor The descriptor
+     *
+     * @return void
+     */
+    private function processForgottenDescriptor(RequestDescriptor $descriptor)
+    {
+        $meta = $descriptor->getMetadata();
+        if (!$meta[RequestExecutorInterface::META_KEEP_ALIVE] || !$descriptor->isForgotten()) {
+            return;
+        }
+
+        $descriptor->setMetadata(RequestExecutorInterface::META_REQUEST_COMPLETE, true);
+        $this->dispatchFinalizeEvent($descriptor);
+    }
+
+    /**
+     * Dispatches finalize event for socket
+     *
+     * @param RequestDescriptor $descriptor Descriptor for dispatching event
+     *
+     * @return void
+     */
+    private function dispatchFinalizeEvent(RequestDescriptor $descriptor)
+    {
+        $this->callSocketSubscribers(
+            $descriptor,
+            $this->createEvent($descriptor, EventType::FINALIZE)
+        );
+
+        $this->removeOperationsFromSelector($descriptor);
     }
 }

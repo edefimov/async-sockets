@@ -84,7 +84,7 @@ class StreamedClientIo extends AbstractClientIo
     }
 
     /** {@inheritdoc} */
-    protected function isConnected()
+    public function isConnected()
     {
         return $this->resolveRemoteAddress() !== null;
     }

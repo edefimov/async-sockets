@@ -44,6 +44,16 @@ abstract class AbstractServerIoTest extends AbstractIoTest
     }
 
     /**
+     * testConnected
+     *
+     * @return void
+     */
+    public function testConnected()
+    {
+        self::assertTrue($this->object->isConnected(), 'Incorrect connected flag');
+    }
+
+    /**
      * testResponseStructureIsValid
      *
      * @return AcceptedFrame

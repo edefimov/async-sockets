@@ -77,7 +77,7 @@ abstract class AbstractRequestExecutorTest extends AbstractTestCase
             array_unique([ $method, 'createSocketResource', 'createIoInterface', 'isConnected', 'read', 'write' ])
         );
 
-        $mock->expects(self::any())->method('isConnected')->willReturn($method === 'close');
+        $mock->expects(self::any())->method('isConnected')->willReturn(false);
         $mock->expects(self::any())->method('read')->willReturn(
             $this->getMockForAbstractClass('AsyncSockets\Frame\FrameInterface')
         );
