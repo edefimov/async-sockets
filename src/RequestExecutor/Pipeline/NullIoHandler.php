@@ -33,6 +33,7 @@ class NullIoHandler extends AbstractOobHandler
      * @inheritDoc
      */
     protected function handleOperation(
+        OperationInterface $operation,
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler,
@@ -40,4 +41,13 @@ class NullIoHandler extends AbstractOobHandler
     ) {
         // empty body
     }
+
+    /**
+     * @inheritDoc
+     */
+    protected function getHandlerType()
+    {
+        return RequestDescriptor::RDS_READ;
+    }
+
 }

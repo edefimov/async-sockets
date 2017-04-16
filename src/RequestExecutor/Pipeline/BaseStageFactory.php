@@ -44,16 +44,24 @@ class BaseStageFactory implements StageFactoryInterface
         ExecutionContext $executionContext,
         EventCaller $caller
     ) {
-        return new IoStage(
-            $executor,
-            $caller,
-            $executionContext,
+        $duplexHandler = new ReadWriteIoHandler();
+        $handler       = new DelegatingIoHandler(
             [
                 new ReadIoHandler(),
                 new WriteIoHandler(),
                 new SslHandshakeIoHandler(),
-                new NullIoHandler()
+                new NullIoHandler(),
+                new ReadWriteIoHandler()
             ]
+        );
+
+        $duplexHandler->setHandler($handler);
+
+        return new IoStage(
+            $executor,
+            $caller,
+            $executionContext,
+            $handler
         );
     }
 

@@ -28,11 +28,10 @@ class SslHandshakeOperationTest extends \PHPUnit_Framework_TestCase
         $operation = new SslHandshakeOperation();
         self::assertSame(STREAM_CRYPTO_METHOD_TLS_CLIENT, $operation->getCipher(), 'Incorrect initial cipher');
         self::assertNull($operation->getNextOperation(), 'Incorrect next operation initial state');
-        self::assertSame(
-            OperationInterface::OPERATION_WRITE,
-            $operation->getType(),
-            'Incorrect type for operation'
-        );
+
+        $types = $operation->getTypes();
+        self::assertCount(1, $types, 'Unexpected type count');
+        self::assertSame(OperationInterface::OPERATION_WRITE, reset($types), 'Incorrect operation type');
     }
 
     /**

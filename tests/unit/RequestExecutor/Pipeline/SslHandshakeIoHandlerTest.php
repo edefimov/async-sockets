@@ -71,6 +71,7 @@ class SslHandshakeIoHandlerTest extends AbstractOobHandlerTest
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_enable_crypto')->setCallable([$mock, 'count']);
 
         $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
             $this->mockEventHandler,
@@ -100,6 +101,7 @@ class SslHandshakeIoHandlerTest extends AbstractOobHandlerTest
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_enable_crypto')->setCallable([$mock, 'count']);
 
         $result = $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
             $this->mockEventHandler,
@@ -134,6 +136,7 @@ class SslHandshakeIoHandlerTest extends AbstractOobHandlerTest
         PhpFunctionMocker::getPhpFunctionMocker('stream_socket_enable_crypto')->setCallable([$mock, 'count']);
 
         $result = $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
             $this->mockEventHandler,

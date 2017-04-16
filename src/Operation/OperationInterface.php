@@ -25,9 +25,9 @@ interface OperationInterface
     const OPERATION_WRITE = 'write';
 
     /**
-     * Return operation type
+     * Return operation types
      *
-     * @return string One of OPERATION_* consts
+     * @return string[] List of OPERATION_* consts
      */
-    public function getType();
+    public function getTypes();
 }

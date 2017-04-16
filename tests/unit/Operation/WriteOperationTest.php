@@ -35,11 +35,10 @@ class WriteOperationTest extends \PHPUnit_Framework_TestCase
         self::assertFalse($this->operation->hasData(), 'Incorrect data initial state');
         self::assertNull($this->operation->getData(), 'Incorrect data initial state');
         self::assertFalse($this->operation->isOutOfBand(), 'Incorrect out-of-band initial state');
-        self::assertEquals(
-            OperationInterface::OPERATION_WRITE,
-            $this->operation->getType(),
-            'Incorrect type for operation'
-        );
+
+        $types = $this->operation->getTypes();
+        self::assertCount(1, $types, 'Unexpected type count');
+        self::assertSame(OperationInterface::OPERATION_WRITE, reset($types), 'Incorrect operation type');
     }
 
     /**

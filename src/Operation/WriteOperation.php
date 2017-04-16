@@ -63,9 +63,9 @@ class WriteOperation implements OperationInterface
     }
 
     /** {@inheritdoc} */
-    public function getType()
+    public function getTypes()
     {
-        return self::OPERATION_WRITE;
+        return [self::OPERATION_WRITE];
     }
 
     /**

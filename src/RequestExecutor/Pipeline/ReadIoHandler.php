@@ -49,14 +49,14 @@ class ReadIoHandler extends AbstractOobHandler implements FramePickerInterface
 
     /** {@inheritdoc} */
     protected function handleOperation(
+        OperationInterface $operation,
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler,
         ExecutionContext $executionContext
     ) {
         /** @var ReadOperation $operation */
-        $operation = $descriptor->getOperation();
-        $socket    = $descriptor->getSocket();
+        $socket = $descriptor->getSocket();
 
         $meta    = $executor->socketBag()->getSocketMetaData($socket);
         $context = $meta[RequestExecutorInterface::META_USER_CONTEXT];
@@ -146,5 +146,13 @@ class ReadIoHandler extends AbstractOobHandler implements FramePickerInterface
     public function createFrame()
     {
         return $this->realFramePicker->createFrame();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function getHandlerType()
+    {
+        return RequestDescriptor::RDS_READ;
     }
 }

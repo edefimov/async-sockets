@@ -10,6 +10,9 @@
 
 namespace Tests\Functional;
 
+use AsyncSockets\Event\EventType;
+use AsyncSockets\Event\ReadEvent;
+use AsyncSockets\Event\SocketExceptionEvent;
 use AsyncSockets\Exception\SocketException;
 use AsyncSockets\Exception\TimeoutException;
 use AsyncSockets\Frame\AcceptedFrame;
@@ -18,6 +21,11 @@ use AsyncSockets\Frame\MarkerFramePicker;
 use AsyncSockets\Frame\PartialFrame;
 use AsyncSockets\Frame\RawFramePicker;
 use AsyncSockets\Operation\OperationInterface;
+use AsyncSockets\Operation\ReadOperation;
+use AsyncSockets\Operation\ReadWriteOperation;
+use AsyncSockets\Operation\WriteOperation;
+use AsyncSockets\RequestExecutor\CallbackEventHandler;
+use AsyncSockets\RequestExecutor\RequestExecutorInterface;
 use AsyncSockets\Socket\AsyncSelector;
 use AsyncSockets\Socket\AsyncSocketFactory;
 use AsyncSockets\Socket\ClientSocket;
@@ -233,6 +241,54 @@ class ClientServerDataExchangeTest extends \PHPUnit_Framework_TestCase
         } catch (SocketException $e) {
             self::markTestSkipped('Can not process test: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * testDownloadInternetPageWithReadWriteOperation
+     *
+     * @param string $address Destination address
+     *
+     * @return void
+     * @dataProvider internetPageDataProvider
+     * @coversNothing
+     * @group networking
+     */
+    public function testDownloadInternetPageWithReadWriteOperation($address)
+    {
+        $factory  = new AsyncSocketFactory();
+
+        $executor = $factory->createRequestExecutor();
+        $client   = $factory->createSocket(AsyncSocketFactory::SOCKET_CLIENT);
+        $host     = parse_url($address, PHP_URL_HOST);
+
+        $executor->socketBag()->addSocket(
+            $client,
+            new ReadWriteOperation(
+                ReadWriteOperation::WRITE_FIRST,
+                [
+                    new WriteOperation("GET / HTTP/1.1\nHost: {$host}\n\n"),
+                    new ReadOperation(new MarkerFramePicker(null, '</html>', false)),
+                ]
+            ),
+            [
+                RequestExecutorInterface::META_ADDRESS            => $address,
+                RequestExecutorInterface::META_CONNECTION_TIMEOUT => 30,
+                RequestExecutorInterface::META_IO_TIMEOUT         => 30,
+            ],
+            new CallbackEventHandler(
+                [
+                    EventType::READ => function (ReadEvent $event) {
+                        self::assertTrue(stripos((string) $response, '</html>') !== false, 'Unexpected response');
+                    },
+                    EventType::TIMEOUT => function () {
+                        self::markTestSkipped('Timeout occurred during request processing');
+                    },
+                    EventType::EXCEPTION => function (SocketExceptionEvent $event) {
+                        self::markTestSkipped('Can not process test: ' . $event->getException()->getMessage());
+                    }
+                ]
+            )
+        );
     }
 
     /**

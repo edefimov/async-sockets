@@ -33,13 +33,13 @@ class WriteIoHandler extends AbstractOobHandler
 
     /** {@inheritdoc} */
     protected function handleOperation(
+        OperationInterface $operation,
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler,
         ExecutionContext $executionContext
     ) {
-        $operation = $descriptor->getOperation();
-        $socket    = $descriptor->getSocket();
+        $socket = $descriptor->getSocket();
 
         /** @var WriteOperation $operation */
         $fireEvent = !($operation instanceof InProgressWriteOperation);
@@ -178,5 +178,13 @@ class WriteIoHandler extends AbstractOobHandler
                     )
                 );
         }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function getHandlerType()
+    {
+        return RequestDescriptor::RDS_WRITE;
     }
 }

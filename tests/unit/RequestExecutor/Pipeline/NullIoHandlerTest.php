@@ -36,9 +36,11 @@ class NullIoHandlerTest extends AbstractOobHandlerTest
     {
         $this->mockEventHandler->expects(self::never())
             ->method('invokeEvent');
-        
-        $result = $this->handler->handle(
-            $this->getMockedDescriptor(new NullOperation(), $this->socket, RequestDescriptor::RDS_READ),
+
+        $operation = new NullOperation();
+        $result    = $this->handler->handle(
+            $operation,
+            $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_READ),
             $this->executor,
             $this->mockEventHandler,
             $this->executionContext
