@@ -27,9 +27,9 @@ class IoStage extends AbstractTimeAwareStage
     /**
      * Handlers for processing I/O
      *
-     * @var IoHandlerInterface[]
+     * @var IoHandlerInterface
      */
-    private $ioHandlers;
+    private $ioHandler;
 
     /**
      * IoStage constructor.
@@ -37,16 +37,16 @@ class IoStage extends AbstractTimeAwareStage
      * @param RequestExecutorInterface $executor         Request executor
      * @param EventCaller              $eventCaller      Event caller
      * @param ExecutionContext         $executionContext Execution context
-     * @param IoHandlerInterface[]     $ioHandlers       Array of operation handlers
+     * @param IoHandlerInterface       $ioHandler        Operation handler
      */
     public function __construct(
         RequestExecutorInterface $executor,
         EventCaller $eventCaller,
         ExecutionContext $executionContext,
-        array $ioHandlers
+        IoHandlerInterface $ioHandler
     ) {
         parent::__construct($executor, $eventCaller, $executionContext);
-        $this->ioHandlers = $ioHandlers;
+        $this->ioHandler = $ioHandler;
     }
 
     /** {@inheritdoc} */
@@ -83,17 +83,15 @@ class IoStage extends AbstractTimeAwareStage
     private function requireIoHandler(RequestDescriptor $requestDescriptor)
     {
         $operation = $requestDescriptor->getOperation();
-        foreach ($this->ioHandlers as $handler) {
-            if ($handler->supports($operation)) {
-                return $handler;
-            }
+        if (!$this->ioHandler->supports($operation)) {
+            throw new \LogicException('There is no handler able to process ' . get_class($operation) . ' operation.');
         }
 
-        throw new \LogicException('There is no handler able to process ' . get_class($operation) . ' operation.');
+        return $this->ioHandler;
     }
 
     /**
-     * handleIoOperation
+     * Process I/O
      *
      * @param RequestDescriptor  $requestDescriptor
      * @param IoHandlerInterface $ioHandler
@@ -105,6 +103,7 @@ class IoStage extends AbstractTimeAwareStage
         try {
             $this->eventCaller->setCurrentOperation($requestDescriptor);
             $result = $ioHandler->handle(
+                $requestDescriptor->getOperation(),
                 $requestDescriptor,
                 $this->executor,
                 $this->eventCaller,

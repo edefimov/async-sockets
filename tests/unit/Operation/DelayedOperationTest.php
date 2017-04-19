@@ -25,21 +25,24 @@ class DelayedOperationTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         $mock     = $this->getMockBuilder('AsyncSockets\Operation\OperationInterface')
-                        ->setMethods([ 'getType'])
+                        ->setMethods([ 'getTypes'])
                         ->getMockForAbstractClass();
         $callable = [$this, __FUNCTION__];
 
         $type = sha1(microtime(true));
         $mock->expects(self::any())
-            ->method('getType')
-            ->willReturn($type);
+            ->method('getTypes')
+            ->willReturn([$type]);
         $args = [
             time() => mt_rand(1, PHP_INT_MAX)
         ];
         $object = new DelayedOperation($mock, $callable, $args);
         self::assertSame($callable, $object->getCallable(), 'Incorrect callable function');
         self::assertSame($mock, $object->getOriginalOperation(), 'Incorrect original operation');
-        self::assertSame($type, $object->getType(), 'Incorrect operation type');
         self::assertSame($args, $object->getArguments(), 'Incorrect arguments');
+
+        $types = $object->getTypes();
+        self::assertCount(1, $types, 'Unexpected type count');
+        self::assertSame($type, reset($types), 'Incorrect operation type');
     }
 }

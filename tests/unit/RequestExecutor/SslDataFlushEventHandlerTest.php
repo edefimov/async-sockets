@@ -130,7 +130,7 @@ class SslDataFlushEventHandlerTest extends EventHandlerInterfaceTest
 
         $object = new SslDataFlushEventHandler($next);
         $event  = $this->getMockBuilder('AsyncSockets\Event\DataAlertEvent')
-                      ->setMethods(['getAttempt', 'getType'])
+                      ->setMethods(['getAttempt', 'getTypes'])
                       ->disableOriginalConstructor()
                       ->getMockForAbstractClass();
         $event->expects(self::any())
@@ -138,7 +138,7 @@ class SslDataFlushEventHandlerTest extends EventHandlerInterfaceTest
             ->willReturn(2);
 
         $event->expects(self::any())
-            ->method('getType')
+            ->method('getTypes')
             ->willReturn(EventType::DATA_ALERT);
 
         $next->expects(self::exactly(1))
@@ -165,11 +165,11 @@ class SslDataFlushEventHandlerTest extends EventHandlerInterfaceTest
         $socket = $this->getMockForAbstractClass('AsyncSockets\Socket\SocketInterface');
 
         $event = $this->getMockBuilder('AsyncSockets\Event\ReadEvent')
-                      ->setMethods(['getType', 'getSocket', 'getFrame'])
+                      ->setMethods(['getTypes', 'getSocket', 'getFrame'])
                       ->disableOriginalConstructor()
                       ->getMockForAbstractClass();
         $event->expects(self::any())
-              ->method('getType')
+              ->method('getTypes')
               ->willReturn(EventType::READ);
         $event->expects(self::any())
               ->method('getSocket')

@@ -64,8 +64,8 @@ class AsyncSocketFactory
     /**
      * Create socket client
      *
-     * @param string      $type Socket type to create, one of SOCKET_* consts
-     * @param array       $options  $flags Flags with socket settings, see SOCKET_OPTION_* consts
+     * @param string $type    Socket type to create, one of SOCKET_* consts
+     * @param array  $options Flags with socket settings, see SOCKET_OPTION_* consts
      *
      * @return SocketInterface
      * @api

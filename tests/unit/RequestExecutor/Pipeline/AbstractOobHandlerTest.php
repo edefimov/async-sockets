@@ -77,6 +77,7 @@ class AbstractOobHandlerTest extends AbstractIoHandlerTest
             );
 
         $result = $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_OOB),
             $this->executor,
             $this->mockEventHandler,
@@ -110,9 +111,11 @@ class AbstractOobHandlerTest extends AbstractIoHandlerTest
                 }
             );
 
-        $result = $this->handler->handle(
+        $currentOp = $this->createOperation();
+        $result    = $this->handler->handle(
+            $currentOp,
             $this->getMockedDescriptor(
-                $this->createOperation(),
+                $currentOp,
                 $this->socket,
                 RequestDescriptor::RDS_OOB | RequestDescriptor::RDS_READ | RequestDescriptor::RDS_WRITE
             ),

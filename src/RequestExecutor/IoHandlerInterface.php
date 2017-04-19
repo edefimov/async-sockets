@@ -29,6 +29,7 @@ interface IoHandlerInterface
     /**
      * Process given operation
      *
+     * @param OperationInterface       $operation        Operation to process
      * @param RequestDescriptor        $descriptor       Request descriptor
      * @param RequestExecutorInterface $executor         Executor, processing operation
      * @param EventHandlerInterface    $eventHandler     Event handler for this operation
@@ -38,6 +39,7 @@ interface IoHandlerInterface
      *      if next operation is not required. Return $operation parameter, if operation is not completed yet
      */
     public function handle(
+        OperationInterface $operation,
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler,

@@ -58,10 +58,9 @@ class SelectStage extends AbstractTimeAwareStage
 
         /** @var RequestDescriptor[] $requestDescriptors */
         foreach ($requestDescriptors as $descriptor) {
-            $this->selector->addSocketOperation(
-                $descriptor,
-                $descriptor->getOperation()->getType()
-            );
+            foreach ($descriptor->getOperation()->getTypes() as $type) {
+                $this->selector->addSocketOperation($descriptor, $type);
+            }
         }
 
         try {

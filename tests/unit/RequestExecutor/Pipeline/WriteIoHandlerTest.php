@@ -78,8 +78,9 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                               );
                           });
 
+        $operation  = new WriteOperation($testData);
         $descriptor = $this->getMockedDescriptor(
-            new WriteOperation($testData),
+            $operation,
             $this->socket,
             RequestDescriptor::RDS_WRITE
         );
@@ -99,6 +100,7 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
             );
 
         $result = $this->handler->handle(
+            $operation,
             $descriptor,
             $this->executor,
             $this->mockEventHandler,
@@ -123,9 +125,11 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                                ->method('invokeEvent')
                                ->willThrowException($exception);
 
+        $operation = new WriteOperation('some data');
         $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
-                new WriteOperation('some data'),
+                $operation,
                 $this->socket,
                 RequestDescriptor::RDS_WRITE
             ),
@@ -149,9 +153,11 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
         $this->socket->expects(self::never())->method('read');
         $this->socket->expects(self::any())->method('write')->willThrowException($exception);
 
+        $operation = new WriteOperation('some data');
         $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
-                new WriteOperation('some data'),
+                $operation,
                 $this->socket,
                 RequestDescriptor::RDS_WRITE
             ),
@@ -173,9 +179,11 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
         $this->socket->expects(self::never())->method('read');
         $this->socket->expects(self::never())->method('write');
 
-        $result = $this->handler->handle(
+        $operation = new WriteOperation();
+        $result    = $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
-                new WriteOperation(),
+                $operation,
                 $this->socket,
                 RequestDescriptor::RDS_WRITE
             ),
@@ -204,9 +212,11 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                               $event->getOperation()->setData($testData);
                           });
 
-        $result = $this->handler->handle(
+        $operation = new WriteOperation('');
+        $result    = $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
-                new WriteOperation(''),
+                $operation,
                 $this->socket,
                 RequestDescriptor::RDS_WRITE
             ),
@@ -233,6 +243,7 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
         $this->mockEventHandler->expects(self::never())->method('invokeEvent');
 
         $result = $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
                 $operation,
                 $this->socket,
@@ -269,8 +280,10 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
                               );
                           });
 
-        $result = $this->handler->handle(
-            $this->getMockedDescriptor(new WriteOperation($testData), $this->socket, RequestDescriptor::RDS_WRITE),
+        $operation = new WriteOperation($testData);
+        $result    = $this->handler->handle(
+            $operation,
+            $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
             $this->mockEventHandler,
             $this->executionContext
@@ -291,8 +304,10 @@ class WriteIoHandlerTest extends AbstractOobHandlerTest
      */
     public function testThatIncorrectObjectThrowsException()
     {
+        $operation = new WriteOperation(new \stdClass());
         $this->handler->handle(
-            $this->getMockedDescriptor(new WriteOperation(new \stdClass()), $this->socket, RequestDescriptor::RDS_WRITE),
+            $operation,
+            $this->getMockedDescriptor($operation, $this->socket, RequestDescriptor::RDS_WRITE),
             $this->executor,
             $this->mockEventHandler,
             $this->executionContext

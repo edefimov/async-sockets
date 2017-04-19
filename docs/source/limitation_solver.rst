@@ -62,7 +62,7 @@ The simple implementation of the ``LimitationSolverInterface`` is ``ConstantLimi
 
        public function invokeEvent(Event $event)
        {
-           switch ($event->getType()) {
+           switch ($event->getTypes()) {
                case EventType::INITIALIZE:
                    $this->activeRequests += 1;
                    break;

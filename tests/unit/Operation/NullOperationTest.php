@@ -26,10 +26,9 @@ class NullOperationTest extends \PHPUnit_Framework_TestCase
     public function testInitialState()
     {
         $operation = new NullOperation();
-        self::assertSame(
-            OperationInterface::OPERATION_READ,
-            $operation->getType(),
-            'Null operation must have read type'
-        );
+
+        $types = $operation->getTypes();
+        self::assertCount(1, $types, 'Unexpected type count');
+        self::assertSame(OperationInterface::OPERATION_READ, reset($types), 'Incorrect operation type');
     }
 }

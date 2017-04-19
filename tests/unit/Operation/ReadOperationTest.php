@@ -37,11 +37,10 @@ class ReadOperationTest extends \PHPUnit_Framework_TestCase
             $this->operation->getFramePicker(),
             'Incorrect initial state for framePicker'
         );
-        self::assertSame(
-            OperationInterface::OPERATION_READ,
-            $this->operation->getType(),
-            'Incorrect type for operation'
-        );
+
+        $types = $this->operation->getTypes();
+        self::assertCount(1, $types, 'Unexpected type count');
+        self::assertSame(OperationInterface::OPERATION_READ, reset($types), 'Incorrect operation type');
     }
 
     /** {@inheritdoc} */

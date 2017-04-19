@@ -36,9 +36,9 @@ class ReadOperation implements OperationInterface
 
 
     /** {@inheritdoc} */
-    public function getType()
+    public function getTypes()
     {
-        return self::OPERATION_READ;
+        return [self::OPERATION_READ];
     }
 
     /**

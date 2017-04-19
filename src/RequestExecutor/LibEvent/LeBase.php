@@ -195,9 +195,14 @@ class LeBase
             OperationInterface::OPERATION_WRITE => EV_WRITE,
         ];
 
-        $operation = $event->getRequestDescriptor()->getOperation()->getType();
+        $operations = $event->getRequestDescriptor()->getOperation()->getTypes();
 
-        return isset($map[$operation]) ? $map[$operation] : 0;
+        $result = 0;
+        foreach ($operations as $operation) {
+            $result |= isset($map[$operation]) ? $map[$operation] : 0;
+        }
+
+        return $result;
     }
 
     /**

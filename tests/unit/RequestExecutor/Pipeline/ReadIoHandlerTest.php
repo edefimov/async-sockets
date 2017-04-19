@@ -80,11 +80,13 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                                    }
                                );
 
+        $operation  = new ReadOperation();
         $descriptor = $this->getMockedDescriptor(
-            new ReadOperation(),
+            $operation,
             $this->socket,
             RequestDescriptor::RDS_READ
         );
+
         $this->metadata[RequestExecutorInterface::META_BYTES_RECEIVED]             = mt_rand(1000, 10000);
         $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED]          = 1;
         $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION] = 1e10;
@@ -109,6 +111,7 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                     });
 
         $result = $this->handler->handle(
+            $operation,
             $descriptor,
             $this->executor,
             $this->mockEventHandler,
@@ -143,6 +146,7 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                         ->getMock();
 
         $result = $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
                 $operation,
                 $this->socket,
@@ -174,9 +178,11 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
                           ->method('invokeEvent')
                           ->willThrowException($exception);
 
+        $operation = new ReadOperation();
         $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
-                new ReadOperation(),
+                $operation,
                 $this->socket,
                 RequestDescriptor::RDS_READ
             ),
@@ -202,9 +208,11 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
 
         $this->mockEventHandler->expects(self::never())->method('invokeEvent');
 
+        $operation = new ReadOperation();
         $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
-                new ReadOperation(),
+                $operation,
                 $this->socket,
                 RequestDescriptor::RDS_READ
             ),
@@ -228,9 +236,11 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
 
         $this->mockEventHandler->expects(self::never())->method('invokeEvent');
 
-        $result = $this->handler->handle(
+        $operation = new ReadOperation();
+        $result    = $this->handler->handle(
+            $operation,
             $this->getMockedDescriptor(
-                new ReadOperation(),
+                $operation,
                 $this->socket,
                 RequestDescriptor::RDS_READ
             ),
@@ -265,16 +275,19 @@ class ReadIoHandlerTest extends AbstractOobHandlerTest
             return 2;
         });
 
+        $operation  = new ReadOperation();
         $descriptor = $this->getMockedDescriptor(
-            new ReadOperation(),
+            $operation,
             $this->socket,
             RequestDescriptor::RDS_READ
         );
+
         $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED]          = 1e10;
         $this->metadata[RequestExecutorInterface::META_MIN_RECEIVE_SPEED_DURATION] = 1;
         $this->metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME]     = 0;
 
         $this->handler->handle(
+            $operation,
             $descriptor,
             $this->executor,
             $this->mockEventHandler,

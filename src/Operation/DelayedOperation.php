@@ -52,9 +52,9 @@ class DelayedOperation implements OperationInterface
     }
 
     /** {@inheritdoc} */
-    public function getType()
+    public function getTypes()
     {
-        return $this->origin->getType();
+        return $this->origin->getTypes();
     }
 
     /**

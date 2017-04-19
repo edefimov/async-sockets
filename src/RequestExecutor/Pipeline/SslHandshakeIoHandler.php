@@ -30,13 +30,13 @@ class SslHandshakeIoHandler extends AbstractOobHandler
 
     /** {@inheritdoc} */
     protected function handleOperation(
+        OperationInterface $operation,
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler,
         ExecutionContext $executionContext
     ) {
-        $operation = $descriptor->getOperation();
-        $socket    = $descriptor->getSocket();
+        $socket = $descriptor->getSocket();
 
         /** @var SslHandshakeOperation $operation */
         $resource = $descriptor->getSocket()->getStreamResource();
@@ -48,5 +48,13 @@ class SslHandshakeIoHandler extends AbstractOobHandler
         }
 
         return $operation;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function getHandlerType()
+    {
+        return RequestDescriptor::RDS_WRITE;
     }
 }

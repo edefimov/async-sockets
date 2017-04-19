@@ -21,6 +21,7 @@ use AsyncSockets\Operation\ReadOperation;
 use AsyncSockets\Operation\WriteOperation;
 use AsyncSockets\RequestExecutor\IoHandlerInterface;
 use AsyncSockets\RequestExecutor\Metadata\RequestDescriptor;
+use AsyncSockets\RequestExecutor\Pipeline\DelegatingIoHandler;
 use AsyncSockets\RequestExecutor\Pipeline\IoStage;
 use AsyncSockets\RequestExecutor\Pipeline\WriteIoHandler;
 use AsyncSockets\RequestExecutor\RequestExecutorInterface;
@@ -124,9 +125,9 @@ class IoStageTest extends AbstractStageTest
             true,
             true,
             true,
-            ['getType']
+            ['getTypes']
         );
-        $operation->expects(self::any())->method('getType')->willReturn(md5(microtime(true)));
+        $operation->expects(self::any())->method('getTypes')->willReturn(md5(microtime(true)));
 
         $request = $this->createRequestDescriptor();
         $request->expects(self::any())->method('getOperation')->willReturn($operation);
@@ -164,7 +165,7 @@ class IoStageTest extends AbstractStageTest
             ->with($operation)
             ->willReturn(true);
         $this->mockHandler->expects(self::once())->method('handle')
-            ->with($request, $this->executor, $eventCaller);
+            ->with($operation, $request, $this->executor, $eventCaller);
 
         $this->metadata[RequestExecutorInterface::META_CONNECTION_FINISH_TIME] = 5;
         $request->expects(self::any())->method('getMetadata')->willReturn($this->metadata);
@@ -172,7 +173,7 @@ class IoStageTest extends AbstractStageTest
         $eventCaller->expects(self::once())->method('setCurrentOperation')->with($request);
         $eventCaller->expects(self::once())->method('clearCurrentOperation');
 
-        $stage = new IoStage($this->executor, $eventCaller, $this->executionContext, [$this->mockHandler]);
+        $stage = new IoStage($this->executor, $eventCaller, $this->executionContext, $this->mockHandler);
         $stage->processStage([$request]);
     }
 
@@ -198,7 +199,7 @@ class IoStageTest extends AbstractStageTest
         $this->mockHandler->expects(self::never())->method('handle');
 
         try {
-            $stage = new IoStage($this->executor, $this->eventCaller, $this->executionContext, [$this->mockHandler]);
+            $stage = new IoStage($this->executor, $this->eventCaller, $this->executionContext, $this->mockHandler);
             $stage->processStage([$request]);
         } catch (\LogicException $e) {
             // it's ok
@@ -465,10 +466,10 @@ class IoStageTest extends AbstractStageTest
             $this->executor,
             $this->eventCaller,
             $this->executionContext,
-            [
+            new DelegatingIoHandler([
                 $this->mockHandler,
                 new WriteIoHandler()
-            ]
+            ])
         );
     }
 

@@ -38,6 +38,7 @@ abstract class AbstractOobHandler implements IoHandlerInterface
      * {@inheritdoc}
      */
     final public function handle(
+        OperationInterface $operation,
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler,
@@ -52,15 +53,29 @@ abstract class AbstractOobHandler implements IoHandlerInterface
         if ($descriptor->hasState($state)) {
             $descriptor->clearState($state);
 
-            $result = $this->handleOperation($descriptor, $executor, $eventHandler, $executionContext);
+            $result = $this->handleOperation(
+                $descriptor->getOperation(),
+                $descriptor,
+                $executor,
+                $eventHandler,
+                $executionContext
+            );
         }
 
         return $result;
     }
 
     /**
+     * Return type of this handler
+     *
+     * @return int One of RequestDescriptor::RDS_* constant
+     */
+    abstract protected function getHandlerType();
+
+    /**
      * Process given operation
      *
+     * @param OperationInterface       $operation        Operation to process
      * @param RequestDescriptor        $descriptor       Request descriptor
      * @param RequestExecutorInterface $executor         Executor, processing operation
      * @param EventHandlerInterface    $eventHandler     Event handler for this operation
@@ -70,6 +85,7 @@ abstract class AbstractOobHandler implements IoHandlerInterface
      *      if next operation is not required. Return $operation parameter, if operation is not completed yet
      */
     abstract protected function handleOperation(
+        OperationInterface $operation,
         RequestDescriptor $descriptor,
         RequestExecutorInterface $executor,
         EventHandlerInterface $eventHandler,
@@ -81,13 +97,16 @@ abstract class AbstractOobHandler implements IoHandlerInterface
      *
      * @param OperationInterface $operation Operation object
      *
-     * @return int RequestDescriptor::RDS_* constant
+     * @return int Set of RequestDescriptor::RDS_* constant
      */
     private function getInvokeState(OperationInterface $operation)
     {
-        $type = $operation->getType();
+        $result = 0;
+        foreach ($operation->getTypes() as $type) {
+            $result |= isset(self::$stateMap[$type]) ? self::$stateMap[$type] : 0;
+        }
 
-        return isset(self::$stateMap[$type]) ? self::$stateMap[$type] : 0;
+        return $result & $this->getHandlerType();
     }
 
     /**
