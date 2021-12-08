@@ -143,7 +143,7 @@ class AsyncSelector
             throw new SocketException('Failed to select sockets');
         }
 
-        $result = count($read) + count($write) + count($oob);
+        $result = count($read ?? []) + count($write ?? []) + count($oob);
         if ($result === 0) {
             throw new TimeoutException('Select operation was interrupted during timeout');
         }
